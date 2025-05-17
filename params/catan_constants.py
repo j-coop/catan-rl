@@ -1,6 +1,6 @@
 # Board configuration
 N_TILES = 19           # Total land tiles (including desert)
-N_NODES = 54           # Intersections (settlements/cities)
+N_NODES = 53           # Intersections (settlements/cities)
 N_EDGES = 72           # Paths (roads)
 
 N_ADJACENT_TILES = 12
@@ -21,7 +21,8 @@ N_RESOURCE_TYPES = 6
 
 # Number tokens on tiles (excluding 7)
 TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
-N_TOKENS = 10
+N_TOKEN_VALUES = 11
+
 
 # Player limits
 PLAYERS = 4
