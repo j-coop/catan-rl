@@ -7,6 +7,8 @@ N_ADJACENT_TILES = 12
 N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
+N_PORT_NODES = 30
+
 # Resources and tile types
 RESOURCE_TYPES = ["brick", "wood", "wool", "grain", "ore", "none"]
 TILE_TYPE_COUNTS = {
@@ -15,11 +17,22 @@ TILE_TYPE_COUNTS = {
     "wool": 4,
     "grain": 4,
     "ore": 3,
-    "desert": 1
+    "desert": 1  # desert
 }
 N_RESOURCE_TYPES = 6
 
-# Number tokens on tiles (excluding 7)
+PORT_TYPE_COUNTS = {
+    "brick": 1,
+    "wood": 1,
+    "wool": 1,
+    "grain": 1,
+    "ore": 1,
+    "generic": 4,  # port 3:1
+    "no_port": 6
+}
+N_PORT_FIELD_TYPES = 7
+
+# Number tokens on tiles
 TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
 N_TOKEN_VALUES = 11
 
