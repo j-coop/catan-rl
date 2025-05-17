@@ -1,0 +1,89 @@
+import gym
+import numpy as np
+
+from params.catan_constants import *
+
+
+class CatanBaseEnv(gym.Env):
+
+    def __init__(self):
+        super().__init__()
+
+        self.state = None
+
+        self.observation_space = gym.spaces.Dict({
+            "tiles": gym.spaces.Dict({
+                "resources": gym.spaces.MultiBinary([N_TILES, 
+                                                     N_RESOURCE_TYPES]),
+                "tokens": gym.spaces.MultiBinary([N_TILES, 
+                                                  N_TOKEN_VALUES]),
+                "has_robber": gym.spaces.MultiBinary([N_TILES])
+            }),
+            "ports": gym.spaces.MultiBinary([N_PORT_NODES, 
+                                             N_RESOURCE_TYPES])
+        })
+
+    def reset(self):
+        # Random resource and token assignments
+        resources = self.__generate_resources()
+        tokens = self.__generate_tokens(resources)
+        robber_index = np.argmax(resources[:, -1])  # Desert tile index
+
+        self.state = {
+            "tiles": {
+                "resources": resources,
+                "tokens": tokens,
+                "has_robber": np.eye(self.N_TILES)[robber_index]
+            },
+            "ports": self._generate_ports()
+        }
+        return self.state
+
+    def __generate_resources(self):
+        """
+        Return a MultiBinary matrix of shape (19, 6), one-hot per tile
+        """
+        res_list = (
+            [0] * TILE_TYPE_COUNTS["brick"] +
+            [1] * TILE_TYPE_COUNTS["wood"] +
+            [2] * TILE_TYPE_COUNTS["wool"] +
+            [3] * TILE_TYPE_COUNTS["grain"] +
+            [4] * TILE_TYPE_COUNTS["ore"] +
+            [5] * TILE_TYPE_COUNTS["desert"]
+        )
+        np.random.shuffle(res_list)
+        return np.eye(N_RESOURCE_TYPES)[res_list]
+
+    def __generate_tokens(self):
+        token_values = TOKENS
+        np.random.shuffle(token_values)
+        tokens = np.zeros((N_TILES, N_TOKEN_VALUES), dtype=np.int32)
+
+        token_idx = 0
+        desert_tile_index = self.__get_desert_tile_index()
+        for i in range(N_TILES):
+            if i == desert_tile_index:
+                continue
+            token_val = token_values[token_idx]
+            tokens[i][token_val - 2] = 1  # map 2-12 to index 0-10
+            token_idx += 1
+        return tokens
+
+    def _generate_ports(self):
+        res_list = (
+            [0] * PORT_TYPE_COUNTS["brick"] +
+            [1] * PORT_TYPE_COUNTS["wood"] +
+            [2] * PORT_TYPE_COUNTS["wool"] +
+            [3] * PORT_TYPE_COUNTS["grain"] +
+            [4] * PORT_TYPE_COUNTS["ore"] +
+            [5] * PORT_TYPE_COUNTS["generic"] +
+            [6] * PORT_TYPE_COUNTS["no_port"]
+        )
+        np.random.shuffle(res_list)
+        rest_list_doubled = [val for val in res_list for _ in range(2)]
+        return np.eye(N_PORT_FIELD_TYPES)[rest_list_doubled]
+
+    def __get_desert_tile_index(self):
+        resources = self.state["tiles"]["resources"]
+        return np.argmax(resources[:, -1])
+

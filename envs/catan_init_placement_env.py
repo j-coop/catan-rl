@@ -4,7 +4,7 @@ from gymnasium import spaces
 from params.catan_constants import *
 
 
-class CatanEnv(gym.Env):
+class CatanInitPlacementEnv(gym.Env):
 
     def __init__(self):
         super().__init__()
@@ -16,10 +16,12 @@ class CatanEnv(gym.Env):
 
         self.observation_space = spaces.Dict({
             "tiles": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES, 1]),
+                "exist": spaces.MultiBinary([N_NODES,
+                                             N_ADJACENT_TILES,
+                                             1]),
                 "tokens":     spaces.MultiBinary([N_NODES,
                                                   N_ADJACENT_TILES,
-                                                  N_TOKENS]),
+                                                  N_TOKEN_VALUES]),
                 "resources":  spaces.MultiBinary([N_NODES,
                                                   N_ADJACENT_TILES,
                                                   N_RESOURCE_TYPES])
