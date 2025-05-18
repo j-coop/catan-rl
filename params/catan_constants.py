@@ -3,7 +3,7 @@ N_TILES = 19           # Total land tiles (including desert)
 N_NODES = 54           # Intersections (settlements/cities)
 N_EDGES = 72           # Paths (roads)
 
-N_ADJACENT_TILES = 12
+N_ADJACENT_TILES = 3
 N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
