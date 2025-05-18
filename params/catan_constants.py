@@ -1,9 +1,9 @@
 # Board configuration
 N_TILES = 19           # Total land tiles (including desert)
-N_NODES = 53           # Intersections (settlements/cities)
+N_NODES = 54           # Intersections (settlements/cities)
 N_EDGES = 72           # Paths (roads)
 
-N_ADJACENT_TILES = 12
+N_ADJACENT_TILES = 3
 N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
@@ -38,7 +38,7 @@ N_TOKEN_VALUES = 11
 
 
 # Player limits
-PLAYERS = 4
+N_PLAYERS = 4
 ROADS_PER_PLAYER = 15
 SETTLEMENTS_PER_PLAYER = 5
 CITIES_PER_PLAYER = 4
@@ -55,5 +55,3 @@ TOTAL_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 
 # Game phases (if useful for state management)
 PHASES = ["setup", "roll_dice", "build", "trade", "end_turn"]
-
-# Robber

@@ -27,14 +27,21 @@ class CatanInitPlacementEnv(gym.Env):
                                                   N_RESOURCE_TYPES])
             }),
             "edges": spaces.Dict({
-                "exist": spaces.MultiBinary([N_ADJACENT_EDGES, 1]),
-                "is_built": spaces.MultiBinary([N_ADJACENT_EDGES, 1]),
-                "is_owned": spaces.MultiBinary([N_ADJACENT_EDGES, 1])  # owned by the player
+                "exist": spaces.MultiBinary([N_NODES,
+                                             N_ADJACENT_EDGES]),
+                "is_built": spaces.MultiBinary([N_NODES,
+                                                N_ADJACENT_EDGES]),
+                "is_owned": spaces.MultiBinary([N_NODES,  # owned by the player
+                                                N_ADJACENT_EDGES]),
             }),
             "nodes": spaces.Dict({
-                "exist": spaces.MultiBinary([N_ADJACENT_NODES, 1]),
-                "is_built": spaces.MultiBinary([N_ADJACENT_NODES, 1]),
-                "is_owned": spaces.MultiBinary([N_ADJACENT_NODES, 1]),  # owned by the player
-                "is_port": spaces.MultiBinary([N_ADJACENT_NODES, 1])
+                "exist": spaces.MultiBinary([N_NODES, 
+                                             N_ADJACENT_NODES]),
+                "is_built": spaces.MultiBinary([N_NODES, 
+                                                N_ADJACENT_NODES]),
+                "is_owned": spaces.MultiBinary([N_NODES, # owned by the player
+                                                N_ADJACENT_NODES]),
+                "is_port": spaces.MultiBinary([N_NODES, 
+                                               N_ADJACENT_NODES]),
             })
         })
