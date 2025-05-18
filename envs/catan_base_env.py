@@ -2,8 +2,8 @@ import gym
 import numpy as np
 
 from params.catan_constants import *
-from params.tiles2nodes_adjacency_map import TILE_TO_NODES
-from params.nodes2tiles_adjacency_map import NODE_TO_TILES
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
 class CatanBaseEnv(gym.Env):
 
@@ -99,18 +99,17 @@ class CatanBaseEnv(gym.Env):
         result = np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8)
         border_index = 0
         for node in range(N_NODES):
-            if len(NODE_TO_TILES[node]) <= 2:
+            if len(NODES_TO_TILES[node]) <= 2:
                 result[node] = node_ports[border_index]
                 border_index += 1
 
         tile_ports = np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES), dtype=np.int8)
-        for tile_id, node_ids in enumerate(TILE_TO_NODES):
+        for tile_id, node_ids in enumerate(TILES_TO_NODES):
             for i, node_id in enumerate(node_ids):
-                if len(NODE_TO_TILES[node]) <= 2:
+                if len(NODES_TO_TILES[node]) <= 2:
                     tile_ports[tile_id, i] = result[node_id]
         return tile_ports
 
     def __get_desert_tile_index(self):
         resources = self.state["tiles"]["resources"]
         return np.argmax(resources[:, -1])
-

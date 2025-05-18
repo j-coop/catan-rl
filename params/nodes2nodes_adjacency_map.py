@@ -1,4 +1,4 @@
-NODE_TO_NODES = {
+NODES_TO_NODES = {
     0:  [1, 8],
     1:  [0, 2],
     2:  [1, 3, 10],

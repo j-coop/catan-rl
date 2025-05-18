@@ -1,4 +1,4 @@
-NODE_TO_TILES = {
+NODES_TO_TILES = {
     0:  [0],
     1:  [0],
     2:  [0, 1],
