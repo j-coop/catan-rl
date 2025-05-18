@@ -1,4 +1,4 @@
-TILE_TO_TILES = {
+TILES_TO_TILES = {
     0:  [1, 3, 4],
     1:  [0, 2, 4],
     2:  [1, 5, 6],
