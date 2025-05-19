@@ -5,17 +5,18 @@ import numpy as np
 from params.catan_constants import *
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
+from reset_mixins import CatanResetMixin
 
-
-class CatanInitPlacementEnv(gym.Env):
+class CatanInitPlacementEnv(gym.Env,
+                            CatanResetMixin):
 
     def __init__(self, base_env_obs):
         super().__init__()
-        self.base_env_ops = base_env_obs
+        self.__base_obs = base_env_obs
 
         self.action_space = spaces.Dict({
-            "build_road":       spaces.MultiBinary(N_EDGES),
             "build_settlement": spaces.MultiBinary(N_NODES),
+            "build_road":       spaces.MultiBinary(N_EDGES),
         })
 
         self.observation_space = spaces.Dict({
@@ -60,6 +61,77 @@ class CatanInitPlacementEnv(gym.Env):
         self.observation_space = self.__obs
         del self.__obs
 
+    def step(self, action):
+        """
+        Agent places EITHER a settlement OR a road in this step.
+        """
+        settlement_action = action["build_settlement"]
+        road_action = action["build_road"]
+        self.__verify_action(settlement_action, road_action)
+
+        if settlement_action.sum() == 1:
+            self.__make_settlement_action(settlement_action)
+        elif road_action.sum() == 1:
+            self.__make_road_action
+        raise ValueError("Action must specify either a road or a settlement.")
+    
+    def __is_valid_settlement_placement(self, node_id):
+        if self.__obs["adjacent_nodes"]["is_built"][node_id].any():
+            return False  # adjacent node already has a settlement
+        return True  # You can add more checks if needed
+
+    def __apply_settlement(self, node_id):
+        self.__obs["adjacent_nodes"]["is_built"][node_id] = 1
+        self.__obs["adjacent_nodes"]["is_owned"][node_id] = 1
+
+    def __is_valid_road_placement(self, edge_id):
+        # Optional: Add checks for adjacency to a settlement
+        return self.__obs["edges"]["is_built"][:, edge_id].sum() == 0
+
+    def __apply_road(self, edge_id):
+        self.__obs["edges"]["is_built"][:, edge_id] = 1
+        self.__obs["edges"]["is_owned"][:, edge_id] = 1
+
+    def __check_if_placement_done(self):
+        # Return True if all agents have finished their initial placements
+        # Could track self.__num_settlements or self.__placements_done
+        return False
+    
+    def __verify_action(self, action, settlement_action, road_action):
+        assert self.action_space.contains(action), "Invalid action format"
+        assert (settlement_action.sum() + road_action.sum()) == 1, \
+            "Exactly one action should be performed per step"
+        
+    def __make_settlement_action(self, settlement_action):
+        node_id = np.argmax(settlement_action)
+        if not self.__is_valid_settlement_placement(node_id):
+            reward = -1.0
+            terminated = True
+            truncated = False
+            return self.__obs, reward, terminated, truncated, {}
+
+        self.__apply_settlement(node_id)
+        self.__update_obs_after_settlement(node_id)
+        reward = 1.0  # Or 0.0 if using sparse reward
+        terminated = self.__check_if_placement_done()
+        truncated = False
+        return self.__obs, reward, terminated, truncated, {}
+
+    def __make_road_action(self, road_action):
+        edge_id = np.argmax(road_action)
+        if not self.__is_valid_road_placement(edge_id):
+            reward = -1.0
+            terminated = True
+            truncated = False
+            return self.__obs, reward, terminated, truncated, {}
+
+        self.__apply_road(edge_id)
+        self.__update_obs_after_road(edge_id)
+        reward = 1.0  # Or 0.0
+        terminated = self.__check_if_placement_done()
+        truncated = False
+        return self.__obs, reward, terminated, truncated, {}
+
     def __prepare_obs_dict(self):
         obs = {
             "tiles": {
@@ -98,8 +170,8 @@ class CatanInitPlacementEnv(gym.Env):
         return obs
 
     def __fill_tiles_info(self, tile_resources, tile_tokens):
-        tile_resources = self.base_obs["tiles"]["resources"]
-        tile_tokens = self.base_obs["tiles"]["tokens"]
+        tile_resources = self.__base_obs["tiles"]["resources"]
+        tile_tokens = self.__base_obs["tiles"]["tokens"]
         for tile_id, node_ids in TILES_TO_NODES.items():
             for i, node_id in enumerate(node_ids):
                 self.__obs["tiles"]["exist"][node_id, i, 0] = 1
@@ -113,7 +185,8 @@ class CatanInitPlacementEnv(gym.Env):
                     self.__obs["adjacent_nodes"]["exist"][node_id, i] = 1
 
 
-    def __fill_port_info(self, tile_ports):
+    def __fill_port_info(self):
+        tile_ports = self.__base_obs["nodes"]["ports"]
         for tile_id, node_ids in enumerate(TILES_TO_NODES):
             for local_idx, node_id in enumerate(node_ids):
                 port_vec = tile_ports[tile_id, local_idx]
