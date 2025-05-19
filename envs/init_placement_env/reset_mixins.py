@@ -21,26 +21,26 @@ class CatanResetMixin:
             },
             "edges": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                dtype=np.int8),
+                                   dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
                 "is_owned": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
             },
             "adjacent_nodes": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                dtype=np.int8),
+                                   dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                    dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
+                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES, N_PLAYERS),
+                                      dtype=np.int8),
                 "has_port": np.zeros((N_NODES,
                                       N_ADJACENT_NODES, 
                                       N_PORT_FIELD_TYPES),
                                       dtype=np.int8),
             },
             "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
-                                 dtype=np.int8),
+                                  dtype=np.int8),
         }
         return obs
 
@@ -58,7 +58,6 @@ class CatanResetMixin:
             for i, neighbor in enumerate(self.__ring_neighbors[node_id]):
                 if neighbor != -1:
                     self.__obs["adjacent_nodes"]["exist"][node_id, i] = 1
-
 
     def __fill_port_info(self):
         tile_ports = self.__base_obs["nodes"]["ports"]
@@ -84,7 +83,6 @@ class CatanResetMixin:
 
             for i, edge in enumerate(edge_set):
                 self.__obs["edges"]["exist"][node_id, i] = 1
-
 
     def __find_neighbors_of_neighbors(self):
         max = 6

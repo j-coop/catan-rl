@@ -10,7 +10,7 @@ class CatanStepMixin:
 
     def __apply_settlement(self, node_id):
         self.__obs["adjacent_nodes"]["is_built"][node_id] = 1
-        self.__obs["adjacent_nodes"]["is_owned"][node_id] = 1
+        # self.__obs["adjacent_nodes"]["is_owned"][node_id, i, agent_id] = 1
 
     def __is_valid_road_placement(self, edge_id):
         # Optional: Add checks for adjacency to a settlement
@@ -59,3 +59,9 @@ class CatanStepMixin:
         terminated = self.__check_if_placement_done()
         truncated = False
         return self.__obs, reward, terminated, truncated, {}
+
+    def __is_placing_1_settlement(self, settlement_action):
+        return settlement_action.sum() == 1
+    
+    def __is_placing_1_road(self, road_action):
+        return road_action.sum() == 1
