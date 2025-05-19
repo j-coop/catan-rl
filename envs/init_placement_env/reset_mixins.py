@@ -1,5 +1,3 @@
-import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
 
 from params.catan_constants import *
@@ -7,58 +5,7 @@ from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
 
-class CatanInitPlacementEnv(gym.Env):
-
-    def __init__(self, base_env_obs):
-        super().__init__()
-        self.base_env_ops = base_env_obs
-
-        self.action_space = spaces.Dict({
-            "build_road":       spaces.MultiBinary(N_EDGES),
-            "build_settlement": spaces.MultiBinary(N_NODES),
-        })
-
-        self.observation_space = spaces.Dict({
-            "tiles": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_TILES]),
-                "tokens":     spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_TILES,
-                                                  N_TOKEN_VALUES]),
-                "resources":  spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_TILES,
-                                                  N_RESOURCE_TYPES])
-            }),
-            "edges": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_EDGES]),
-                "is_built": spaces.MultiBinary([N_NODES,
-                                                N_ADJACENT_EDGES]),
-                "is_owned": spaces.MultiBinary([N_NODES,  # owned by the player
-                                                N_ADJACENT_EDGES]),
-            }),
-            "adjacent_nodes": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES, 
-                                             N_ADJACENT_NODES]),
-                "is_built": spaces.MultiBinary([N_NODES, 
-                                                N_ADJACENT_NODES]),
-                "is_owned": spaces.MultiBinary([N_NODES, # owned by the player
-                                                N_ADJACENT_NODES]),
-                "is_port": spaces.MultiBinary([N_NODES, 
-                                               N_ADJACENT_NODES]),
-            })
-        })
-
-    def reset(self, seed=None, options=None):
-        super().reset(seed=seed)
-        self.__obs = self.__prepare_obs_dict()
-        self.__fill_tiles_info()
-        self.__find_neighbors_of_neighbors()
-        self.__fill_nodes_existence_info()
-        self.__fill_port_info()
-        self.__fill_indirect_edge_existence_info()
-        self.observation_space = self.__obs
-        del self.__obs
+class CatanResetMixin:
 
     def __prepare_obs_dict(self):
         obs = {
@@ -74,32 +21,32 @@ class CatanInitPlacementEnv(gym.Env):
             },
             "edges": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                dtype=np.int8),
+                                   dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
                 "is_owned": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
             },
             "adjacent_nodes": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                dtype=np.int8),
+                                   dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                    dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                    dtype=np.int8),
+                                      dtype=np.int8),
+                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES, N_PLAYERS),
+                                      dtype=np.int8),
                 "has_port": np.zeros((N_NODES,
                                       N_ADJACENT_NODES, 
                                       N_PORT_FIELD_TYPES),
                                       dtype=np.int8),
             },
             "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
-                                 dtype=np.int8),
+                                  dtype=np.int8),
         }
         return obs
 
     def __fill_tiles_info(self, tile_resources, tile_tokens):
-        tile_resources = self.base_obs["tiles"]["resources"]
-        tile_tokens = self.base_obs["tiles"]["tokens"]
+        tile_resources = self.__base_obs["tiles"]["resources"]
+        tile_tokens = self.__base_obs["tiles"]["tokens"]
         for tile_id, node_ids in TILES_TO_NODES.items():
             for i, node_id in enumerate(node_ids):
                 self.__obs["tiles"]["exist"][node_id, i, 0] = 1
@@ -112,8 +59,8 @@ class CatanInitPlacementEnv(gym.Env):
                 if neighbor != -1:
                     self.__obs["adjacent_nodes"]["exist"][node_id, i] = 1
 
-
-    def __fill_port_info(self, tile_ports):
+    def __fill_port_info(self):
+        tile_ports = self.__base_obs["nodes"]["ports"]
         for tile_id, node_ids in enumerate(TILES_TO_NODES):
             for local_idx, node_id in enumerate(node_ids):
                 port_vec = tile_ports[tile_id, local_idx]
@@ -136,7 +83,6 @@ class CatanInitPlacementEnv(gym.Env):
 
             for i, edge in enumerate(edge_set):
                 self.__obs["edges"]["exist"][node_id, i] = 1
-
 
     def __find_neighbors_of_neighbors(self):
         max = 6

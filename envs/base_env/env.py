@@ -28,7 +28,6 @@ class CatanBaseEnv(gym.Env):
         })
 
     def reset(self):
-        # Random resource and token assignments
         resources = self.__generate_resources()
         tokens = self.__generate_tokens(resources)
         robber_index = np.argmax(resources[:, -1])  # Desert tile index
