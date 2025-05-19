@@ -13,6 +13,11 @@ class CatanInitPlacementEnv(gym.Env,
     def __init__(self, base_env_obs):
         super().__init__()
         self.__base_obs = base_env_obs
+        self.__turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
+        self.__turn_index = 0
+        self.__placement_stage = "settlement"
+        self.__settlement_mask = np.ones((N_NODES, N_PLAYERS), dtype=np.int8)
+        self.__road_mask = np.ones((N_EDGES, N_PLAYERS), dtype=np.int8),
 
         self.action_space = spaces.Dict({
             "build_settlement": spaces.MultiBinary(N_NODES),
@@ -44,7 +49,8 @@ class CatanInitPlacementEnv(gym.Env,
                 "is_built": spaces.MultiBinary([N_NODES, 
                                                 N_ADJACENT_NODES]),
                 "is_owned": spaces.MultiBinary([N_NODES, # owned by the player
-                                                N_ADJACENT_NODES]),
+                                                N_ADJACENT_NODES,
+                                                N_PLAYERS]),
                 "is_port": spaces.MultiBinary([N_NODES, 
                                                N_ADJACENT_NODES]),
             })
@@ -68,9 +74,10 @@ class CatanInitPlacementEnv(gym.Env,
         settlement_action = action["build_settlement"]
         road_action = action["build_road"]
         self.__verify_action(settlement_action, road_action)
+        agent = self.__turn_order[self.__turn_index]
 
-        if settlement_action.sum() == 1:
-            self.__make_settlement_action(settlement_action)
-        elif road_action.sum() == 1:
-            self.__make_road_action
-        raise ValueError("Action must specify either a road or a settlement.")
+        if self.__is_placing_1_settlement(settlement_action):
+            self.__make_settlement_action(agent, settlement_action)
+        elif self.__is_placing_1_road(road_action):
+            self.__make_road_action(agent, road_action)
+        raise ValueError("Action must specify either 1 road or 1 settlement.")
