@@ -1,5 +1,10 @@
 import numpy as np
 
+from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY
+from params.edges_list import EDGES_LIST
+from params.nodes2nodes_adjacency_map import NODES_TO_NODES
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
+
 
 class CatanStepMixin:
 
@@ -74,3 +79,34 @@ class CatanStepMixin:
 
     def __update_obs_after_road(self, edge_id, player):
         pass
+
+    def __evaluate_road_heuristic(self, road_action, node_index):
+        road_index = np.argmax(road_action)
+        road_nodes = EDGES_LIST[road_index]
+        target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
+        possible_nodes = NODES_TO_NODES[target_node]
+        possible_nodes.remove(node_index)
+
+        # Heuristic 1: Estimation of two possible settlements road can lead to (0 if already occupied or impossible)
+        potential_value = self.__estimate_future_node_values(possible_nodes)
+
+        # Heuristic 2: Is it directed towards a port?
+        is_toward_port = self.__check_if_toward_port(possible_nodes)
+
+        return potential_value + is_toward_port * 0.3
+
+    """
+    Gives 1 to 'perfect' node. Returns sum of values
+    """
+    def __estimate_future_node_values(self, possible_nodes):
+        value = 0
+        for node in possible_nodes:
+            if not self.__is_valid_settlement_placement(node):
+                continue
+            tokens = [TOKENS[np.argmax(tile)] for tile in self._obs["tiles"]["tokens"][node]]
+            norm_prob = [DICE_PROBABILITIES[token] / MAX_PROBABILITY for token in tokens]
+            value += np.mean(norm_prob)
+        return value
+
+    def __check_if_toward_port(self, possible_nodes):
+        return 0

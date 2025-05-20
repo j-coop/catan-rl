@@ -33,9 +33,24 @@ PORT_TYPE_COUNTS = {
 N_PORT_FIELD_TYPES = 7
 
 # Number tokens on tiles
-TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
+ALL_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
+TOKENS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 N_TOKEN_VALUES = 11
 
+DICE_PROBABILITIES = {
+    2: 1/36,
+    3: 2/36,
+    4: 3/36,
+    5: 4/36,
+    6: 5/36,
+    7: 6/36,
+    8: 5/36,
+    9: 4/36,
+    10: 3/36,
+    11: 2/36,
+    12: 1/36
+}
+MAX_PROBABILITY = 5/36
 
 # Player limits
 N_PLAYERS = 4
