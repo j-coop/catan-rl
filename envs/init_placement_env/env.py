@@ -6,18 +6,19 @@ from params.catan_constants import *
 from reset_mixins import CatanResetMixin
 from step_mixins import CatanStepMixin
 
-class CatanInitPlacementEnv(gym.Env,
-                            CatanResetMixin,
-                            CatanStepMixin):
+class CatanInitPlacementEnv(CatanResetMixin,
+                            CatanStepMixin,
+                            gym.Env):
 
     def __init__(self, base_env_obs):
         super().__init__()
-        self.__base_obs = base_env_obs
-        self.__turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
-        self.__turn_index = 0
-        self.__placement_stage = "settlement"
-        self.__settlement_mask = np.ones((N_NODES, N_PLAYERS), dtype=np.int8)
-        self.__road_mask = np.ones((N_EDGES, N_PLAYERS), dtype=np.int8),
+        self._base_obs = base_env_obs
+        self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
+        self._turn_index = 0
+        self._placement_stage = "settlement"
+        self._settlement_mask = np.ones((N_NODES, N_PLAYERS), dtype=np.int8)
+        self._road_mask = np.ones((N_EDGES, N_PLAYERS), dtype=np.int8)
+        self._obs = self.__prepare_obs_dict()
 
         self.action_space = spaces.Dict({
             "build_settlement": spaces.MultiBinary(N_NODES),
@@ -58,14 +59,14 @@ class CatanInitPlacementEnv(gym.Env,
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self.__obs = self.__prepare_obs_dict()
+        self._obs = self.__prepare_obs_dict()
         self.__fill_tiles_info()
         self.__find_neighbors_of_neighbors()
         self.__fill_nodes_existence_info()
         self.__fill_port_info()
         self.__fill_indirect_edge_existence_info()
-        self.observation_space = self.__obs
-        del self.__obs
+        self.observation_space = self._obs
+        del self._obs
 
     def step(self, action):
         """
@@ -73,8 +74,8 @@ class CatanInitPlacementEnv(gym.Env,
         """
         settlement_action = action["build_settlement"]
         road_action = action["build_road"]
-        self.__verify_action(settlement_action, road_action)
-        agent = self.__turn_order[self.__turn_index]
+        self.__verify_action(action, settlement_action, road_action)
+        agent = self._turn_order[self._turn_index]
 
         if self.__is_placing_1_settlement(settlement_action):
             self.__make_settlement_action(agent, settlement_action)

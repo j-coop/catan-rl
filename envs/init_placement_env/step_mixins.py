@@ -4,21 +4,21 @@ import numpy as np
 class CatanStepMixin:
 
     def __is_valid_settlement_placement(self, node_id):
-        if self.__obs["adjacent_nodes"]["is_built"][node_id].any():
+        if self._obs["adjacent_nodes"]["is_built"][node_id].any():
             return False  # adjacent node already has a settlement
         return True  # You can add more checks if needed
 
     def __apply_settlement(self, node_id):
-        self.__obs["adjacent_nodes"]["is_built"][node_id] = 1
+        self._obs["adjacent_nodes"]["is_built"][node_id] = 1
         # self.__obs["adjacent_nodes"]["is_owned"][node_id, i, agent_id] = 1
 
     def __is_valid_road_placement(self, edge_id):
         # Optional: Add checks for adjacency to a settlement
-        return self.__obs["edges"]["is_built"][:, edge_id].sum() == 0
+        return self._obs["edges"]["is_built"][:, edge_id].sum() == 0
 
     def __apply_road(self, edge_id):
-        self.__obs["edges"]["is_built"][:, edge_id] = 1
-        self.__obs["edges"]["is_owned"][:, edge_id] = 1
+        self._obs["edges"]["is_built"][:, edge_id] = 1
+        self._obs["edges"]["is_owned"][:, edge_id] = 1
 
     def __check_if_placement_done(self):
         # Return True if all agents have finished their initial placements
@@ -36,7 +36,7 @@ class CatanStepMixin:
             reward = -1.0
             terminated = True
             truncated = False
-            return self.__obs, reward, terminated, truncated, {}
+            return self._obs, reward, terminated, truncated, {}
 
         self.__apply_settlement(node_id)
         self.__update_obs_after_settlement(node_id)
