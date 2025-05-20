@@ -15,13 +15,14 @@ class CatanInitPlacementEnv(CatanResetMixin,
     def __init__(self, base_env_obs):
         super().__init__()
         self.__base_obs = base_env_obs
-        self.__turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
-        self.__turn_index = 0
-        self.__placement_stage = "settlement"
-        self.__settlement_placement_mask = np.ones((N_NODES), dtype=np.int8)
+        self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
+        self._turn_index = 0
+        self._placement_stage = "settlement"
+        self.__settlement_placement_mask = np.ones((N_NODES, ), dtype=np.int8)
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
                                              dtype=np.int8)
         self._obs = self.__prepare_obs_dict()
+        self._last_settlement_node_index = 0
 
         self.action_space = spaces.Dict({
             "build_settlement": spaces.MultiBinary(N_NODES),
@@ -30,8 +31,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         self.observation_space = spaces.Dict({
             "tiles": spaces.Dict({
-                "exist":      spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_TILES]),
+                "exist": spaces.MultiBinary([N_NODES,
+                                             N_ADJACENT_TILES]),
                 "tokens":     spaces.MultiBinary([N_NODES,
                                                   N_ADJACENT_TILES,
                                                   N_TOKEN_VALUES]),
@@ -40,10 +41,12 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                                   N_RESOURCE_TYPES])
             }),
             "edges": spaces.Dict({
-                "exist":      spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_EDGES]),
-                "is_built":   spaces.MultiBinary([N_NODES,
-                                                 N_ADJACENT_EDGES]),
+                "exist": spaces.MultiBinary([N_NODES,
+                                             N_ADJACENT_EDGES]),
+                "is_built": spaces.MultiBinary([N_NODES,
+                                                N_ADJACENT_EDGES]),
+                "is_owned": spaces.MultiBinary([N_NODES,  # owned by the player
+                                                N_ADJACENT_EDGES]),
             }),
             "adjacent_nodes": spaces.Dict({
                 "exist":      spaces.MultiBinary([N_NODES,
@@ -90,13 +93,23 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self.__make_road_action(player, road_action)
         # raise ValueError("Action must specify either 1 road or 1 settlement.")
 
+        # Set rewards
         if is_road:
-            reward = 0 # TODO: road reward heuristic
+            reward = self.__evaluate_road_heuristic(road_action, self._last_settlement_node_index)
         else:
             reward = 0 # no immediate reward for settlement
 
         done = self._turn_index == len(self._turn_order) - 1
-        self._turn_index += 1
+        if is_road:
+            self._turn_index += 1
+            self._placement_stage = "settlement"
+        else:
+            self._last_settlement_node_index = np.argmax(settlement_action)
+            self._placement_stage = "road"
+
+        if done:
+            # Calculate final rewards
+            pass
 
         return self._obs, reward, done, False, {}
 
