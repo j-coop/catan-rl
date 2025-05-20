@@ -75,10 +75,28 @@ class CatanInitPlacementEnv(CatanResetMixin,
         settlement_action = action["build_settlement"]
         road_action = action["build_road"]
         self.__verify_action(action, settlement_action, road_action)
-        agent = self._turn_order[self._turn_index]
+        player = self._turn_order[self._turn_index]
+
+        """
+        Road gets instant heuristic reward for step
+        Settlements are rewarded after full episode (16 steps) - late reward after rolls simulation
+        """
+        is_road = self.__is_placing_1_road(road_action)
 
         if self.__is_placing_1_settlement(settlement_action):
-            self.__make_settlement_action(agent, settlement_action)
+            self.__make_settlement_action(player, settlement_action)
         elif self.__is_placing_1_road(road_action):
-            self.__make_road_action(agent, road_action)
-        raise ValueError("Action must specify either 1 road or 1 settlement.")
+            self.__make_road_action(player, road_action)
+        # raise ValueError("Action must specify either 1 road or 1 settlement.")
+
+        if is_road:
+            reward = 0 # TODO: road reward heuristic
+        else:
+            reward = 0 # no immediate reward for settlement
+
+        done = self._turn_index == len(self._turn_order) - 1
+        self._turn_index += 1
+
+        return self._obs, reward, done, False, {}
+
+

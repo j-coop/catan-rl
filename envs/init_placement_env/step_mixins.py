@@ -29,8 +29,11 @@ class CatanStepMixin:
         assert self.action_space.contains(action), "Invalid action format"
         assert (settlement_action.sum() + road_action.sum()) == 1, \
             "Exactly one action should be performed per step"
-        
-    def __make_settlement_action(self, settlement_action):
+
+
+    # Both actions should just update observation space
+
+    def __make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         if not self.__is_valid_settlement_placement(node_id):
             reward = -1.0
@@ -39,13 +42,13 @@ class CatanStepMixin:
             return self._obs, reward, terminated, truncated, {}
 
         self.__apply_settlement(node_id)
-        self.__update_obs_after_settlement(node_id)
+        self.__update_obs_after_settlement(node_id, player)
         reward = 1.0  # Or 0.0 if using sparse reward
         terminated = self.__check_if_placement_done()
         truncated = False
         return self.__obs, reward, terminated, truncated, {}
 
-    def __make_road_action(self, road_action):
+    def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
         if not self.__is_valid_road_placement(edge_id):
             reward = -1.0
@@ -54,7 +57,7 @@ class CatanStepMixin:
             return self.__obs, reward, terminated, truncated, {}
 
         self.__apply_road(edge_id)
-        self.__update_obs_after_road(edge_id)
+        self.__update_obs_after_road(edge_id, player)
         reward = 1.0  # Or 0.0
         terminated = self.__check_if_placement_done()
         truncated = False
@@ -65,3 +68,9 @@ class CatanStepMixin:
     
     def __is_placing_1_road(self, road_action):
         return road_action.sum() == 1
+
+    def __update_obs_after_settlement(self, node_id, player):
+        pass
+
+    def __update_obs_after_road(self, edge_id, player):
+        pass
