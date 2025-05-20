@@ -3,7 +3,6 @@ import numpy as np
 from params.catan_constants import *
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
-from params.edges_list import EDGES_LIST
 
 
 class CatanResetMixin:
@@ -25,15 +24,11 @@ class CatanResetMixin:
                                    dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_EDGES),
                                       dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                      dtype=np.int8),
             },
             "adjacent_nodes": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_NODES),
                                    dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                      dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES, N_PLAYERS),
                                       dtype=np.int8),
                 "has_port": np.zeros((N_NODES,
                                       N_ADJACENT_NODES, 
