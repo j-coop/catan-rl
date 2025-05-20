@@ -2,7 +2,9 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 
+from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.catan_constants import *
+from params.edges_list import EDGES_LIST
 from reset_mixins import CatanResetMixin
 from step_mixins import CatanStepMixin
 
@@ -12,12 +14,13 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
     def __init__(self, base_env_obs):
         super().__init__()
-        self._base_obs = base_env_obs
-        self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
-        self._turn_index = 0
-        self._placement_stage = "settlement"
-        self._settlement_mask = np.ones((N_NODES, N_PLAYERS), dtype=np.int8)
-        self._road_mask = np.ones((N_EDGES, N_PLAYERS), dtype=np.int8)
+        self.__base_obs = base_env_obs
+        self.__turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
+        self.__turn_index = 0
+        self.__placement_stage = "settlement"
+        self.__settlement_placement_mask = np.ones((N_NODES), dtype=np.int8)
+        self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
+                                             dtype=np.int8)
         self._obs = self.__prepare_obs_dict()
 
         self.action_space = spaces.Dict({
@@ -27,8 +30,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         self.observation_space = spaces.Dict({
             "tiles": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_TILES]),
+                "exist":      spaces.MultiBinary([N_NODES,
+                                                  N_ADJACENT_TILES]),
                 "tokens":     spaces.MultiBinary([N_NODES,
                                                   N_ADJACENT_TILES,
                                                   N_TOKEN_VALUES]),
@@ -37,24 +40,22 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                                   N_RESOURCE_TYPES])
             }),
             "edges": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_EDGES]),
-                "is_built": spaces.MultiBinary([N_NODES,
-                                                N_ADJACENT_EDGES]),
-                "is_owned": spaces.MultiBinary([N_NODES,  # owned by the player
-                                                N_ADJACENT_EDGES]),
+                "exist":      spaces.MultiBinary([N_NODES,
+                                                  N_ADJACENT_EDGES]),
+                "is_built":   spaces.MultiBinary([N_NODES,
+                                                 N_ADJACENT_EDGES]),
             }),
             "adjacent_nodes": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES, 
-                                             N_ADJACENT_NODES]),
-                "is_built": spaces.MultiBinary([N_NODES, 
-                                                N_ADJACENT_NODES]),
-                "is_owned": spaces.MultiBinary([N_NODES, # owned by the player
-                                                N_ADJACENT_NODES,
-                                                N_PLAYERS]),
-                "is_port": spaces.MultiBinary([N_NODES, 
-                                               N_ADJACENT_NODES]),
-            })
+                "exist":      spaces.MultiBinary([N_NODES,
+                                                  N_ADJACENT_NODES]),
+                "is_built":   spaces.MultiBinary([N_NODES,
+                                                  N_ADJACENT_NODES]),
+                "has_port":   spaces.MultiBinary([N_NODES,
+                                                  N_ADJACENT_NODES,
+                                                  N_PORT_FIELD_TYPES]),
+            }),
+            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
+                        dtype=np.int8),
         })
 
     def reset(self, seed=None, options=None):
@@ -100,3 +101,21 @@ class CatanInitPlacementEnv(CatanResetMixin,
         return self._obs, reward, done, False, {}
 
 
+
+    def __update_settlement_placement_mask(self, node_id):
+        """
+        Disable settlement placement for all players on the given node
+        and its adjacent nodes.
+        """
+        affected_nodes = [node_id] + NODES_TO_NODES.get(node_id, [])
+        for n in affected_nodes:
+            self.__settlement_placement_mask[n] = 0  # Disable for all agents
+
+    def __update_road_placement_mask(self, settled_node: int, agent_id: int):
+        for neighbor in NODES_TO_NODES[settled_node]:
+            edge = tuple(sorted((settled_node, neighbor)))
+            try:
+                edge_index = EDGES_LIST.index(edge)
+                self.__road_placement_mask[edge_index, agent_id] = 1
+            except ValueError:
+                raise ValueError(f"Edge {edge} not found in EDGES_LIST.")

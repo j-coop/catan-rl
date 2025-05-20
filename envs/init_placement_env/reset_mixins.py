@@ -24,15 +24,11 @@ class CatanResetMixin:
                                    dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_EDGES),
                                       dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                      dtype=np.int8),
             },
             "adjacent_nodes": {
                 "exist": np.zeros((N_NODES, N_ADJACENT_NODES),
                                    dtype=np.int8),
                 "is_built": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                      dtype=np.int8),
-                "is_owned": np.zeros((N_NODES, N_ADJACENT_NODES, N_PLAYERS),
                                       dtype=np.int8),
                 "has_port": np.zeros((N_NODES,
                                       N_ADJACENT_NODES, 
@@ -71,18 +67,18 @@ class CatanResetMixin:
 
     def __fill_indirect_edge_existence_info(self):
         for node_id in range(N_NODES):
-            edge_set = set()
             direct_neighbors = NODES_TO_NODES[node_id]
-
+            edge_counter = 0
             for neighbor in direct_neighbors:
                 second_degree = NODES_TO_NODES.get(neighbor, [])
-                for nn in second_degree:
-                    if nn != node_id:
-                        edge = tuple(sorted((neighbor, nn)))
-                        edge_set.add(edge)
-
-            for i, edge in enumerate(edge_set):
-                self.__obs["edges"]["exist"][node_id, i] = 1
+                second_degree = second_degree.remove(neighbor)
+                if len(second_degree) == 1 and second_degree[0] > neighbor:
+                    edge_counter += 1
+                    self.__obs["edges"]["exist"][node_id, edge_counter] = 1
+                else:
+                    for _ in range(2):
+                        self.__obs["edges"]["exist"][node_id, edge_counter] = 1
+                        edge_counter += 1
 
     def __find_neighbors_of_neighbors(self):
         max = 6
