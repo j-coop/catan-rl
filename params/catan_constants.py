@@ -10,12 +10,12 @@ N_ADJACENT_NODES = 6
 N_PORT_NODES = 30
 
 # Resources and tile types
-RESOURCE_TYPES = ["brick", "wood", "wool", "grain", "ore", "none"]
+RESOURCE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "none"]
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,
-    "wool": 4,
-    "grain": 4,
+    "sheep": 4,
+    "wheat": 4,
     "ore": 3,
     "desert": 1  # desert
 }
@@ -24,8 +24,8 @@ N_RESOURCE_TYPES = 6
 PORT_TYPE_COUNTS = {
     "brick": 1,
     "wood": 1,
-    "wool": 1,
-    "grain": 1,
+    "sheep": 1,
+    "wheat": 1,
     "ore": 1,
     "generic": 4,  # port 3:1
     "no_port": 6
