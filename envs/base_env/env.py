@@ -68,7 +68,7 @@ class CatanBaseEnv(gym.Env):
         return np.eye(N_RESOURCE_TYPES)[res_list]
 
     def __generate_tokens(self):
-        token_values = TOKENS
+        token_values = ALL_TOKENS
         np.random.shuffle(token_values)
         tokens = np.zeros((N_TILES, N_TOKEN_VALUES), dtype=np.int32)
 
