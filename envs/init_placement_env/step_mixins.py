@@ -1,3 +1,5 @@
+from operator import index
+
 import numpy as np
 
 from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY
@@ -41,6 +43,7 @@ class CatanStepMixin:
     def __make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         if not self.__is_valid_settlement_placement(node_id):
+            # zakladam ze to sie zamaskuje po prostu
             reward = -1.0
             terminated = True
             truncated = False
@@ -51,22 +54,23 @@ class CatanStepMixin:
         reward = 1.0  # Or 0.0 if using sparse reward
         terminated = self.__check_if_placement_done()
         truncated = False
-        return self.__obs, reward, terminated, truncated, {}
+        return self._obs, reward, terminated, truncated, {}
 
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
         if not self.__is_valid_road_placement(edge_id):
+            # zakladam ze to sie zamaskuje po prostu
             reward = -1.0
             terminated = True
             truncated = False
-            return self.__obs, reward, terminated, truncated, {}
+            return self._obs, reward, terminated, truncated, {}
 
         self.__apply_road(edge_id)
         self.__update_obs_after_road(edge_id, player)
         reward = 1.0  # Or 0.0
         terminated = self.__check_if_placement_done()
         truncated = False
-        return self.__obs, reward, terminated, truncated, {}
+        return self._obs, reward, terminated, truncated, {}
 
     def __is_placing_1_settlement(self, settlement_action):
         return settlement_action.sum() == 1
@@ -78,7 +82,13 @@ class CatanStepMixin:
         pass
 
     def __update_obs_after_road(self, edge_id, player):
-        pass
+        # Edge defining nodes
+        nodes = EDGES_LIST[edge_id]
+        for node in nodes:
+            adjacent_nodes = NODES_TO_NODES[node]
+            # Set road as built for both nodes
+            self._obs["edges"]["is_built"][node, adjacent_nodes.index(node)] = 1
+            # Set ownership maybe baby
 
     def __evaluate_road_heuristic(self, road_action, node_index):
         road_index = np.argmax(road_action)
