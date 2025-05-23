@@ -1,3 +1,5 @@
+from math import floor
+
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -104,16 +106,16 @@ class CatanInitPlacementEnv(CatanResetMixin,
             reward = self.__simulate_dice_rolls(settlement_action)
 
         done = self._turn_index == len(self._turn_order) - 1
-        if is_road:
-            self._turn_index += 1
-            self._placement_stage = "settlement"
-        else:
+        if not is_road:
             self._last_settlement_node_index = np.argmax(settlement_action)
             self._placement_stage = "road"
-
-        if done:
-            # Final reward for resources diversity
-            pass
+            is_second_settlement = floor((self._turn_index + 1) / 4)
+            if is_second_settlement:
+                # Final reward for resources diversity
+                reward += self.__evaluate_final_resources(self._settlement_gains)
+        else:
+            self._turn_index += 1
+            self._placement_stage = "settlement"
 
         return self._obs, reward, done, False, {}
 

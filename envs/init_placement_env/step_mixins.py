@@ -1,6 +1,5 @@
 import random
 from math import floor
-from operator import index
 
 import numpy as np
 
@@ -8,7 +7,6 @@ from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY, 
     BEST_EXPECTED_GAIN
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
-from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
 
 class CatanStepMixin:
@@ -184,3 +182,20 @@ class CatanStepMixin:
         sum_gain = sum(gains)
         normalized_gain_score = sum_gain / BEST_EXPECTED_GAIN
         return normalized_gain_score
+
+    """
+    Returns reward for well distributed resources
+    """
+    def __evaluate_final_resources(self, gains):
+        player = self._turn_order[self._turn_index]
+        gained = gains[player][0] + gains[player][1]
+
+        total = np.sum(gained)
+        if total == 0:
+            return 0
+        probs = gained / total  # Normalize to probability distribution
+        entropy = -np.sum(probs * np.log(probs + 1e-9))  # Jest jak prosiles xd
+
+        max_entropy = np.log(len(gained))  # Max entropy for uniform distribution
+        score = entropy / max_entropy
+        return float(score)
