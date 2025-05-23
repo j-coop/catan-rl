@@ -111,7 +111,7 @@ class CatanStepMixin:
         # Heuristic 2: Is it directed towards a port?
         is_toward_port = self.__check_if_toward_port(target_node, possible_nodes)
 
-        return potential_value + is_toward_port * 0.3
+        return potential_value * 0.75 + is_toward_port * 0.25
 
     """
     Gives 1 to 'perfect' node. Returns sum of values

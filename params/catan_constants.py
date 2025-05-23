@@ -75,3 +75,10 @@ NUM_ROLLS = 100
 
 # Expected number of resources gained in NUM_ROLLS rolls for best possible token setup (6, 6, 8)
 BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
+
+# Rewards relative weights importance
+REWARD_WEIGHTS = {
+    "ROAD": 2,
+    "RESOURCES_NUM": 4,
+    "RESOURCES_DISTRIBUTION": 4
+}

@@ -102,8 +102,10 @@ class CatanInitPlacementEnv(CatanResetMixin,
         # Set rewards
         if is_road:
             reward = self.__evaluate_road_heuristic(road_action, self._last_settlement_node_index)
+            reward += REWARD_WEIGHTS["ROAD"]
         else:
             reward = self.__simulate_dice_rolls(settlement_action)
+            reward += REWARD_WEIGHTS["RESOURCES_NUM"]
 
         done = self._turn_index == len(self._turn_order) - 1
         if not is_road:
@@ -112,7 +114,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
             is_second_settlement = floor((self._turn_index + 1) / 4)
             if is_second_settlement:
                 # Final reward for resources diversity
-                reward += self.__evaluate_final_resources(self._settlement_gains)
+                normalized_reward = self.__evaluate_final_resources(self._settlement_gains)
+                reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
         else:
             self._turn_index += 1
             self._placement_stage = "settlement"
