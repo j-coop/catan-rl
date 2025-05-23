@@ -70,3 +70,8 @@ TOTAL_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 
 # Game phases (if useful for state management)
 PHASES = ["setup", "roll_dice", "build", "trade", "end_turn"]
+
+NUM_ROLLS = 100
+
+# Expected number of resources gained in NUM_ROLLS rolls for best possible token setup (6, 6, 8)
+BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3

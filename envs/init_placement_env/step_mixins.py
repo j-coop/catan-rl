@@ -1,8 +1,11 @@
+import random
+from math import floor
 from operator import index
 
 import numpy as np
 
-from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY
+from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY, NUM_ROLLS, N_RESOURCE_TYPES, \
+    BEST_EXPECTED_GAIN
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
@@ -43,7 +46,7 @@ class CatanStepMixin:
     def __make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         if not self.__is_valid_settlement_placement(node_id):
-            # zakladam ze to sie zamaskuje po prostu
+            # zakladam ze sie zamaskuje podanie niemozliwej akcji do step
             reward = -1.0
             terminated = True
             truncated = False
@@ -59,7 +62,7 @@ class CatanStepMixin:
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
         if not self.__is_valid_road_placement(edge_id):
-            # zakladam ze to sie zamaskuje po prostu
+            # zakladam ze sie zamaskuje podanie niemozliwej akcji do step
             reward = -1.0
             terminated = True
             truncated = False
@@ -159,3 +162,25 @@ class CatanStepMixin:
                     value += 0.4
                     break
         return value
+
+    """
+    Returns normalized score for gained resources
+    """
+    def __simulate_dice_rolls(self, settlement_action):
+        node_id = np.argmax(settlement_action)
+        adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles"]["resources"][node_id]]
+        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles"]["tokens"][node_id]]
+        adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
+        gains = [0 for _ in range(N_RESOURCE_TYPES)]
+        for _ in range(NUM_ROLLS):
+            roll = random.randint(1,6) + random.randint(1, 6)
+            if roll in adjacent_tiles_tokens:
+                for i in range(len(adjacent_tiles_tokens)):
+                    gains[adjacent_tiles_resources[i]] += 1
+        # Get player, save simulated gain
+        player = self._turn_order[self._turn_index]
+        self._settlement_gains[player, floor((self._turn_index + 1) / 4)] = gains
+        # Award reward
+        sum_gain = sum(gains)
+        normalized_gain_score = sum_gain / BEST_EXPECTED_GAIN
+        return normalized_gain_score

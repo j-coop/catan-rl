@@ -23,6 +23,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                              dtype=np.int8)
         self._obs = self.__prepare_obs_dict()
         self._last_settlement_node_index = 0
+        self._settlement_gains = np.zeros((N_PLAYERS, 2))
 
         self.action_space = spaces.Dict({
             "build_settlement": spaces.MultiBinary(N_NODES),
@@ -83,7 +84,9 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         """
         Road gets instant heuristic reward for step
-        Settlements are rewarded after full episode (16 steps) - late reward after rolls simulation
+        Settlements are rewarded based on simulated resources gained
+        Reward is given for number of simulated resources gained for both settlements
+        Additional reward after second settlement for resources diversity
         """
         is_road = self.__is_placing_1_road(road_action)
 
@@ -91,13 +94,14 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self.__make_settlement_action(player, settlement_action)
         elif self.__is_placing_1_road(road_action):
             self.__make_road_action(player, road_action)
-        # raise ValueError("Action must specify either 1 road or 1 settlement.")
+        else:
+            raise ValueError("Action must specify either 1 road or 1 settlement.")
 
         # Set rewards
         if is_road:
             reward = self.__evaluate_road_heuristic(road_action, self._last_settlement_node_index)
         else:
-            reward = 0 # no immediate reward for settlement
+            reward = self.__simulate_dice_rolls(settlement_action)
 
         done = self._turn_index == len(self._turn_order) - 1
         if is_road:
@@ -108,7 +112,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self._placement_stage = "road"
 
         if done:
-            # Calculate final rewards
+            # Final reward for resources diversity
             pass
 
         return self._obs, reward, done, False, {}
