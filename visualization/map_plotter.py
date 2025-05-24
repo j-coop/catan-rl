@@ -25,6 +25,8 @@ LAND_POSITIONS = [
             (0, -2), (1, -2), (2, -2)         # bottom row
 ]
 
+ANGLES = np.radians([150, 90, 30, 330, 270, 210])
+
 
 class CatanMapPlotter:
 
@@ -83,20 +85,16 @@ class CatanMapPlotter:
             
     def __plot_settlements(self):
         plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
-        angles = [math.radians(a) for a in [150, 90, 30, 210, 270, 330]]
-
         for i, (q, r) in enumerate(LAND_POSITIONS):
+            nodes = TILES_TO_NODES[i][:3] + list(reversed(TILES_TO_NODES[i][3:]))
+            x_tile_center, y_tile_center = self.__get_hex_position(q, r)
             for k in range(6):
-                if plotted_nodes[TILES_TO_NODES[i][k]] == 0:
-                    x_center, y_center = self.__get_hex_position(q, r)
-                    angle = angles[k]
-                    x_node = x_center + HEX_RADIUS * math.cos(angle)
-                    y_node = y_center + HEX_RADIUS * math.sin(angle)
+                if plotted_nodes[nodes[k]] == 0:
                     owners_vec = self.__nodes["owner"][i][k]
-                    player_id = None
-                    if np.max(owners_vec) == 1:
+                    if np.any(owners_vec):
                         player_id = np.argmax(owners_vec)
-                    if player_id is not None:
+                        x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
+                        y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
                         self.__ax.plot(x_node, y_node,
                                     marker='D', 
                                     color=PLAYER_COLOR_MAP[player_id],
