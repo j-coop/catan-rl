@@ -9,3 +9,10 @@ TILE_COLOR_MAP = {
 }
 
 HEX_RADIUS = 1.0
+
+PLAYER_COLOR_MAP = {
+    0: "#2600ff",
+    1: "#da0000",
+    2: "#465f00",
+    3: "#8a3dbd"
+}
