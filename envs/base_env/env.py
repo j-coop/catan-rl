@@ -23,6 +23,10 @@ class CatanBaseEnv(gym.Env):
                     "owner": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
                     "ports": gym.spaces.MultiBinary([N_TILES, 6,
                                                      N_PORT_FIELD_TYPES])
+                }),
+                "edges": gym.spaces.Dict({
+                    "is_road": gym.spaces.MultiBinary([N_TILES, 6]),
+                    "owner": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
                 })
             })
         })
@@ -47,8 +51,12 @@ class CatanBaseEnv(gym.Env):
                     "has_port": np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES),
                                          dtype=np.int8),
                     "ports": self.__generate_ports()
+                },
+                "edges": {
+                    "is_road": np.zeros((N_TILES, 6), dtype=np.int8),
+                    "owner": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
                 }
-            },
+            }
         }
         return self.state
 
