@@ -9,13 +9,17 @@ from params.catan_constants import *
 from params.edges_list import EDGES_LIST
 from reset_mixins import CatanResetMixin
 from step_mixins import CatanStepMixin
+from validation_mixin import CatanValidationMixin
+
 
 class CatanInitPlacementEnv(CatanResetMixin,
                             CatanStepMixin,
+                            CatanValidationMixin,
                             gym.Env):
 
     def __init__(self, base_env_obs):
-        super().__init__()
+        gym.Env.__init__(self)
+        CatanResetMixin.__init__(self)
         self.__base_obs = base_env_obs
         self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
         self._turn_index = 0
@@ -23,7 +27,6 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.__settlement_placement_mask = np.ones((N_NODES, ), dtype=np.int8)
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
                                              dtype=np.int8)
-        self._obs = self.__prepare_obs_dict()
         self._last_settlement_node_index = 0
         self._settlement_gains = np.zeros((N_PLAYERS, 2))
 
@@ -48,8 +51,6 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                              N_ADJACENT_EDGES]),
                 "is_built": spaces.MultiBinary([N_NODES,
                                                 N_ADJACENT_EDGES]),
-                "is_owned": spaces.MultiBinary([N_NODES,  # owned by the player
-                                                N_ADJACENT_EDGES]),
             }),
             "adjacent_nodes": spaces.Dict({
                 "exist":      spaces.MultiBinary([N_NODES,
@@ -68,10 +69,13 @@ class CatanInitPlacementEnv(CatanResetMixin,
         super().reset(seed=seed)
         self._obs = self.__prepare_obs_dict()
         self.__fill_tiles_info()
-        self.__find_neighbors_of_neighbors()
+        self.__compute_ring_nodes()
+        self.__compute_ring_edges()
+
         self.__fill_nodes_existence_info()
+        self.__fill_edge_existence_info()
         self.__fill_port_info()
-        self.__fill_indirect_edge_existence_info()
+
         self.observation_space = self._obs
         del self._obs
 
@@ -120,9 +124,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self._turn_index += 1
             self._placement_stage = "settlement"
 
-        return self._obs, reward, done, False, {}
-
-
+        return self.observation_space, reward, done, False, {}
 
     def __update_settlement_placement_mask(self, node_id):
         """

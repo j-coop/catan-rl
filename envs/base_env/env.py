@@ -1,4 +1,4 @@
-import gym
+import gymnasium as gym
 import numpy as np
 
 from params.catan_constants import *
@@ -19,14 +19,15 @@ class CatanBaseEnv(gym.Env):
                 "has_robber": gym.spaces.MultiBinary([N_TILES]),
                 "nodes": gym.spaces.Dict({
                     "is_settlement": gym.spaces.MultiBinary([N_TILES, 6]),
-                    "is_city": gym.spaces.MultiBinary([N_TILES, 6]),
-                    "owner": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
-                    "ports": gym.spaces.MultiBinary([N_TILES, 6,
-                                                     N_PORT_FIELD_TYPES])
+                    "is_city":       gym.spaces.MultiBinary([N_TILES, 6]),
+                    "owner":         gym.spaces.MultiBinary([N_TILES, 6,
+                                                             N_PLAYERS]),
+                    "ports":         gym.spaces.MultiBinary([N_TILES, 6,
+                                                             N_PORT_FIELD_TYPES])
                 }),
                 "edges": gym.spaces.Dict({
                     "is_road": gym.spaces.MultiBinary([N_TILES, 6]),
-                    "owner": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
+                    "owner":   gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
                 })
             })
         })
