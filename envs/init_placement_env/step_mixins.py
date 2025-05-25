@@ -24,19 +24,11 @@ class CatanStepMixin:
         # Optional: Add checks for adjacency to a settlement
         return self._obs["edges"]["is_built"][:, edge_id].sum() == 0
 
-    def __apply_road(self, edge_id):
-        self._obs["edges"]["is_built"][:, edge_id] = 1
-        self._obs["edges"]["is_owned"][:, edge_id] = 1
 
     def __check_if_placement_done(self):
         # Return True if all agents have finished their initial placements
         # Could track self.__num_settlements or self.__placements_done
         return False
-    
-    def __verify_action(self, action, settlement_action, road_action):
-        assert self.action_space.contains(action), "Invalid action format"
-        assert (settlement_action.sum() + road_action.sum()) == 1, \
-            "Exactly one action should be performed per step"
 
 
     # Both actions should just update observation space
@@ -72,24 +64,6 @@ class CatanStepMixin:
         terminated = self.__check_if_placement_done()
         truncated = False
         return self._obs, reward, terminated, truncated, {}
-
-    def __is_placing_1_settlement(self, settlement_action):
-        return settlement_action.sum() == 1
-    
-    def __is_placing_1_road(self, road_action):
-        return road_action.sum() == 1
-
-    def __update_obs_after_settlement(self, node_id, player):
-        pass
-
-    def __update_obs_after_road(self, edge_id, player):
-        # Edge defining nodes
-        nodes = EDGES_LIST[edge_id]
-        for node in nodes:
-            adjacent_nodes = NODES_TO_NODES[node]
-            # Set road as built for both nodes
-            self._obs["edges"]["is_built"][node, adjacent_nodes.index(node)] = 1
-            # Set ownership maybe baby
 
     def __get_other_adjacent_nodes(self, node, known_node):
         possible_nodes = NODES_TO_NODES[node]

@@ -9,9 +9,12 @@ from params.catan_constants import *
 from params.edges_list import EDGES_LIST
 from reset_mixins import CatanResetMixin
 from step_mixins import CatanStepMixin
+from validation_mixin import CatanValidationMixin
+
 
 class CatanInitPlacementEnv(CatanResetMixin,
                             CatanStepMixin,
+                            CatanValidationMixin,
                             gym.Env):
 
     def __init__(self, base_env_obs):
