@@ -1,35 +1,53 @@
 import random
 from math import floor
-
 import numpy as np
 
-from params.catan_constants import TOKENS, DICE_PROBABILITIES, MAX_PROBABILITY, NUM_ROLLS, N_RESOURCE_TYPES, \
-    BEST_EXPECTED_GAIN
+from params.catan_constants import *
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
 
 class CatanStepMixin:
 
-    def __is_valid_settlement_placement(self, node_id):
-        if self._obs["adjacent_nodes"]["is_built"][node_id].any():
-            return False  # adjacent node already has a settlement
-        return True  # You can add more checks if needed
+    def __build_settlement(self, node_id, player_id):
+        for i in range(N_NODES):
+            for j in range(len(self.__ring_neighbors)):
+                if node_id == self.__ring_neighbors[i][j]:
+                    self.observation_space["adjacent_nodes"]["is_built"][i][j] = 1
 
-    def __apply_settlement(self, node_id):
-        self._obs["adjacent_nodes"]["is_built"][node_id] = 1
-        # self.__obs["adjacent_nodes"]["is_owned"][node_id, i, agent_id] = 1
+        for tile_id in range(N_TILES):
+            adj_nodes = TILES_TO_NODES[tile_id]
+            if node_id < adj_nodes[0] or node_id > adj_nodes[-1]:
+                break
+            for i in range(len(adj_nodes)):
+                if adj_nodes[i] == node_id:
+                    tile_nodes = self.__base_env["tiles"]["nodes"]
+                    tile_nodes["owner"][tile_id][i][player_id] = 1
+                    tile_nodes["is_settlement"][tile_id][i] = 1
 
-    def __is_valid_road_placement(self, edge_id):
-        # Optional: Add checks for adjacency to a settlement
-        return self._obs["edges"]["is_built"][:, edge_id].sum() == 0
+    def __build_road(self, edge_id, player_id):
+        a, b = EDGES_LIST[edge_id]
+        for i in range(N_NODES):
+            for j in range(N_ADJACENT_EDGES):
+                if [a, b] == self.__ring_edges[i][j].tolist():
+                    self.observation_space["edges"]["is_built"][i][j] = 1
+
+        edge_coords = EDGES_LIST[edge_id]
+        for tile_id in range(N_TILES):
+            adj_nodes = TILES_TO_NODES[tile_id]
+            adj_nodes = adj_nodes[:3] + adj_nodes[3:][::-1]
+            for i in range(len(adj_nodes)):
+                if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
+                    road_edges = self.__base_env["tiles"]["edges"]
+                    road_edges["is_road"][tile_id][i] = 1
+                    road_edges["owner"][tile_id][i][player_id] = 1
 
 
     def __check_if_placement_done(self):
         # Return True if all agents have finished their initial placements
         # Could track self.__num_settlements or self.__placements_done
         return False
-
 
     # Both actions should just update observation space
 
@@ -40,14 +58,13 @@ class CatanStepMixin:
             reward = -1.0
             terminated = True
             truncated = False
-            return self._obs, reward, terminated, truncated, {}
+            return self.observation_space, reward, terminated, truncated, {}
 
-        self.__apply_settlement(node_id)
-        self.__update_obs_after_settlement(node_id, player)
+        self.__build_settlement(node_id, player)
         reward = 1.0  # Or 0.0 if using sparse reward
         terminated = self.__check_if_placement_done()
         truncated = False
-        return self._obs, reward, terminated, truncated, {}
+        return self.observation_space, reward, terminated, truncated, {}
 
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
@@ -56,14 +73,13 @@ class CatanStepMixin:
             reward = -1.0
             terminated = True
             truncated = False
-            return self._obs, reward, terminated, truncated, {}
+            return self.observation_space, reward, terminated, truncated, {}
 
-        self.__apply_road(edge_id)
-        self.__update_obs_after_road(edge_id, player)
+        self.__build_road(edge_id)
         reward = 1.0  # Or 0.0
         terminated = self.__check_if_placement_done()
         truncated = False
-        return self._obs, reward, terminated, truncated, {}
+        return self.observation_space, reward, terminated, truncated, {}
 
     def __get_other_adjacent_nodes(self, node, known_node):
         possible_nodes = NODES_TO_NODES[node]
@@ -95,13 +111,13 @@ class CatanStepMixin:
         for node in possible_nodes:
             if not self.__is_valid_settlement_placement(node):
                 continue
-            tokens = [TOKENS[np.argmax(tile)] for tile in self._obs["tiles"]["tokens"][node]]
+            tokens = [TOKENS[np.argmax(tile)] for tile in self.observation_space["tiles"]["tokens"][node]]
             norm_prob = [DICE_PROBABILITIES[token] / MAX_PROBABILITY for token in tokens]
             value += np.mean(norm_prob)
         return value
 
     def __has_port(self, node):
-        return self._obs["has_port"][node].sum() > 0
+        return self.observation_space["has_port"][node].sum() > 0
 
     """
     Returns points for port chances
@@ -140,8 +156,8 @@ class CatanStepMixin:
     """
     def __simulate_dice_rolls(self, settlement_action):
         node_id = np.argmax(settlement_action)
-        adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles"]["resources"][node_id]]
-        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles"]["tokens"][node_id]]
+        adjacent_tiles_resources = [np.argmax(tile) for tile in self.observation_space["tiles"]["resources"][node_id]]
+        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self.observation_space["tiles"]["tokens"][node_id]]
         adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
         gains = [0 for _ in range(N_RESOURCE_TYPES)]
         for _ in range(NUM_ROLLS):

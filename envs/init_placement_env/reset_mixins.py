@@ -7,6 +7,11 @@ from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
 class CatanResetMixin:
 
+    def __init__(self):
+        self.__ring_edges = np.zeros((N_NODES, N_ADJACENT_EDGES, 2),
+                                     dtype=np.uint8)
+        self.__ring_neighbors = np.full((N_NODES, N_ADJACENT_NODES), -1, dtype=np.int8)
+
     def __prepare_obs_dict(self):
         obs = {
             "tiles": {
@@ -65,25 +70,18 @@ class CatanResetMixin:
                     for i, _ in enumerate(self.__ring_neighbors[node_id]):
                         self.__obs["adjacent_nodes"]["has_port"][node_id][i] = port_vec
 
-    def __fill_indirect_edge_existence_info(self):
+    def __fill_edge_existence_info(self):
+        """Mark edges as existing based on previously computed ring edges."""
+        self.__obs["edges"]["exist"] = np.zeros((N_NODES, N_ADJACENT_EDGES),
+                                                dtype=np.int8)
         for node_id in range(N_NODES):
-            direct_neighbors = NODES_TO_NODES[node_id]
-            edge_counter = 0
-            for neighbor in direct_neighbors:
-                second_degree = NODES_TO_NODES.get(neighbor, [])
-                second_degree = second_degree.remove(neighbor)
-                if len(second_degree) == 1 and second_degree[0] > neighbor:
-                    edge_counter += 1
-                    self.__obs["edges"]["exist"][node_id, edge_counter] = 1
-                else:
-                    for _ in range(2):
-                        self.__obs["edges"]["exist"][node_id, edge_counter] = 1
-                        edge_counter += 1
+            for edge_id in range(N_ADJACENT_EDGES):
+                a, b = self.__ring_edges[node_id][edge_id]
+                if a != 0 or b != 0:  # assumes empty = [0, 0]
+                    self.__obs["edges"]["exist"][node_id, edge_id] = 1
 
-    def __find_neighbors_of_neighbors(self):
-        max = 6
-        result = np.full((N_NODES, max), -1, dtype=np.int32)
 
+    def __compute_ring_nodes(self):
         for node in range(N_NODES):
             direct_neighbors = NODES_TO_NODES.get(node, [])
             second_hop_neighbors = set()
@@ -97,5 +95,26 @@ class CatanResetMixin:
 
             # Fill up to 6 values with -1 padding
             sorted_neighbors = sorted(second_hop_neighbors)
-            result[node, :len(sorted_neighbors)] = sorted_neighbors[:max]
-        self.__ring_neighbors = result
+            self.__ring_neighbors[node, :len(sorted_neighbors)] = sorted_neighbors[:max]
+
+    def __compute_ring_edges(self):
+        """
+        Compute and store adjacent node pairs for each node
+        (indirect edge structure).
+        """
+        for node_id in range(N_NODES):
+            direct_neighbors = NODES_TO_NODES[node_id]
+            edge_counter = 0
+
+            for neighbor in direct_neighbors:
+                second_degree_nodes = NODES_TO_NODES.get(neighbor, []).copy()
+                second_degree_nodes.remove(neighbor)
+                if len(second_degree_nodes) == 1:
+                    self.__ring_edges[node_id][edge_counter][0] = neighbor
+                    self.__ring_edges[node_id][edge_counter][1] = second_degree_nodes[0]
+                    edge_counter += 1 if second_degree_nodes[0] < neighbor else 2
+                else:
+                    for i in range(2):
+                        self.__ring_edges[node_id][edge_counter][0] = neighbor
+                        self.__ring_edges[node_id][edge_counter][1] = second_degree_nodes[i]
+                        edge_counter += 1
