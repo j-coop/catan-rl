@@ -29,6 +29,8 @@ LAND_POSITIONS = [
 
 ANGLES = np.radians([150, 90, 30, 330, 270, 210])
 
+PORT_TYPE_NAMES = ['brick', 'ore', 'wood', 'wheat', 'sheep', 'generic']
+
 
 class CatanMapPlotter:
 
@@ -171,6 +173,76 @@ class CatanMapPlotter:
             zorder=2,
         )
 
+    def __plot_ports(self):
+        drawn_ports = set()
+        for tile_index, (q, r) in enumerate(LAND_POSITIONS):
+            x_tile, y_tile = self.__get_hex_position(q, r)
+
+            for node_index in range(6):
+                port_vec = self.__nodes["ports"][tile_index][node_index]
+                if not np.any(port_vec):
+                    continue
+
+                port_type_index = np.argmax(port_vec)
+                port_type = PORT_TYPE_NAMES[port_type_index]
+
+                # Check if the adjacent node also has the same port
+                next_index = (node_index + 1) % 6
+                next_port_vec = self.__nodes["ports"][tile_index][next_index]
+
+                is_pair = (
+                    np.any(next_port_vec)
+                    and np.argmax(next_port_vec) == port_type_index
+                )
+
+                if is_pair:
+                    # Only draw once per pair
+                    if (tile_index, port_type_index) in drawn_ports:
+                        continue
+                    drawn_ports.add((tile_index, port_type_index))
+
+                    angle_a = ANGLES[node_index]
+                    angle_b = ANGLES[next_index]
+                    avg_angle = (angle_a + angle_b) / 2
+
+                    # Get anchor position slightly off the tile
+                    offset = HEX_RADIUS * 1.8
+                    x_anchor = x_tile + offset * math.cos(avg_angle)
+                    y_anchor = y_tile + offset * math.sin(avg_angle)
+
+                    # Draw anchor symbol
+                    self.__ax.text(
+                        x_anchor, y_anchor, "⚓",
+                        ha='center', va='center',
+                        fontsize=20,
+                        fontweight='bold',
+                        zorder=10
+                    )
+
+                    # Label: either resource or '3:1'
+                    label = port_type if port_type != 'generic' else '3:1'
+                    self.__ax.text(
+                        x_anchor, y_anchor - 0.2,
+                        label,
+                        ha='center', va='top',
+                        fontsize=10,
+                        fontweight='bold',
+                        color='black',
+                        zorder=11
+                    )
+
+                    # Draw lines to both involved nodes
+                    for angle in [angle_a, angle_b]:
+                        x_node = x_tile + HEX_RADIUS * math.cos(angle)
+                        y_node = y_tile + HEX_RADIUS * math.sin(angle)
+                        self.__ax.plot(
+                            [x_node, x_anchor], [y_node, y_anchor],
+                            color='black',
+                            linewidth=2,
+                            linestyle='dotted',
+                            zorder=9
+                        )
+
     def __get_hex_position(self, q, r):
         x = HEX_RADIUS * math.sqrt(3) * (q + r/2)
         y = HEX_RADIUS * 3/2 * r
@@ -182,4 +254,5 @@ class CatanMapPlotter:
         self.__plot_sea_hexes()
         self.__plot_settlements()
         self.__plot_roads()
+        self.__plot_ports()
         plt.show()

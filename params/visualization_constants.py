@@ -5,7 +5,7 @@ TILE_COLOR_MAP = {
     'ore': "#9e9e9e",
     'sheep': "#c0ff5b",
     'none': "#dba34f",  # desert
-    'water': "#57a3da",
+    'water': "#6dc2ff",
 }
 
 HEX_RADIUS = 1.0
