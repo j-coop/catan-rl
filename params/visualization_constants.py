@@ -4,7 +4,7 @@ TILE_COLOR_MAP = {
     'wheat': "#ffee59",
     'ore': "#9e9e9e",
     'sheep': "#c0ff5b",
-    'none': "#dba34f",  # desert
+    'desert': "#dba34f",
     'water': "#6dc2ff",
 }
 
