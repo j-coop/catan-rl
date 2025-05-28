@@ -10,17 +10,18 @@ N_ADJACENT_NODES = 6
 N_PORT_NODES = 30
 
 # Resources and tile types
-RESOURCE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "none"]
+RESOURCE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "desert"]
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,
     "sheep": 4,
     "wheat": 4,
     "ore": 3,
-    "desert": 1  # desert
+    "desert": 1
 }
 N_RESOURCE_TYPES = 6
 
+PORT_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "generic", "no_port"]
 PORT_TYPE_COUNTS = {
     "brick": 1,
     "wood": 1,
@@ -34,7 +35,7 @@ N_PORT_FIELD_TYPES = 7
 
 # Number tokens on tiles
 ALL_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
-TOKENS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+TOKENS = [2, 3, 4, 5, 6, 8, 9, 10, 11, 12]
 N_TOKEN_VALUES = 11
 
 DICE_PROBABILITIES = {

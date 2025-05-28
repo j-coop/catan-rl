@@ -8,7 +8,8 @@ from params.visualization_constants import (TILE_COLOR_MAP,
                                             PLAYER_COLOR_MAP)
 from params.catan_constants import (RESOURCE_TYPES,
                                     N_NODES,
-                                    N_EDGES)
+                                    N_EDGES,
+                                    PORT_TYPES)
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
 
@@ -29,16 +30,14 @@ LAND_POSITIONS = [
 
 ANGLES = np.radians([150, 90, 30, 330, 270, 210])
 
-PORT_TYPE_NAMES = ['brick', 'ore', 'wood', 'wheat', 'sheep', 'generic']
-
 
 class CatanMapPlotter:
 
     def __init__(self, base_obs):
         self.__resources = base_obs['tiles']['resources']
         self.__tokens = base_obs['tiles']['tokens']
-        self.__nodes = base_obs['nodes']
-        self.__edges = base_obs['edges']
+        self.__nodes = base_obs['tiles']['nodes']
+        self.__edges = base_obs['tiles']['edges']
 
     def __setup_plot_area(self):
         # Create a wide figure (18:9) with constrained map region
@@ -66,6 +65,8 @@ class CatanMapPlotter:
             color_name = RESOURCE_TYPES[resource_type]
             color = TILE_COLOR_MAP[color_name]
             token = np.argmax(self.__tokens[i])
+            if token == 0 and np.sum(self.__tokens[i]) == 0:
+                token = -1
             self.__plot_hex(x, y, color, token)
 
     def __plot_sea_hexes(self):
@@ -73,7 +74,7 @@ class CatanMapPlotter:
             x, y = self.__get_hex_position(q, r)
             self.__plot_hex(x, y, TILE_COLOR_MAP['water'])
 
-    def __plot_hex(self, x, y, color, token=0):
+    def __plot_hex(self, x, y, color, token=-1):
         hex = patches.RegularPolygon((x, y),
                                     numVertices=6,
                                     radius=HEX_RADIUS * 0.95,
@@ -81,8 +82,8 @@ class CatanMapPlotter:
                                     facecolor=color,
                                     edgecolor='black')
         self.__ax.add_patch(hex)
-        if token != 0:
-            self.__ax.text(x, y, str(token),
+        if token >= 0:
+            self.__ax.text(x, y, str(token + 2),
                     ha='center', 
                     va='center',
                     fontsize=15,
@@ -184,7 +185,7 @@ class CatanMapPlotter:
                     continue
 
                 port_type_index = np.argmax(port_vec)
-                port_type = PORT_TYPE_NAMES[port_type_index]
+                port_type = PORT_TYPES[port_type_index]
 
                 # Check if the adjacent node also has the same port
                 next_index = (node_index + 1) % 6
