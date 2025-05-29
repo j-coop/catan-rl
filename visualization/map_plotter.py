@@ -175,10 +175,9 @@ class CatanMapPlotter:
         )
 
     def __plot_ports(self):
-        drawn_ports = set()
         for tile_index, (q, r) in enumerate(LAND_POSITIONS):
-            x_tile, y_tile = self.__get_hex_position(q, r)
-
+            if not np.any(self.__nodes["ports"][tile_index]):
+                continue
             for node_index in range(6):
                 port_vec = self.__nodes["ports"][tile_index][node_index]
                 if not np.any(port_vec):
@@ -195,19 +194,16 @@ class CatanMapPlotter:
                     np.any(next_port_vec)
                     and np.argmax(next_port_vec) == port_type_index
                 )
-
                 if is_pair:
-                    # Only draw once per pair
-                    if (tile_index, port_type_index) in drawn_ports:
-                        continue
-                    drawn_ports.add((tile_index, port_type_index))
-
                     angle_a = ANGLES[node_index]
                     angle_b = ANGLES[next_index]
                     avg_angle = (angle_a + angle_b) / 2
+                    if round(avg_angle, 2) == 3.14 and tile_index in [2, 6, 11, 15, 18]:
+                        avg_angle = 0
 
                     # Get anchor position slightly off the tile
                     offset = HEX_RADIUS * 1.8
+                    x_tile, y_tile = self.__get_hex_position(q, r)
                     x_anchor = x_tile + offset * math.cos(avg_angle)
                     y_anchor = y_tile + offset * math.sin(avg_angle)
 

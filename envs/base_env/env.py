@@ -1,9 +1,11 @@
 import gymnasium as gym
 import numpy as np
+from random import randint
 
 from params.catan_constants import *
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
+from params.coastal_nodes_list import COASTAL_NODES_LIST
 
 class CatanBaseEnv(gym.Env):
 
@@ -91,31 +93,38 @@ class CatanBaseEnv(gym.Env):
             tokens[i][token_val - 2] = 1  # Map token 2–12 to index 0–10
             token_idx += 1
         return tokens
+    
+    def __shuffle_coastal_nodes(self, i):
+        coastal_nodes = COASTAL_NODES_LIST[i:] + COASTAL_NODES_LIST[:i]
 
     def __generate_ports(self):
-        res_list = (
+        port_types = (
             [0] * PORT_TYPE_COUNTS[PORT_TYPES[0]] +
             [1] * PORT_TYPE_COUNTS[PORT_TYPES[1]] +
             [2] * PORT_TYPE_COUNTS[PORT_TYPES[2]] +
             [3] * PORT_TYPE_COUNTS[PORT_TYPES[3]] +
             [4] * PORT_TYPE_COUNTS[PORT_TYPES[4]] +
-            [5] * PORT_TYPE_COUNTS[PORT_TYPES[5]] +
-            [6] * PORT_TYPE_COUNTS[PORT_TYPES[6]]
+            [5] * PORT_TYPE_COUNTS[PORT_TYPES[5]]
         )
-        np.random.shuffle(res_list)
-        node_ports = [val for val in res_list for _ in range(2)]
-        node_ports = np.eye(N_PORT_FIELD_TYPES)[node_ports]
+        np.random.shuffle(port_types)
+        port_nodes = []
+        for port_type in port_types:
+            port_nodes.extend([-1, -1, port_type, port_type])
+        port_nodes.extend([-1, -1])
         result = np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8)
-        border_index = 0
-        for node in range(N_NODES):
-            if len(NODES_TO_TILES[node]) <= 2:
-                result[node] = node_ports[border_index]
-                border_index += 1
+        rnd = randint(0, 3)
+        coastal_nodes = COASTAL_NODES_LIST[rnd:] + COASTAL_NODES_LIST[:rnd]
+        for i, node_id in enumerate(coastal_nodes):
+            if port_nodes[i] != -1:
+                result[node_id] = np.eye(N_PORT_FIELD_TYPES,
+                                         dtype=np.int8)[port_nodes[i]]
 
         tile_ports = np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES), dtype=np.int8)
         for tile_id, node_ids in TILES_TO_NODES.items():
+            # Fix node order for alignment
+            node_ids = node_ids[:3] + node_ids[3:][::-1]
             for i, node_id in enumerate(node_ids):
-                if len(NODES_TO_TILES[node]) <= 2:
+                if node_id in COASTAL_NODES_LIST:
                     tile_ports[tile_id, i] = result[node_id]
         return tile_ports
 

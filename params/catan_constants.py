@@ -21,17 +21,16 @@ TILE_TYPE_COUNTS = {
 }
 N_RESOURCE_TYPES = 6
 
-PORT_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "generic", "no_port"]
+PORT_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "generic"]
 PORT_TYPE_COUNTS = {
     "brick": 1,
     "wood": 1,
     "sheep": 1,
     "wheat": 1,
     "ore": 1,
-    "generic": 4,  # port 3:1
-    "no_port": 6
+    "generic": 2,  # port 3:1
 }
-N_PORT_FIELD_TYPES = 7
+N_PORT_FIELD_TYPES = 6
 
 # Number tokens on tiles
 ALL_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
