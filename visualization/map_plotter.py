@@ -201,63 +201,74 @@ class CatanMapPlotter:
                 if not np.any(port_vec):
                     continue
 
-                port_type_index = np.argmax(port_vec)
-                port_type = PORT_TYPES[port_type_index]
-
                 # Check if the adjacent node also has the same port
                 next_index = (node_index + 1) % 6
                 next_port_vec = self.__nodes["ports"][tile_index][next_index]
-
-                is_pair = (
+                port_type = np.argmax(port_vec)
+                port_exists = (
                     np.any(next_port_vec)
-                    and np.argmax(next_port_vec) == port_type_index
+                    and np.argmax(next_port_vec) == port_type
                 )
-                if is_pair:
-                    angles = np.concatenate((ANGLES[:3], ANGLES[3:][::-1]))
-                    angle_a = angles[node_index]
-                    angle_b = angles[next_index]
-                    avg_angle = (angle_a + angle_b) / 2
-                    if round(avg_angle, 2) == 3.14 and tile_index in [2, 6, 11, 15, 18]:
-                        avg_angle = 0
+                if port_exists:
+                    self.__plot_port(tile_coords=(q, r),
+                                     indices=(node_index, next_index),
+                                     port_type_id=port_type)
+                    
 
-                    # Get anchor position slightly off the tile
-                    offset = HEX_RADIUS * 1.8
-                    x_tile, y_tile = self.__get_hex_position(q, r)
-                    x_anchor = x_tile + offset * math.cos(avg_angle)
-                    y_anchor = y_tile + offset * math.sin(avg_angle)
+    def __plot_port(self, tile_coords, indices, port_type_id):
+        right_edge_tiles = [(0, 2), (1, 1), (2, 0), (2, -1), (2, -2)]
+        angles_val = np.concatenate((ANGLES[:3], ANGLES[3:][::-1]))
+        angles = (angles_val[indices[0]], angles_val[indices[1]])
+        avg_angle = (angles[0] + angles[1]) / 2
+        if indices == (2,3) and tile_coords in  right_edge_tiles:
+            avg_angle = 0
 
-                    # Draw anchor symbol
-                    self.__ax.text(
-                        x_anchor, y_anchor, "⚓",
-                        ha='center', va='center',
-                        fontsize=20,
-                        fontweight='bold',
-                        zorder=10
-                    )
+        offset = HEX_RADIUS * 1.8
+        x_tile, y_tile = self.__get_hex_position(tile_coords[0], tile_coords[1])
+        x = x_tile + offset * math.cos(avg_angle)
+        y = y_tile + offset * math.sin(avg_angle)
+        port_type = PORT_TYPES[port_type_id]
+        self.__plot_port_marker_with_label(x_anchor=x,
+                                            y_anchor=y,
+                                            port_type=port_type)
+        self.__plot_lines_to_port_marker(angles=angles,
+                                            tile_coords=(x_tile, y_tile),
+                                            anchor_coords=(x, y))
 
-                    # Label: either resource or '3:1'
-                    label = port_type if port_type != 'generic' else '3:1'
-                    self.__ax.text(
-                        x_anchor, y_anchor - 0.2,
-                        label,
-                        ha='center', va='top',
-                        fontsize=10,
-                        fontweight='bold',
-                        color='black',
-                        zorder=11
-                    )
+    def __plot_port_marker_with_label(self, x_anchor, y_anchor, port_type):
+        # Draw anchor symbol
+        self.__ax.text(
+            x_anchor, y_anchor, "⚓",
+            ha='center', va='center',
+            fontsize=25,
+            fontweight='bold',
+            zorder=10
+        )
 
-                    # Draw lines to both involved nodes
-                    for angle in [angle_a, angle_b]:
-                        x_node = x_tile + HEX_RADIUS * math.cos(angle)
-                        y_node = y_tile + HEX_RADIUS * math.sin(angle)
-                        self.__ax.plot(
-                            [x_node, x_anchor], [y_node, y_anchor],
-                            color='black',
-                            linewidth=2,
-                            linestyle='dotted',
-                            zorder=9
-                        )
+        # Label: either resource or '3:1'
+        label = port_type if port_type != 'generic' else '3:1'
+        self.__ax.text(
+            x_anchor, y_anchor - 0.2,
+            label,
+            ha='center', va='top',
+            fontsize=10,
+            fontweight='bold',
+            color='black',
+            zorder=11
+        )
+    
+    def __plot_lines_to_port_marker(self, angles, tile_coords, anchor_coords):
+        # Draw lines to both involved nodes
+        for angle in angles:
+            x_node = tile_coords[0] + HEX_RADIUS * math.cos(angle)
+            y_node = tile_coords[1] + HEX_RADIUS * math.sin(angle)
+            self.__ax.plot(
+                [x_node, anchor_coords[0]], [y_node, anchor_coords[1]],
+                color='black',
+                linewidth=2,
+                linestyle='dotted',
+                zorder=9
+            )
 
     def __get_hex_position(self, q, r):
         x = HEX_RADIUS * math.sqrt(3) * (q + r/2)
