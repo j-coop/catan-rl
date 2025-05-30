@@ -68,7 +68,7 @@ class CatanStepMixin:
 
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
-        if not self.__is_valid_road_placement(edge_id):
+        if not self.__is_valid_road_placement(edge_id, player):
             # zakladam ze sie zamaskuje podanie niemozliwej akcji do step
             reward = -1.0
             terminated = True
@@ -145,7 +145,7 @@ class CatanStepMixin:
                 if not self.__is_valid_road_placement(edge_index):
                     continue
                 # Check for possible port
-                if self.__has_port(node) and self.__is_valid_settlement_placement(node):
+                if self.__has_port(further_node) and self.__is_valid_settlement_placement(further_node):
                     # Far port - lower value
                     value += 0.4
                     break
