@@ -9,7 +9,8 @@ from params.visualization_constants import (TILE_COLOR_MAP,
 from params.catan_constants import (RESOURCE_TYPES,
                                     N_NODES,
                                     N_EDGES,
-                                    PORT_TYPES)
+                                    PORT_TYPES,
+                                    N_TILES)
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
 
@@ -28,7 +29,7 @@ LAND_POSITIONS = [
             (0, -2), (1, -2), (2, -2)         # bottom row
 ]
 
-ANGLES = np.radians([150, 90, 30, 330, 270, 210])
+ANGLES = np.radians([150, 90, 30, 210, 270, 330])
 
 
 class CatanMapPlotter:
@@ -91,28 +92,45 @@ class CatanMapPlotter:
             
     def __plot_settlements(self):
         plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
-        for i, (q, r) in enumerate(LAND_POSITIONS):
-            nodes = TILES_TO_NODES[i][:3] + list(reversed(TILES_TO_NODES[i][3:]))
-            x_tile_center, y_tile_center = self.__get_hex_position(q, r)
-            for k in range(6):
-                if plotted_nodes[nodes[k]] == 0:
-                    owners_vec = self.__nodes["owner"][i][k]
-                    if np.any(owners_vec):
-                        player_id = np.argmax(owners_vec)
-                        x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
-                        y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
-                        self.__ax.plot(x_node, y_node,
-                                    marker='D', 
-                                    color=PLAYER_COLOR_MAP[player_id],
-                                    markersize=16,
-                                    markeredgewidth=2,
-                                    markeredgecolor='black')
-                plotted_nodes[nodes[k]] = 1
+        for node_id in range(N_NODES):
+            for tile_id in range(N_TILES):
+                if node_id in TILES_TO_NODES[tile_id]:
+                    if plotted_nodes[node_id] == 0:
+                        index = TILES_TO_NODES[tile_id].index(node_id)
+                        owners_vec = self.__nodes["owner"][tile_id][index]
+                        if np.any(owners_vec):
+                            player_id = np.argmax(owners_vec)
+                            self.__plot_settlement(node_id, player_id)
+                        plotted_nodes[node_id] = 1
+                        break
+                    else:
+                        break
+
+    def __plot_settlement(self, node_id, player_id):
+        for tile_id, (q, r) in enumerate(LAND_POSITIONS):
+            if node_id in TILES_TO_NODES[tile_id]:
+                k = TILES_TO_NODES[tile_id].index(node_id)
+                x_tile_center, y_tile_center = self.__get_hex_position(q, r)
+                x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
+                y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
+                self.__plot_settlement_marker(x_node, y_node, player_id)
+
+    def __plot_settlement_marker(self, x_node, y_node, player_id):
+        self.__ax.plot(x_node, y_node,
+                       marker='D', 
+                       color=PLAYER_COLOR_MAP[player_id],
+                       markersize=16,
+                       markeredgewidth=2,
+                       markeredgecolor='black')
+        
+    def __plot_city_marker(self, x_node, y_node, player_id):
+        # TODO Finish this func basing on the above one
+        pass
 
     def __plot_roads(self):
         plotted_edges = np.zeros((N_EDGES,), dtype=np.int8)
         for i, (q, r) in enumerate(LAND_POSITIONS):
-            nodes = TILES_TO_NODES[i][:3] + list(reversed(TILES_TO_NODES[i][3:]))
+            nodes = TILES_TO_NODES[i]
             x_tile_center, y_tile_center = self.__get_hex_position(q, r)
             for k in range(6):
                 node_a = nodes[k]
@@ -195,8 +213,9 @@ class CatanMapPlotter:
                     and np.argmax(next_port_vec) == port_type_index
                 )
                 if is_pair:
-                    angle_a = ANGLES[node_index]
-                    angle_b = ANGLES[next_index]
+                    angles = np.concatenate((ANGLES[:3], ANGLES[3:][::-1]))
+                    angle_a = angles[node_index]
+                    angle_b = angles[next_index]
                     avg_angle = (angle_a + angle_b) / 2
                     if round(avg_angle, 2) == 3.14 and tile_index in [2, 6, 11, 15, 18]:
                         avg_angle = 0
