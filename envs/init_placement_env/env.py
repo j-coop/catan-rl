@@ -17,7 +17,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
                             CatanValidationMixin,
                             gym.Env):
 
-    def __init__(self, base_env_obs=None):
+    def __init__(self, base_env_obs):
         gym.Env.__init__(self)
         CatanResetMixin.__init__(self)
         self._base_obs = base_env_obs
@@ -67,7 +67,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
                         dtype=np.int8),
         })
 
-        self._obs = base_env_obs if base_env_obs is not None else None
+        self._obs = self.__prepare_obs_dict()
 
     def get_action_masks(self) -> np.ndarray:
         player = self._turn_order[self._turn_index]
@@ -87,16 +87,13 @@ class CatanInitPlacementEnv(CatanResetMixin,
         super().reset(seed=seed)
         self._obs = self.__prepare_obs_dict()
 
-        if self._base_obs is None:
-            self.__fill_tiles_info()
-            self.__compute_ring_nodes()
-            self.__compute_ring_edges()
+        self.__fill_tiles_info()
+        self.__compute_ring_nodes()
+        self.__compute_ring_edges()
 
-            self.__fill_nodes_existence_info()
-            self.__fill_edge_existence_info()
-            self.__fill_port_info()
-
-        self.observation_space = self._obs
+        self.__fill_nodes_existence_info()
+        self.__fill_edge_existence_info()
+        self.__fill_port_info()
 
     def step(self, action):
         """

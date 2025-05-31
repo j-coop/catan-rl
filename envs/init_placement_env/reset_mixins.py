@@ -45,7 +45,7 @@ class CatanResetMixin:
         }
         return obs
 
-    def __fill_tiles_info(self, tile_resources, tile_tokens):
+    def __fill_tiles_info(self):
         tile_resources = self._base_obs["tiles"]["resources"]
         tile_tokens = self._base_obs["tiles"]["tokens"]
         for tile_id, node_ids in TILES_TO_NODES.items():
