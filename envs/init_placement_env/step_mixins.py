@@ -52,33 +52,11 @@ class CatanStepMixin:
 
     def __make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
-        if not self.__is_valid_settlement_placement(node_id):
-            # zakladam ze sie zamaskuje podanie niemozliwej akcji do step
-            reward = -1.0
-            terminated = True
-            truncated = False
-            return self.observation_space, reward, terminated, truncated, {}
-
         self.__build_settlement(node_id, player)
-        reward = 1.0  # Or 0.0 if using sparse reward
-        terminated = self.__check_if_placement_done()
-        truncated = False
-        return self.observation_space, reward, terminated, truncated, {}
 
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
-        if not self.__is_valid_road_placement(edge_id):
-            # zakladam ze sie zamaskuje podanie niemozliwej akcji do step
-            reward = -1.0
-            terminated = True
-            truncated = False
-            return self.observation_space, reward, terminated, truncated, {}
-
-        self.__build_road(edge_id)
-        reward = 1.0  # Or 0.0
-        terminated = self.__check_if_placement_done()
-        truncated = False
-        return self.observation_space, reward, terminated, truncated, {}
+        self.__build_road(edge_id, player)
 
     def __get_other_adjacent_nodes(self, node, known_node):
         possible_nodes = NODES_TO_NODES[node]
@@ -144,7 +122,7 @@ class CatanStepMixin:
                 if not self.__is_valid_road_placement(edge_index):
                     continue
                 # Check for possible port
-                if self.__has_port(node) and self.__is_valid_settlement_placement(node):
+                if self.__has_port(further_node) and self.__is_valid_settlement_placement(further_node):
                     # Far port - lower value
                     value += 0.4
                     break

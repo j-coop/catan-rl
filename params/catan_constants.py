@@ -82,3 +82,10 @@ REWARD_WEIGHTS = {
     "RESOURCES_NUM": 4,
     "RESOURCES_DISTRIBUTION": 4
 }
+
+# Number of steps in each episode
+# (4 players place 2 settlements and 2 roads in total)
+STEPS_PER_EPISODE = 16
+
+# Agent training number of episodes
+N_EPISODES = 100

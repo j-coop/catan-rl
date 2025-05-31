@@ -17,7 +17,7 @@ class CatanValidationMixin:
         else: return False  # adjacent node already has a settlement
         return True
 
-    def __is_valid_road_placement(self, edge_id):
+    def __is_valid_road_placement(self, edge_id, player):
         # TODO Fix this func
         return self.observation_space["edges"]["is_built"][:, edge_id].sum() == 0
     

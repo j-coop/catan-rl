@@ -30,10 +30,12 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._last_settlement_node_index = 0
         self._settlement_gains = np.zeros((N_PLAYERS, 2))
 
-        self.action_space = spaces.Dict({
-            "build_settlement": spaces.MultiBinary(N_NODES),
-            "build_road":       spaces.MultiBinary(N_EDGES),
-        })
+        """
+        Flat action space (some frameworks and algorithms don't work with dicts in action space)
+        First N_NODES bits for settlement actions
+        Further N_EDGES bits for road actions
+        """
+        self.action_space = spaces.MultiBinary(N_NODES + N_EDGES)
 
         self.observation_space = spaces.Dict({
             "tiles": spaces.Dict({
@@ -64,6 +66,20 @@ class CatanInitPlacementEnv(CatanResetMixin,
             "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
                         dtype=np.int8),
         })
+
+    def get_action_masks(self) -> np.ndarray:
+        player = self._turn_order[self._turn_index]
+
+        # Mask for settlements (length N_NODES)
+        settlement_mask = self.__settlement_placement_mask
+        # Mask for roads for the current player (length N_EDGES)
+        road_mask = self.__road_placement_mask[:, player]
+
+        # Concatenate the two into one flat mask
+        action_mask = np.concatenate([settlement_mask, road_mask])  # shape: (N_NODES + N_EDGES,)
+
+        return action_mask
+
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
