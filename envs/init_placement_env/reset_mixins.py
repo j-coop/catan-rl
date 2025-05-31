@@ -45,6 +45,17 @@ class CatanResetMixin:
         }
         return obs
 
+    def __generate_obs(self):
+        self.__fill_tiles_info()
+        self.__compute_ring_nodes()
+        self.__compute_ring_edges()
+
+        self.__fill_nodes_existence_info()
+        self.__fill_edge_existence_info()
+        self.__fill_port_info()
+
+        return self._obs
+
     def __fill_tiles_info(self):
         tile_resources = self._base_obs["tiles"]["resources"]
         tile_tokens = self._base_obs["tiles"]["tokens"]

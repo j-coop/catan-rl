@@ -7,9 +7,9 @@ import numpy as np
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.catan_constants import *
 from params.edges_list import EDGES_LIST
-from reset_mixins import CatanResetMixin
-from step_mixins import CatanStepMixin
-from validation_mixin import CatanValidationMixin
+from .reset_mixins import CatanResetMixin
+from .step_mixins import CatanStepMixin
+from .validation_mixin import CatanValidationMixin
 
 
 class CatanInitPlacementEnv(CatanResetMixin,
@@ -63,11 +63,10 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                                   N_ADJACENT_NODES,
                                                   N_PORT_FIELD_TYPES]),
             }),
-            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
-                        dtype=np.int8),
+            "has_port": spaces.MultiBinary((N_NODES, N_PORT_FIELD_TYPES)),
         })
 
-        self._obs = self.__prepare_obs_dict()
+        self._obs = self._CatanResetMixin__prepare_obs_dict()
 
     def get_action_masks(self) -> np.ndarray:
         player = self._turn_order[self._turn_index]
@@ -85,15 +84,11 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self._obs = self.__prepare_obs_dict()
+        self._obs = self._CatanResetMixin__prepare_obs_dict()
 
-        self.__fill_tiles_info()
-        self.__compute_ring_nodes()
-        self.__compute_ring_edges()
+        self._obs = self._CatanResetMixin__generate_obs()
 
-        self.__fill_nodes_existence_info()
-        self.__fill_edge_existence_info()
-        self.__fill_port_info()
+        return self._obs
 
     def step(self, action):
         """
