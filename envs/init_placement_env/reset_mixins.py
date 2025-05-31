@@ -9,9 +9,9 @@ from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 class CatanResetMixin:
 
     def __init__(self):
-        self.__ring_edges = np.zeros((N_NODES, N_ADJACENT_EDGES, 2),
-                                     dtype=np.uint8)
-        self.__ring_neighbors = np.full((N_NODES, N_ADJACENT_NODES), -1, dtype=np.int8)
+        self._ring_edges = np.zeros((N_NODES, N_ADJACENT_EDGES, 2),
+                                    dtype=np.uint8)
+        self._ring_neighbors = np.full((N_NODES, N_ADJACENT_NODES), -1, dtype=np.int8)
 
     def __prepare_obs_dict(self):
         obs = {
@@ -69,7 +69,7 @@ class CatanResetMixin:
 
     def __fill_nodes_existence_info(self):
         for node_id in range(N_NODES):
-            for i, neighbor in enumerate(self.__ring_neighbors[node_id]):
+            for i, neighbor in enumerate(self._ring_neighbors[node_id]):
                 if neighbor != -1:
                     self._obs["adjacent_nodes"]["exist"][node_id, i] = 1
 
@@ -80,7 +80,7 @@ class CatanResetMixin:
                 port_vec = tile_ports[tile_id, local_idx]
                 if port_vec.any():  # If there's a port
                     self._obs["has_port"][node_id] = port_vec
-                    for i, _ in enumerate(self.__ring_neighbors[node_id]):
+                    for i, _ in enumerate(self._ring_neighbors[node_id]):
                         self._obs["adjacent_nodes"]["has_port"][node_id][i] = port_vec
 
     def __fill_edge_existence_info(self):
@@ -89,7 +89,7 @@ class CatanResetMixin:
                                                 dtype=np.int8)
         for node_id in range(N_NODES):
             for edge_id in range(N_ADJACENT_EDGES):
-                a, b = self.__ring_edges[node_id][edge_id]
+                a, b = self._ring_edges[node_id][edge_id]
                 if a != 0 or b != 0:  # assumes empty = [0, 0]
                     self._obs["edges"]["exist"][node_id, edge_id] = 1
 
@@ -109,9 +109,9 @@ class CatanResetMixin:
             # Fill up to N_ADJACENT_NODES values with -1 padding
             sorted_neighbors = sorted(second_hop_neighbors)
             n_neighbors = min(len(sorted_neighbors), N_ADJACENT_NODES)
-            self.__ring_neighbors[node, :n_neighbors] = sorted_neighbors[:n_neighbors]
+            self._ring_neighbors[node, :n_neighbors] = sorted_neighbors[:n_neighbors]
             if n_neighbors < N_ADJACENT_NODES:
-                self.__ring_neighbors[node, n_neighbors:] = -1
+                self._ring_neighbors[node, n_neighbors:] = -1
 
     def __compute_ring_edges(self):
         """
@@ -134,5 +134,5 @@ class CatanResetMixin:
                         if edge_counter < N_ADJACENT_EDGES:
                             # Store the edge as a sorted pair to maintain consistency
                             a, b = sorted([second_degree_nodes[i], second_degree_nodes[j]])
-                            self.__ring_edges[node_id][edge_counter] = [a, b]
+                            self._ring_edges[node_id][edge_counter] = [a, b]
                             edge_counter += 1

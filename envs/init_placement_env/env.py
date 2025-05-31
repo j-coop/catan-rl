@@ -137,7 +137,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         return self.observation_space, reward, done, False, {}
 
-    def __update_settlement_placement_mask(self, node_id):
+    def _update_settlement_placement_mask(self, node_id):
         """
         Disable settlement placement for all players on the given node
         and its adjacent nodes.
@@ -146,11 +146,11 @@ class CatanInitPlacementEnv(CatanResetMixin,
         for n in affected_nodes:
             self.__settlement_placement_mask[n] = 0  # Disable for all agents
 
-    def __update_road_placement_mask(self, settled_node: int, agent_id: int):
+    def _update_road_placement_mask(self, settled_node: int, player_id: int):
         for neighbor in NODES_TO_NODES[settled_node]:
             edge = tuple(sorted((settled_node, neighbor)))
             try:
                 edge_index = EDGES_LIST.index(edge)
-                self.__road_placement_mask[edge_index, agent_id] = 1
+                self.__road_placement_mask[edge_index, player_id] = 1
             except ValueError:
                 raise ValueError(f"Edge {edge} not found in EDGES_LIST.")
