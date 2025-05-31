@@ -121,8 +121,6 @@ class CatanBaseEnv(gym.Env):
 
         tile_ports = np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES), dtype=np.int8)
         for tile_id, node_ids in TILES_TO_NODES.items():
-            # Fix node order for alignment
-            node_ids = node_ids[:3] + node_ids[3:][::-1]
             for i, node_id in enumerate(node_ids):
                 if node_id in COASTAL_NODES_LIST:
                     tile_ports[tile_id, i] = result[node_id]

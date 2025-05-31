@@ -18,7 +18,7 @@ class CatanStepMixin:
 
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
-            if node_id < adj_nodes[0] or node_id > adj_nodes[-1]:
+            if node_id < adj_nodes[0] or node_id > adj_nodes[-3]:
                 break
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
@@ -36,7 +36,6 @@ class CatanStepMixin:
         edge_coords = EDGES_LIST[edge_id]
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
-            adj_nodes = adj_nodes[:3] + adj_nodes[3:][::-1]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
                     road_edges = self.__base_env["tiles"]["edges"]

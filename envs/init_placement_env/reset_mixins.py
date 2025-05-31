@@ -62,7 +62,7 @@ class CatanResetMixin:
 
     def __fill_port_info(self):
         tile_ports = self.__base_obs["nodes"]["ports"]
-        for tile_id, node_ids in enumerate(TILES_TO_NODES):
+        for tile_id, node_ids in TILES_TO_NODES.items():
             for local_idx, node_id in enumerate(node_ids):
                 port_vec = tile_ports[tile_id, local_idx]
                 if port_vec.any():  # If there's a port

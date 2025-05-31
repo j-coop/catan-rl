@@ -9,8 +9,10 @@ from params.visualization_constants import (TILE_COLOR_MAP,
 from params.catan_constants import (RESOURCE_TYPES,
                                     N_NODES,
                                     N_EDGES,
-                                    PORT_TYPES)
+                                    PORT_TYPES,
+                                    N_TILES)
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
+from params.tiles2edges_adjacency_map import TILES_TO_EDGES
 from params.edges_list import EDGES_LIST
 
 
@@ -88,83 +90,102 @@ class CatanMapPlotter:
                     va='center',
                     fontsize=15,
                     color='black')
-            
+   
     def __plot_settlements(self):
         plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
-        for i, (q, r) in enumerate(LAND_POSITIONS):
-            nodes = TILES_TO_NODES[i][:3] + list(reversed(TILES_TO_NODES[i][3:]))
-            x_tile_center, y_tile_center = self.__get_hex_position(q, r)
-            for k in range(6):
-                if plotted_nodes[nodes[k]] == 0:
-                    owners_vec = self.__nodes["owner"][i][k]
-                    if np.any(owners_vec):
-                        player_id = np.argmax(owners_vec)
-                        x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
-                        y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
-                        self.__ax.plot(x_node, y_node,
-                                    marker='D', 
-                                    color=PLAYER_COLOR_MAP[player_id],
-                                    markersize=16,
-                                    markeredgewidth=2,
-                                    markeredgecolor='black')
-                plotted_nodes[nodes[k]] = 1
+        for node_id in range(N_NODES):
+            for tile_id in range(N_TILES):
+                if node_id in TILES_TO_NODES[tile_id]:
+                    if plotted_nodes[node_id] == 0:
+                        index = TILES_TO_NODES[tile_id].index(node_id)
+                        owners_vec = self.__nodes["owner"][tile_id][index]
+                        if np.any(owners_vec):
+                            player_id = np.argmax(owners_vec)
+                            self.__plot_settlement(node_id, player_id)
+                        plotted_nodes[node_id] = 1
+                        break
+                    else:
+                        break
+
+    def __plot_settlement(self, node_id, player_id):
+        for tile_id, (q, r) in enumerate(LAND_POSITIONS):
+            if node_id in TILES_TO_NODES[tile_id]:
+                k = TILES_TO_NODES[tile_id].index(node_id)
+                x_tile_center, y_tile_center = self.__get_hex_position(q, r)
+                x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
+                y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
+                self.__plot_settlement_marker(x_node, y_node, player_id)
+                break
+
+    def __plot_settlement_marker(self, x_node, y_node, player_id):
+        self.__ax.plot(x_node, y_node,
+                       marker='D', 
+                       color=PLAYER_COLOR_MAP[player_id],
+                       markersize=16,
+                       markeredgewidth=2,
+                       markeredgecolor='black')
+        
+    def __plot_city_marker(self, x_node, y_node, player_id):
+        # TODO Finish this func basing on the above one
+        pass
 
     def __plot_roads(self):
         plotted_edges = np.zeros((N_EDGES,), dtype=np.int8)
-        for i, (q, r) in enumerate(LAND_POSITIONS):
-            nodes = TILES_TO_NODES[i][:3] + list(reversed(TILES_TO_NODES[i][3:]))
-            x_tile_center, y_tile_center = self.__get_hex_position(q, r)
-            for k in range(6):
-                node_a = nodes[k]
-                node_b = nodes[(k + 1) % 6]
-                edge_key = tuple(sorted((node_a, node_b)))
-                edge_id = EDGES_LIST.index(edge_key)
-                if edge_id == -1:
-                    raise ValueError(
-                        "Action must specify either 1 road or 1 settlement.")
-                if plotted_edges[edge_id] == 0:
-                    edge_owners = self.__edges["owner"][i][k]
-                    if np.any(edge_owners):
-                        x_a = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
-                        y_a = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
-                        x_b = x_tile_center + HEX_RADIUS \
-                            * math.cos(ANGLES[(k + 1) % 6])
-                        y_b = y_tile_center + HEX_RADIUS \
-                            * math.sin(ANGLES[(k + 1) % 6])
-                        player_id = np.argmax(edge_owners)
-                        color = PLAYER_COLOR_MAP[player_id]
-                        self.__plot_road_between_nodes_scaled(x_a, y_a,
-                                                              x_b, y_b,
-                                                              color)
-                    plotted_edges[edge_id] = 1
+        for edge_id in range(len(EDGES_LIST)):
+            edge = EDGES_LIST[edge_id]
+            for tile_id in range(N_TILES):
+                if edge in TILES_TO_EDGES[tile_id]:
+                    if plotted_edges[edge_id] == 0:
+                        index = TILES_TO_EDGES[tile_id].index(edge)
+                        owners_vec = self.__edges["owner"][tile_id][index]
+                        if np.any(owners_vec):
+                            player_id = np.argmax(owners_vec)
+                            self.__plot_settlement(edge, player_id)
+                        plotted_edges[edge_id] = 1
+                        break
+                    else:
+                        break
 
-    def __plot_road_between_nodes_scaled(self, x_a, y_a, x_b, y_b, 
-                                         color,
-                                         linewidth=5,
-                                         scale=0.55):
-        # Vector from A to B
-        dx, dy = (x_b - x_a), (y_b - y_a)
+    def __plot_road(self, edge, player_id):
+        for tile_id, (q, r) in enumerate(LAND_POSITIONS):
+            edge = tuple(sorted(edge))
+            if edge in TILES_TO_EDGES[tile_id]:
+                k = TILES_TO_EDGES[tile_id].index(edge)
+                x_tile_center, y_tile_center = self.__get_hex_position(q, r)
+                x_a = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
+                y_a = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
+                x_b = x_tile_center + HEX_RADIUS \
+                    * math.cos(ANGLES[(k + 1) % 6])
+                y_b = y_tile_center + HEX_RADIUS \
+                    * math.sin(ANGLES[(k + 1) % 6])
+                self.__plot_road_marker(vertex_1_coords=(x_a, y_a),
+                                        vertex_2_coords=(x_b, y_b),
+                                        player_id=player_id)
+                break
 
-        # Midpoint
-        mx, my = (x_a + x_b) / 2, (y_a + y_b) / 2
+    def __plot_road_marker(self, vertex_1_coords, vertex_2_coords, player_id):
+        color = PLAYER_COLOR_MAP[player_id]
+        linewidth = 5
+        scale = 0.55
 
-        # Half-length vector scaled by scale/2
+        dx = vertex_2_coords[0] - vertex_1_coords[0]
+        dy = vertex_2_coords[1] - vertex_1_coords[1]
+        mx = (vertex_1_coords[0] + vertex_2_coords[0]) / 2
+        my = (vertex_1_coords[1] + vertex_2_coords[1]) / 2
         half_dx, half_dy = dx * scale / 2, dy * scale / 2
-
-        # New endpoints, centered but shorter
         new_x_a, new_y_a = mx - half_dx, my - half_dy
         new_x_b, new_y_b = mx + half_dx, my + half_dy
 
-        # Draw black edge line (thicker)
+        # Draw black edge line
         self.__ax.plot(
             [new_x_a, new_x_b],
             [new_y_a, new_y_b],
             color='black',
-            linewidth=linewidth + 2 * 2,
+            linewidth=(linewidth + 2 * 2),
             solid_capstyle='round',
             zorder=1,
         )
-
+        # Draw color line inside the black one
         self.__ax.plot(
             [new_x_a, new_x_b],
             [new_y_a, new_y_b],
@@ -183,62 +204,73 @@ class CatanMapPlotter:
                 if not np.any(port_vec):
                     continue
 
-                port_type_index = np.argmax(port_vec)
-                port_type = PORT_TYPES[port_type_index]
-
                 # Check if the adjacent node also has the same port
                 next_index = (node_index + 1) % 6
                 next_port_vec = self.__nodes["ports"][tile_index][next_index]
-
-                is_pair = (
+                port_type = np.argmax(port_vec)
+                port_exists = (
                     np.any(next_port_vec)
-                    and np.argmax(next_port_vec) == port_type_index
+                    and np.argmax(next_port_vec) == port_type
                 )
-                if is_pair:
-                    angle_a = ANGLES[node_index]
-                    angle_b = ANGLES[next_index]
-                    avg_angle = (angle_a + angle_b) / 2
-                    if round(avg_angle, 2) == 3.14 and tile_index in [2, 6, 11, 15, 18]:
-                        avg_angle = 0
+                if port_exists:
+                    self.__plot_port(tile_coords=(q, r),
+                                     indices=(node_index, next_index),
+                                     port_type_id=port_type)
+                    
 
-                    # Get anchor position slightly off the tile
-                    offset = HEX_RADIUS * 1.8
-                    x_tile, y_tile = self.__get_hex_position(q, r)
-                    x_anchor = x_tile + offset * math.cos(avg_angle)
-                    y_anchor = y_tile + offset * math.sin(avg_angle)
+    def __plot_port(self, tile_coords, indices, port_type_id):
+        right_edge_tiles = [(0, 2), (1, 1), (2, 0), (2, -1), (2, -2)]
+        angles = (ANGLES[indices[0]], ANGLES[indices[1]])
+        avg_angle = (angles[0] + angles[1]) / 2
+        if indices == (2,3) and tile_coords in  right_edge_tiles:
+            avg_angle = 0
 
-                    # Draw anchor symbol
-                    self.__ax.text(
-                        x_anchor, y_anchor, "⚓",
-                        ha='center', va='center',
-                        fontsize=20,
-                        fontweight='bold',
-                        zorder=10
-                    )
+        offset = HEX_RADIUS * 1.8
+        x_tile, y_tile = self.__get_hex_position(tile_coords[0], tile_coords[1])
+        x = x_tile + offset * math.cos(avg_angle)
+        y = y_tile + offset * math.sin(avg_angle)
+        port_type = PORT_TYPES[port_type_id]
+        self.__plot_port_marker_with_label(x_anchor=x,
+                                            y_anchor=y,
+                                            port_type=port_type)
+        self.__plot_lines_to_port_marker(angles=angles,
+                                            tile_coords=(x_tile, y_tile),
+                                            anchor_coords=(x, y))
 
-                    # Label: either resource or '3:1'
-                    label = port_type if port_type != 'generic' else '3:1'
-                    self.__ax.text(
-                        x_anchor, y_anchor - 0.2,
-                        label,
-                        ha='center', va='top',
-                        fontsize=10,
-                        fontweight='bold',
-                        color='black',
-                        zorder=11
-                    )
+    def __plot_port_marker_with_label(self, x_anchor, y_anchor, port_type):
+        # Draw anchor symbol
+        self.__ax.text(
+            x_anchor, y_anchor, "⚓",
+            ha='center', va='center',
+            fontsize=25,
+            fontweight='bold',
+            zorder=10
+        )
 
-                    # Draw lines to both involved nodes
-                    for angle in [angle_a, angle_b]:
-                        x_node = x_tile + HEX_RADIUS * math.cos(angle)
-                        y_node = y_tile + HEX_RADIUS * math.sin(angle)
-                        self.__ax.plot(
-                            [x_node, x_anchor], [y_node, y_anchor],
-                            color='black',
-                            linewidth=2,
-                            linestyle='dotted',
-                            zorder=9
-                        )
+        # Label: either resource or '3:1'
+        label = port_type if port_type != 'generic' else '3:1'
+        self.__ax.text(
+            x_anchor, y_anchor - 0.2,
+            label,
+            ha='center', va='top',
+            fontsize=10,
+            fontweight='bold',
+            color='black',
+            zorder=11
+        )
+    
+    def __plot_lines_to_port_marker(self, angles, tile_coords, anchor_coords):
+        # Draw lines to both involved nodes
+        for angle in angles:
+            x_node = tile_coords[0] + HEX_RADIUS * math.cos(angle)
+            y_node = tile_coords[1] + HEX_RADIUS * math.sin(angle)
+            self.__ax.plot(
+                [x_node, anchor_coords[0]], [y_node, anchor_coords[1]],
+                color='black',
+                linewidth=2,
+                linestyle='dotted',
+                zorder=9
+            )
 
     def __get_hex_position(self, q, r):
         x = HEX_RADIUS * math.sqrt(3) * (q + r/2)
