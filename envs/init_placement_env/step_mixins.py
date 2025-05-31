@@ -12,9 +12,9 @@ class CatanStepMixin:
 
     def __build_settlement(self, node_id, player_id):
         for i in range(N_NODES):
-            for j in range(len(self.__ring_neighbors)):
-                if node_id == self.__ring_neighbors[i][j]:
-                    self.observation_space["adjacent_nodes"]["is_built"][i][j] = 1
+            for j in range(len(self._ring_neighbors[i])):
+                if node_id == self._ring_neighbors[i][j]:
+                    self._obs["adjacent_nodes"]["is_built"][i][j] = 1
 
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
@@ -22,7 +22,7 @@ class CatanStepMixin:
                 break
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
-                    tile_nodes = self.__base_env["tiles"]["nodes"]
+                    tile_nodes = self._base_env["tiles"]["nodes"]
                     tile_nodes["owner"][tile_id][i][player_id] = 1
                     tile_nodes["is_settlement"][tile_id][i] = 1
 
@@ -30,15 +30,15 @@ class CatanStepMixin:
         a, b = EDGES_LIST[edge_id]
         for i in range(N_NODES):
             for j in range(N_ADJACENT_EDGES):
-                if [a, b] == self.__ring_edges[i][j].tolist():
-                    self.observation_space["edges"]["is_built"][i][j] = 1
+                if [a, b] == self._ring_edges[i][j].tolist():
+                    self._obs["edges"]["is_built"][i][j] = 1
 
         edge_coords = EDGES_LIST[edge_id]
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
-                    road_edges = self.__base_env["tiles"]["edges"]
+                    road_edges = self._base_env["tiles"]["edges"]
                     road_edges["is_road"][tile_id][i] = 1
                     road_edges["owner"][tile_id][i][player_id] = 1
 
@@ -53,6 +53,10 @@ class CatanStepMixin:
     def __make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         self.__build_settlement(node_id, player)
+
+        # Update placement masks
+        self._update_settlement_placement_mask(node_id)
+        self._update_road_placement_mask(node_id, player)
 
     def __make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)

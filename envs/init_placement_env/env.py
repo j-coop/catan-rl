@@ -7,9 +7,9 @@ import numpy as np
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.catan_constants import *
 from params.edges_list import EDGES_LIST
-from reset_mixins import CatanResetMixin
-from step_mixins import CatanStepMixin
-from validation_mixin import CatanValidationMixin
+from .reset_mixins import CatanResetMixin
+from .step_mixins import CatanStepMixin
+from .validation_mixin import CatanValidationMixin
 
 
 class CatanInitPlacementEnv(CatanResetMixin,
@@ -20,7 +20,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
     def __init__(self, base_env_obs):
         gym.Env.__init__(self)
         CatanResetMixin.__init__(self)
-        self.__base_obs = base_env_obs
+        self._base_obs = base_env_obs
         self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
         self._turn_index = 0
         self._placement_stage = "settlement"
@@ -63,9 +63,10 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                                   N_ADJACENT_NODES,
                                                   N_PORT_FIELD_TYPES]),
             }),
-            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
-                        dtype=np.int8),
+            "has_port": spaces.MultiBinary((N_NODES, N_PORT_FIELD_TYPES)),
         })
+
+        self._obs = self._CatanResetMixin__prepare_obs_dict()
 
     def get_action_masks(self) -> np.ndarray:
         player = self._turn_order[self._turn_index]
@@ -83,17 +84,11 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        self._obs = self.__prepare_obs_dict()
-        self.__fill_tiles_info()
-        self.__compute_ring_nodes()
-        self.__compute_ring_edges()
+        self._obs = self._CatanResetMixin__prepare_obs_dict()
 
-        self.__fill_nodes_existence_info()
-        self.__fill_edge_existence_info()
-        self.__fill_port_info()
+        self._obs = self._CatanResetMixin__generate_obs()
 
-        self.observation_space = self._obs
-        del self._obs
+        return self._obs
 
     def step(self, action):
         """
@@ -142,7 +137,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         return self.observation_space, reward, done, False, {}
 
-    def __update_settlement_placement_mask(self, node_id):
+    def _update_settlement_placement_mask(self, node_id):
         """
         Disable settlement placement for all players on the given node
         and its adjacent nodes.
@@ -151,11 +146,11 @@ class CatanInitPlacementEnv(CatanResetMixin,
         for n in affected_nodes:
             self.__settlement_placement_mask[n] = 0  # Disable for all agents
 
-    def __update_road_placement_mask(self, settled_node: int, agent_id: int):
+    def _update_road_placement_mask(self, settled_node: int, player_id: int):
         for neighbor in NODES_TO_NODES[settled_node]:
             edge = tuple(sorted((settled_node, neighbor)))
             try:
                 edge_index = EDGES_LIST.index(edge)
-                self.__road_placement_mask[edge_index, agent_id] = 1
+                self.__road_placement_mask[edge_index, player_id] = 1
             except ValueError:
                 raise ValueError(f"Edge {edge} not found in EDGES_LIST.")
