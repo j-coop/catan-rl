@@ -30,10 +30,12 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._last_settlement_node_index = 0
         self._settlement_gains = np.zeros((N_PLAYERS, 2))
 
-        self.action_space = spaces.Dict({
-            "build_settlement": spaces.MultiBinary(N_NODES),
-            "build_road":       spaces.MultiBinary(N_EDGES),
-        })
+        """
+        Flat action space (some frameworks and algorithms don't work with dicts in action space)
+        First N_NODES bits for settlement actions
+        Further N_EDGES bits for road actions
+        """
+        self.action_space = spaces.MultiBinary(N_NODES + N_EDGES)
 
         self.observation_space = spaces.Dict({
             "tiles": spaces.Dict({
