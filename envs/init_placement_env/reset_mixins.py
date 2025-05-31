@@ -1,6 +1,7 @@
 import numpy as np
 
 from params.catan_constants import *
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
@@ -59,9 +60,10 @@ class CatanResetMixin:
     def __fill_tiles_info(self):
         tile_resources = self._base_obs["tiles"]["resources"]
         tile_tokens = self._base_obs["tiles"]["tokens"]
-        for tile_id, node_ids in TILES_TO_NODES.items():
-            for i, node_id in enumerate(node_ids):
-                self._obs["tiles"]["exist"][node_id, i, 0] = 1
+        for node_id, tile_ids in NODES_TO_TILES.items():
+            print(node_id, tile_ids)
+            for i, tile_id in enumerate(tile_ids):
+                self._obs["tiles"]["exist"][node_id, i] = 1
                 self._obs["tiles"]["resources"][node_id, i] = tile_resources[tile_id]
                 self._obs["tiles"]["tokens"][node_id, i] = tile_tokens[tile_id]
 
@@ -106,7 +108,7 @@ class CatanResetMixin:
 
             # Fill up to 6 values with -1 padding
             sorted_neighbors = sorted(second_hop_neighbors)
-            self.__ring_neighbors[node, :len(sorted_neighbors)] = sorted_neighbors[:max]
+            self.__ring_neighbors[node, :len(sorted_neighbors)] = sorted_neighbors[:max] # ?????????????
 
     def __compute_ring_edges(self):
         """

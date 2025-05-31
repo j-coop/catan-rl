@@ -18,6 +18,8 @@ base_env_obs = base_env.reset()
 
 # Create custom env
 env = CatanInitPlacementEnv(base_env_obs=base_env_obs)
+env.reset()
+
 # Wrap with ActionMasker to enable action masking
 env = ActionMasker(env, mask_fn)
 
