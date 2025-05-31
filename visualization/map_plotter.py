@@ -29,7 +29,7 @@ LAND_POSITIONS = [
             (0, -2), (1, -2), (2, -2)         # bottom row
 ]
 
-ANGLES = np.radians([150, 90, 30, 210, 270, 330])
+ANGLES = np.radians([150, 90, 30, 330, 270, 210])
 
 
 class CatanMapPlotter:
@@ -89,7 +89,7 @@ class CatanMapPlotter:
                     va='center',
                     fontsize=15,
                     color='black')
-            
+   
     def __plot_settlements(self):
         plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
         for node_id in range(N_NODES):
@@ -114,6 +114,7 @@ class CatanMapPlotter:
                 x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
                 y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
                 self.__plot_settlement_marker(x_node, y_node, player_id)
+                break
 
     def __plot_settlement_marker(self, x_node, y_node, player_id):
         self.__ax.plot(x_node, y_node,
@@ -217,8 +218,7 @@ class CatanMapPlotter:
 
     def __plot_port(self, tile_coords, indices, port_type_id):
         right_edge_tiles = [(0, 2), (1, 1), (2, 0), (2, -1), (2, -2)]
-        angles_val = np.concatenate((ANGLES[:3], ANGLES[3:][::-1]))
-        angles = (angles_val[indices[0]], angles_val[indices[1]])
+        angles = (ANGLES[indices[0]], ANGLES[indices[1]])
         avg_angle = (angles[0] + angles[1]) / 2
         if indices == (2,3) and tile_coords in  right_edge_tiles:
             avg_angle = 0
