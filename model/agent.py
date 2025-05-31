@@ -9,11 +9,8 @@ from envs.init_placement_env.env import CatanInitPlacementEnv
 from params.catan_constants import N_EPISODES, STEPS_PER_EPISODE
 
 
-def mask_fn(env: gym.Env) -> np.ndarray:
-    # Do whatever you'd like in this function to return the action mask
-    # for the current env. In this example, we assume the env has a
-    # helpful method we can rely on.
-    return env.valid_action_mask()
+def mask_fn(_env: gym.Env) -> np.ndarray:
+    return _env.get_action_masks()
 
 base_env_obs = None
 

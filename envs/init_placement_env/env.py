@@ -67,6 +67,20 @@ class CatanInitPlacementEnv(CatanResetMixin,
                         dtype=np.int8),
         })
 
+    def get_action_masks(self) -> np.ndarray:
+        player = self._turn_order[self._turn_index]
+
+        # Mask for settlements (length N_NODES)
+        settlement_mask = self.__settlement_placement_mask
+        # Mask for roads for the current player (length N_EDGES)
+        road_mask = self.__road_placement_mask[:, player]
+
+        # Concatenate the two into one flat mask
+        action_mask = np.concatenate([settlement_mask, road_mask])  # shape: (N_NODES + N_EDGES,)
+
+        return action_mask
+
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self._obs = self.__prepare_obs_dict()
