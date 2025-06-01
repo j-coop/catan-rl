@@ -15,34 +15,15 @@ class CatanResetMixin:
 
     def __prepare_obs_dict(self):
         obs = {
-            "tiles": {
-                "exist": np.zeros((N_NODES, N_ADJACENT_TILES), 
-                                   dtype=np.int8),
-                "tokens": np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES),
-                                    dtype=np.int8),
-                "resources": np.zeros((N_NODES, 
-                                       N_ADJACENT_TILES, 
-                                       N_RESOURCE_TYPES),
-                                       dtype=np.int8),
-            },
-            "edges": {
-                "exist": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                   dtype=np.int8),
-                "is_built": np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                      dtype=np.int8),
-            },
-            "adjacent_nodes": {
-                "exist": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                   dtype=np.int8),
-                "is_built": np.zeros((N_NODES, N_ADJACENT_NODES),
-                                      dtype=np.int8),
-                "has_port": np.zeros((N_NODES,
-                                      N_ADJACENT_NODES, 
-                                      N_PORT_FIELD_TYPES),
-                                      dtype=np.int8),
-            },
-            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES),
-                                  dtype=np.int8),
+            "tiles_exist": np.zeros((N_NODES, N_ADJACENT_TILES), dtype=np.int8),
+            "tiles_tokens": np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES), dtype=np.int8),
+            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES), dtype=np.int8),
+            "edges_exist": np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8),
+            "edges_is_built": np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8),
+            "adj_exist": np.zeros((N_NODES, N_ADJACENT_NODES), dtype=np.int8),
+            "adj_is_built": np.zeros((N_NODES, N_ADJACENT_NODES), dtype=np.int8),
+            "adj_has_port": np.zeros((N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES), dtype=np.int8),
+            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8),
         }
         return obs
 
@@ -63,15 +44,15 @@ class CatanResetMixin:
         for node_id, tile_ids in NODES_TO_TILES.items():
             print(node_id, tile_ids)
             for i, tile_id in enumerate(tile_ids):
-                self._obs["tiles"]["exist"][node_id, i] = 1
-                self._obs["tiles"]["resources"][node_id, i] = tile_resources[tile_id]
-                self._obs["tiles"]["tokens"][node_id, i] = tile_tokens[tile_id]
+                self._obs["tiles_exist"][node_id, i] = 1
+                self._obs["tiles_resources"][node_id, i] = tile_resources[tile_id]
+                self._obs["tiles_tokens"][node_id, i] = tile_tokens[tile_id]
 
     def __fill_nodes_existence_info(self):
         for node_id in range(N_NODES):
             for i, neighbor in enumerate(self._ring_neighbors[node_id]):
                 if neighbor != -1:
-                    self._obs["adjacent_nodes"]["exist"][node_id, i] = 1
+                    self._obs["adj_exist"][node_id, i] = 1
 
     def __fill_port_info(self):
         tile_ports = self._base_obs["tiles"]["nodes"]["ports"]
@@ -81,17 +62,16 @@ class CatanResetMixin:
                 if port_vec.any():  # If there's a port
                     self._obs["has_port"][node_id] = port_vec
                     for i, _ in enumerate(self._ring_neighbors[node_id]):
-                        self._obs["adjacent_nodes"]["has_port"][node_id][i] = port_vec
+                        self._obs["adj_has_port"][node_id][i] = port_vec
 
     def __fill_edge_existence_info(self):
         """Mark edges as existing based on previously computed ring edges."""
-        self._obs["edges"]["exist"] = np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                                dtype=np.int8)
+        self._obs["edges_exist"] = np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8)
         for node_id in range(N_NODES):
             for edge_id in range(N_ADJACENT_EDGES):
                 a, b = self._ring_edges[node_id][edge_id]
                 if a != 0 or b != 0:  # assumes empty = [0, 0]
-                    self._obs["edges"]["exist"][node_id, edge_id] = 1
+                    self._obs["edges_exist"][node_id, edge_id] = 1
 
 
     def __compute_ring_nodes(self):

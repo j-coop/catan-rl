@@ -14,7 +14,7 @@ class CatanStepMixin:
         for i in range(N_NODES):
             for j in range(len(self._ring_neighbors[i])):
                 if node_id == self._ring_neighbors[i][j]:
-                    self._obs["adjacent_nodes"]["is_built"][i][j] = 1
+                    self._obs["adj_is_built"][i][j] = 1
 
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
@@ -31,7 +31,7 @@ class CatanStepMixin:
         for i in range(N_NODES):
             for j in range(N_ADJACENT_EDGES):
                 if [a, b] == self._ring_edges[i][j].tolist():
-                    self._obs["edges"]["is_built"][i][j] = 1
+                    self._obs["edges_is_built"][i][j] = 1
 
         edge_coords = EDGES_LIST[edge_id]
         for tile_id in range(N_TILES):
@@ -92,13 +92,13 @@ class CatanStepMixin:
         for node in possible_nodes:
             if not self.__is_valid_settlement_placement(node):
                 continue
-            tokens = [TOKENS[np.argmax(tile)] for tile in self.observation_space["tiles"]["tokens"][node]]
+            tokens = [TOKENS[np.argmax(tile)] for tile in self._obs["tiles_tokens"][node]]
             norm_prob = [DICE_PROBABILITIES[token] / MAX_PROBABILITY for token in tokens]
             value += np.mean(norm_prob)
         return value
 
     def __has_port(self, node):
-        return self.observation_space["has_port"][node].sum() > 0
+        return self._obs["has_port"][node].sum() > 0
 
     """
     Returns points for port chances
@@ -137,8 +137,8 @@ class CatanStepMixin:
     """
     def __simulate_dice_rolls(self, settlement_action):
         node_id = np.argmax(settlement_action)
-        adjacent_tiles_resources = [np.argmax(tile) for tile in self.observation_space["tiles"]["resources"][node_id]]
-        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self.observation_space["tiles"]["tokens"][node_id]]
+        adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles_resources"][node_id]]
+        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles_tokens"][node_id]]
         adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
         gains = [0 for _ in range(N_RESOURCE_TYPES)]
         for _ in range(NUM_ROLLS):

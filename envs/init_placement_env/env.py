@@ -38,32 +38,15 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.action_space = spaces.MultiBinary(N_NODES + N_EDGES)
 
         self.observation_space = spaces.Dict({
-            "tiles": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_TILES]),
-                "tokens":     spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_TILES,
-                                                  N_TOKEN_VALUES]),
-                "resources":  spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_TILES,
-                                                  N_RESOURCE_TYPES])
-            }),
-            "edges": spaces.Dict({
-                "exist": spaces.MultiBinary([N_NODES,
-                                             N_ADJACENT_EDGES]),
-                "is_built": spaces.MultiBinary([N_NODES,
-                                                N_ADJACENT_EDGES]),
-            }),
-            "adjacent_nodes": spaces.Dict({
-                "exist":      spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_NODES]),
-                "is_built":   spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_NODES]),
-                "has_port":   spaces.MultiBinary([N_NODES,
-                                                  N_ADJACENT_NODES,
-                                                  N_PORT_FIELD_TYPES]),
-            }),
-            "has_port": spaces.MultiBinary((N_NODES, N_PORT_FIELD_TYPES)),
+            "tiles_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES]),
+            "tiles_tokens": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES]),
+            "tiles_resources": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES]),
+            "edges_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_EDGES]),
+            "edges_is_built": spaces.MultiBinary([N_NODES, N_ADJACENT_EDGES]),
+            "adj_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES]),
+            "adj_is_built": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES]),
+            "adj_has_port": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES]),
+            "has_port": spaces.MultiBinary([N_NODES, N_PORT_FIELD_TYPES])
         })
 
         self._obs = self._CatanResetMixin__prepare_obs_dict()
