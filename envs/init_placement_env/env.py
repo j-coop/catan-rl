@@ -35,7 +35,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         First N_NODES bits for settlement actions
         Further N_EDGES bits for road actions
         """
-        self.action_space = spaces.MultiBinary(N_NODES + N_EDGES)
+        self.action_space = spaces.Discrete(N_NODES + N_EDGES)
 
         self.observation_space = spaces.Dict({
             "tiles_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES]),
@@ -71,15 +71,24 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
         self._obs = self._CatanResetMixin__generate_obs()
 
-        return self._obs
+        return self._obs, {}
 
     def step(self, action):
         """
         Agent places EITHER a settlement OR a road in this step.
         """
-        settlement_action = action["build_settlement"]
-        road_action = action["build_road"]
-        self.__verify_action(action, settlement_action, road_action)
+        # Convert discrete action to one-hot encoded values
+        settlement_action = np.zeros(N_NODES, dtype=np.int8)
+        road_action = np.zeros(N_EDGES, dtype=np.int8)
+        
+        if action < N_NODES:
+            # Settlement
+            settlement_action[action] = 1
+        else:
+            # Road
+            road_action[action - N_NODES] = 1
+
+        self._verify_action(action, settlement_action, road_action)
         player = self._turn_order[self._turn_index]
 
         """
@@ -88,21 +97,21 @@ class CatanInitPlacementEnv(CatanResetMixin,
         Reward is given for number of simulated resources gained for both settlements
         Additional reward after second settlement for resources diversity
         """
-        is_road = self.__is_placing_1_road(road_action)
+        is_road = self._is_placing_1_road(road_action)
 
-        if self.__is_placing_1_settlement(settlement_action):
-            self.__make_settlement_action(player, settlement_action)
-        elif self.__is_placing_1_road(road_action):
-            self.__make_road_action(player, road_action)
+        if self._is_placing_1_settlement(settlement_action):
+            self._make_settlement_action(player, settlement_action)
+        elif self._is_placing_1_road(road_action):
+            self._make_road_action(player, road_action)
         else:
             raise ValueError("Action must specify either 1 road or 1 settlement.")
 
         # Set rewards
         if is_road:
-            reward = self.__evaluate_road_heuristic(road_action, self._last_settlement_node_index)
+            reward = self._evaluate_road_heuristic(road_action, self._last_settlement_node_index)
             reward += REWARD_WEIGHTS["ROAD"]
         else:
-            reward = self.__simulate_dice_rolls(settlement_action)
+            reward = self._simulate_dice_rolls(settlement_action)
             reward += REWARD_WEIGHTS["RESOURCES_NUM"]
 
         done = self._turn_index == len(self._turn_order) - 1
@@ -112,7 +121,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             is_second_settlement = floor((self._turn_index + 1) / 4)
             if is_second_settlement:
                 # Final reward for resources diversity
-                normalized_reward = self.__evaluate_final_resources(self._settlement_gains)
+                normalized_reward = self._evaluate_final_resources(self._settlement_gains)
                 reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
         else:
             self._turn_index += 1

@@ -22,7 +22,7 @@ class CatanStepMixin:
                 break
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
-                    tile_nodes = self._base_env["tiles"]["nodes"]
+                    tile_nodes = self._base_obs["tiles"]["nodes"]
                     tile_nodes["owner"][tile_id][i][player_id] = 1
                     tile_nodes["is_settlement"][tile_id][i] = 1
 
@@ -50,7 +50,7 @@ class CatanStepMixin:
 
     # Both actions should just update observation space
 
-    def __make_settlement_action(self, player, settlement_action):
+    def _make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         self.__build_settlement(node_id, player)
 
@@ -58,7 +58,7 @@ class CatanStepMixin:
         self._update_settlement_placement_mask(node_id)
         self._update_road_placement_mask(node_id, player)
 
-    def __make_road_action(self, player, road_action):
+    def _make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
         self.__build_road(edge_id, player)
 
@@ -70,7 +70,7 @@ class CatanStepMixin:
     """
     Road reward function
     """
-    def __evaluate_road_heuristic(self, road_action, node_index):
+    def _evaluate_road_heuristic(self, road_action, node_index):
         road_index = np.argmax(road_action)
         road_nodes = EDGES_LIST[road_index]
         target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
@@ -135,7 +135,7 @@ class CatanStepMixin:
     """
     Returns normalized score for gained resources
     """
-    def __simulate_dice_rolls(self, settlement_action):
+    def _simulate_dice_rolls(self, settlement_action):
         node_id = np.argmax(settlement_action)
         adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles_resources"][node_id]]
         adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles_tokens"][node_id]]
@@ -157,7 +157,7 @@ class CatanStepMixin:
     """
     Returns reward for well distributed resources
     """
-    def __evaluate_final_resources(self, gains):
+    def _evaluate_final_resources(self, gains):
         player = self._turn_order[self._turn_index]
         gained = gains[player][0] + gains[player][1]
 
