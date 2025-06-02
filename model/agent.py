@@ -13,7 +13,7 @@ from params.catan_constants import N_EPISODES, STEPS_PER_EPISODE
 def mask_fn(_env: gym.Env) -> np.ndarray:
     return _env.get_action_masks()
 
-base_env = CatanBaseEnv()
+base_env = CatanBaseEnv(save_env=True)
 base_env_obs = base_env.reset()
 
 # Create custom env

@@ -1,6 +1,9 @@
 import gymnasium as gym
 import numpy as np
 from random import randint
+import json
+import uuid
+import os
 
 from params.catan_constants import *
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
@@ -9,9 +12,10 @@ from params.coastal_nodes_list import COASTAL_NODES_LIST
 
 class CatanBaseEnv(gym.Env):
 
-    def __init__(self):
+    def __init__(self, save_env=False):
         super().__init__()
         self.state = None
+        self.save_env = save_env
         self.observation_space = gym.spaces.Dict({
             "resources": gym.spaces.MultiBinary([N_TILES, 
                                                     N_RESOURCE_TYPES]),
@@ -45,6 +49,25 @@ class CatanBaseEnv(gym.Env):
             "nodes_ports": self.__generate_ports(),
             "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
         }
+
+        # Save generated env to json
+        if self.save_env:
+            # Create saves directory if it doesn't exist
+            os.makedirs('saves', exist_ok=True)
+            
+            # Generate random UUID for filename
+            filename = f"saves/catan_base_env_{uuid.uuid4()}.json"
+            
+            # Convert numpy arrays to lists for JSON serialization
+            state_dict = {
+                key: value.tolist() if isinstance(value, np.ndarray) else value 
+                for key, value in self.state.items()
+            }
+            
+            # Save to JSON file
+            with open(filename, 'w') as f:
+                json.dump(state_dict, f, indent=2)
+
         return self.state
 
     def __generate_resources(self):
