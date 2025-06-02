@@ -28,7 +28,9 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
                                              dtype=np.int8)
         self._last_settlement_node_index = 0
-        self._settlement_gains = np.zeros((N_PLAYERS, 2))
+        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_RESOURCE_TYPES))
+
+        self.__step_counter = 0
 
         """
         Flat action space (some frameworks and algorithms don't work with dicts in action space)
@@ -54,16 +56,19 @@ class CatanInitPlacementEnv(CatanResetMixin,
     def get_action_masks(self) -> np.ndarray:
         player = self._turn_order[self._turn_index]
 
-        # Mask for settlements (length N_NODES)
-        settlement_mask = self.__settlement_placement_mask
-        # Mask for roads for the current player (length N_EDGES)
-        road_mask = self.__road_placement_mask[:, player]
+        # Start with base masks
+        settlement_mask = self.__settlement_placement_mask.copy()
+        road_mask = self.__road_placement_mask[:, player].copy()
 
-        # Concatenate the two into one flat mask
-        action_mask = np.concatenate([settlement_mask, road_mask])  # shape: (N_NODES + N_EDGES,)
+        # Mask out actions depending on current placement stage
+        if self._placement_stage == 'road':
+            settlement_mask[:] = 0  # Disable all settlement actions
+        elif self._placement_stage == 'settlement':
+            road_mask[:] = 0  # Disable all road actions
 
+        # Concatenate into flat action mask
+        action_mask = np.concatenate([settlement_mask, road_mask])
         return action_mask
-
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -77,6 +82,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
         """
         Agent places EITHER a settlement OR a road in this step.
         """
+        print(f'STEP {self.__step_counter}')
+        print(action)
         # Convert discrete action to one-hot encoded values
         settlement_action = np.zeros(N_NODES, dtype=np.int8)
         road_action = np.zeros(N_EDGES, dtype=np.int8)
@@ -84,12 +91,15 @@ class CatanInitPlacementEnv(CatanResetMixin,
         if action < N_NODES:
             # Settlement
             settlement_action[action] = 1
+            print(f'    PLACING SETTLEMENT')
         else:
             # Road
             road_action[action - N_NODES] = 1
+            print('    PLACING ROAD')
 
         self._verify_action(action, settlement_action, road_action)
         player = self._turn_order[self._turn_index]
+        print(f'    PLAYER {player}')
 
         """
         Road gets instant heuristic reward for step
@@ -98,10 +108,13 @@ class CatanInitPlacementEnv(CatanResetMixin,
         Additional reward after second settlement for resources diversity
         """
         is_road = self._is_placing_1_road(road_action)
+        print(f'is_road: {is_road}')
 
         if self._is_placing_1_settlement(settlement_action):
+            print('    PLACING SETTLEMENT')
             self._make_settlement_action(player, settlement_action)
         elif self._is_placing_1_road(road_action):
+            print('    PLACING ROAD')
             self._make_road_action(player, road_action)
         else:
             raise ValueError("Action must specify either 1 road or 1 settlement.")
@@ -114,8 +127,9 @@ class CatanInitPlacementEnv(CatanResetMixin,
             reward = self._simulate_dice_rolls(settlement_action)
             reward += REWARD_WEIGHTS["RESOURCES_NUM"]
 
-        done = self._turn_index == len(self._turn_order) - 1
+        done = self._turn_index == len(self._turn_order) - 1 and is_road
         if not is_road:
+            # Settlement
             self._last_settlement_node_index = np.argmax(settlement_action)
             self._placement_stage = "road"
             is_second_settlement = floor((self._turn_index + 1) / 4)
@@ -124,10 +138,15 @@ class CatanInitPlacementEnv(CatanResetMixin,
                 normalized_reward = self._evaluate_final_resources(self._settlement_gains)
                 reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
         else:
+            # Road
             self._turn_index += 1
             self._placement_stage = "settlement"
+            # Set road masks to zero to avoid building second road from the same settlement
+            self.__road_placement_mask[:, player] = 0
 
-        return self.observation_space, reward, done, False, {}
+        self.__step_counter += 1
+
+        return self._obs, reward, done, False, {}
 
     def _update_settlement_placement_mask(self, node_id):
         """
@@ -139,6 +158,10 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self.__settlement_placement_mask[n] = 0  # Disable for all agents
 
     def _update_road_placement_mask(self, settled_node: int, player_id: int):
+        print('_update_road_placement_mask')
+        print(settled_node)
+        print(player_id)
+        print(NODES_TO_NODES[settled_node])
         for neighbor in NODES_TO_NODES[settled_node]:
             edge = tuple(sorted((settled_node, neighbor)))
             try:

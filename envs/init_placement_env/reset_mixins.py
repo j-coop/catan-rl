@@ -42,7 +42,6 @@ class CatanResetMixin:
         tile_resources = self._base_obs["tiles"]["resources"]
         tile_tokens = self._base_obs["tiles"]["tokens"]
         for node_id, tile_ids in NODES_TO_TILES.items():
-            print(node_id, tile_ids)
             for i, tile_id in enumerate(tile_ids):
                 self._obs["tiles_exist"][node_id, i] = 1
                 self._obs["tiles_resources"][node_id, i] = tile_resources[tile_id]

@@ -38,7 +38,7 @@ class CatanStepMixin:
             adj_nodes = TILES_TO_NODES[tile_id]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
-                    road_edges = self._base_env["tiles"]["edges"]
+                    road_edges = self._base_obs["tiles"]["edges"]
                     road_edges["is_road"][tile_id][i] = 1
                     road_edges["owner"][tile_id][i][player_id] = 1
 
@@ -63,17 +63,26 @@ class CatanStepMixin:
         self.__build_road(edge_id, player)
 
     def __get_other_adjacent_nodes(self, node, known_node):
-        possible_nodes = NODES_TO_NODES[node]
+        print('__get_other_adjacent_nodes')
+        print(node, known_node)
+        possible_nodes = NODES_TO_NODES[node].copy()
+        print(possible_nodes)
         possible_nodes.remove(known_node)
+        print(possible_nodes)
         return possible_nodes
 
     """
     Road reward function
     """
     def _evaluate_road_heuristic(self, road_action, node_index):
+        print('_evaluate_road_heuristic')
+        print(node_index)
         road_index = np.argmax(road_action)
+        print(road_index)
         road_nodes = EDGES_LIST[road_index]
+        print(road_nodes)
         target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
+        print(target_node)
         possible_nodes = self.__get_other_adjacent_nodes(target_node, node_index)
 
         # Heuristic 1: Estimation of two possible settlements road can lead to (0 if already occupied or impossible)
@@ -90,9 +99,9 @@ class CatanStepMixin:
     def __estimate_future_node_values(self, possible_nodes):
         value = 0
         for node in possible_nodes:
-            if not self.__is_valid_settlement_placement(node):
+            if not self._is_valid_settlement_placement(node):
                 continue
-            tokens = [TOKENS[np.argmax(tile)] for tile in self._obs["tiles_tokens"][node]]
+            tokens = [TOKENS[np.argmax(tile) - 2] for tile in self._obs["tiles_tokens"][node]]
             norm_prob = [DICE_PROBABILITIES[token] / MAX_PROBABILITY for token in tokens]
             value += np.mean(norm_prob)
         return value
@@ -109,24 +118,28 @@ class CatanStepMixin:
     """
     def __check_if_toward_port(self, base_node, possible_nodes):
         value = 0
+        print('__check_if_toward_port')
+        print(base_node)
+        print(possible_nodes)
         for node in possible_nodes:
             # Check if road can be placed
             edge_index = EDGES_LIST.index((min(base_node, node), max(base_node, node)))
-            if not self.__is_valid_road_placement(edge_index):
+            if not self._is_valid_road_placement(edge_index):
                 continue
             # Check for possible port
-            if self.__has_port(node) and self.__is_valid_settlement_placement(node):
+            if self.__has_port(node) and self._is_valid_settlement_placement(node):
                 # Close port - full point
                 value += 1
                 break
             # Check further port
             further_nodes = self.__get_other_adjacent_nodes(node, base_node)
+            print(further_nodes)
             for further_node in further_nodes:
                 edge_index = EDGES_LIST.index((min(node, further_node), max(node, further_node)))
-                if not self.__is_valid_road_placement(edge_index):
+                if not self._is_valid_road_placement(edge_index):
                     continue
                 # Check for possible port
-                if self.__has_port(further_node) and self.__is_valid_settlement_placement(further_node):
+                if self.__has_port(further_node) and self._is_valid_settlement_placement(further_node):
                     # Far port - lower value
                     value += 0.4
                     break
@@ -139,7 +152,7 @@ class CatanStepMixin:
         node_id = np.argmax(settlement_action)
         adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles_resources"][node_id]]
         adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles_tokens"][node_id]]
-        adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
+        adjacent_tiles_tokens = [TOKENS[i - 2] for i in adjacent_tiles_tokens_ids]
         gains = [0 for _ in range(N_RESOURCE_TYPES)]
         for _ in range(NUM_ROLLS):
             roll = random.randint(1,6) + random.randint(1, 6)
@@ -148,6 +161,7 @@ class CatanStepMixin:
                     gains[adjacent_tiles_resources[i]] += 1
         # Get player, save simulated gain
         player = self._turn_order[self._turn_index]
+        print(self._turn_index)
         self._settlement_gains[player, floor((self._turn_index + 1) / 4)] = gains
         # Award reward
         sum_gain = sum(gains)

@@ -17,9 +17,10 @@ class CatanValidationMixin:
         else: return False  # adjacent node already has a settlement
         return True
 
-    def _is_valid_road_placement(self, edge_id, player):
+    def _is_valid_road_placement(self, edge_id):
         # TODO Fix this func
-        return self._obs["edges_is_built"][:, edge_id].sum() == 0
+        return True
+        # return self._obs["edges_is_built"][:, edge_id].sum() == 0
     
     def _verify_action(self, action, settlement_action, road_action):
         assert self.action_space.contains(action), "Invalid action format"
