@@ -39,8 +39,8 @@ class CatanResetMixin:
         return self._obs
 
     def __fill_tiles_info(self):
-        tile_resources = self._base_obs["tiles"]["resources"]
-        tile_tokens = self._base_obs["tiles"]["tokens"]
+        tile_resources = self._base_obs["resources"]
+        tile_tokens = self._base_obs["tokens"]
         for node_id, tile_ids in NODES_TO_TILES.items():
             for i, tile_id in enumerate(tile_ids):
                 self._obs["tiles_exist"][node_id, i] = 1
@@ -54,7 +54,7 @@ class CatanResetMixin:
                     self._obs["adj_exist"][node_id, i] = 1
 
     def __fill_port_info(self):
-        tile_ports = self._base_obs["tiles"]["nodes"]["ports"]
+        tile_ports = self._base_obs["nodes_ports"]
         for tile_id, node_ids in TILES_TO_NODES.items():
             for local_idx, node_id in enumerate(node_ids):
                 port_vec = tile_ports[tile_id, local_idx]

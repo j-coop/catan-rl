@@ -22,9 +22,8 @@ class CatanStepMixin:
                 break
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
-                    tile_nodes = self._base_obs["tiles"]["nodes"]
-                    tile_nodes["owner"][tile_id][i][player_id] = 1
-                    tile_nodes["is_settlement"][tile_id][i] = 1
+                    self._base_obs["nodes_owners"][tile_id][i][player_id] = 1
+                    self._base_obs["nodes_settlements"][tile_id][i] = 1
 
     def __build_road(self, edge_id, player_id):
         a, b = EDGES_LIST[edge_id]
@@ -38,9 +37,8 @@ class CatanStepMixin:
             adj_nodes = TILES_TO_NODES[tile_id]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
-                    road_edges = self._base_obs["tiles"]["edges"]
-                    road_edges["is_road"][tile_id][i] = 1
-                    road_edges["owner"][tile_id][i][player_id] = 1
+                    self._base_obs["edges_roads"][tile_id][i] = 1
+                    self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
 
     def __check_if_placement_done(self):
