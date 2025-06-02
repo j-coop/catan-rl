@@ -36,10 +36,13 @@ ANGLES = np.radians([150, 90, 30, 330, 270, 210])
 class CatanMapPlotter:
 
     def __init__(self, base_obs):
-        self.__resources = base_obs['tiles']['resources']
-        self.__tokens = base_obs['tiles']['tokens']
-        self.__nodes = base_obs['tiles']['nodes']
-        self.__edges = base_obs['tiles']['edges']
+        self.__resources = base_obs['resources']
+        self.__tokens = base_obs['tokens']
+        # self.__nodes_settlements = base_obs['nodes_settlements']
+        # self.__nodes_cities = base_obs['nodes_cities']
+        self.__nodes_owners = base_obs['nodes_owners']
+        self.__nodes_ports = base_obs['nodes_ports']
+        self.__edges = base_obs['edges_owners']
 
     def __setup_plot_area(self):
         # Create a wide figure (18:9) with constrained map region
@@ -98,7 +101,7 @@ class CatanMapPlotter:
                 if node_id in TILES_TO_NODES[tile_id]:
                     if plotted_nodes[node_id] == 0:
                         index = TILES_TO_NODES[tile_id].index(node_id)
-                        owners_vec = self.__nodes["owner"][tile_id][index]
+                        owners_vec = self.__nodes_owners[tile_id][index]
                         if np.any(owners_vec):
                             player_id = np.argmax(owners_vec)
                             self.__plot_settlement(node_id, player_id)
@@ -137,7 +140,7 @@ class CatanMapPlotter:
                 if edge in TILES_TO_EDGES[tile_id]:
                     if plotted_edges[edge_id] == 0:
                         index = TILES_TO_EDGES[tile_id].index(edge)
-                        owners_vec = self.__edges["owner"][tile_id][index]
+                        owners_vec = self.__edges[tile_id][index]
                         if np.any(owners_vec):
                             player_id = np.argmax(owners_vec)
                             self.__plot_settlement(edge, player_id)
@@ -197,16 +200,16 @@ class CatanMapPlotter:
 
     def __plot_ports(self):
         for tile_index, (q, r) in enumerate(LAND_POSITIONS):
-            if not np.any(self.__nodes["ports"][tile_index]):
+            if not np.any(self.__nodes_ports[tile_index]):
                 continue
             for node_index in range(6):
-                port_vec = self.__nodes["ports"][tile_index][node_index]
+                port_vec = self.__nodes_ports[tile_index][node_index]
                 if not np.any(port_vec):
                     continue
 
                 # Check if the adjacent node also has the same port
                 next_index = (node_index + 1) % 6
-                next_port_vec = self.__nodes["ports"][tile_index][next_index]
+                next_port_vec = self.__nodes_ports[tile_index][next_index]
                 port_type = np.argmax(port_vec)
                 port_exists = (
                     np.any(next_port_vec)
