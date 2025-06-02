@@ -48,6 +48,7 @@ class CatanBaseEnv(gym.Env):
             "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
             "nodes_ports": self.__generate_ports(),
             "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
+            "edges_roads": np.zeros((N_TILES, 6), dtype=np.int8)
         }
 
         # Save generated env to json
@@ -58,15 +59,26 @@ class CatanBaseEnv(gym.Env):
             # Generate random UUID for filename
             filename = f"saves/catan_base_env_{uuid.uuid4()}.json"
             
-            # Convert numpy arrays to lists for JSON serialization
-            state_dict = {
-                key: value.tolist() if isinstance(value, np.ndarray) else value 
-                for key, value in self.state.items()
-            }
+            # Convert numpy arrays to compact format for JSON serialization
+            state_dict = {}
+            for key, value in self.state.items():
+                if isinstance(value, np.ndarray):
+                    # Convert to list and remove unnecessary nesting for 1D arrays
+                    arr = value.tolist()
+                    if len(value.shape) == 1:
+                        state_dict[key] = arr
+                    else:
+                        # For multi-dimensional arrays, flatten and include shape
+                        state_dict[key] = {
+                            "data": [x for sublist in arr for x in (sublist if isinstance(sublist, list) else [sublist])],
+                            "shape": value.shape
+                        }
+                else:
+                    state_dict[key] = value
             
-            # Save to JSON file
+            # Save to JSON file in compact format
             with open(filename, 'w') as f:
-                json.dump(state_dict, f, indent=2)
+                json.dump(state_dict, f, separators=(',', ':'))
 
         return self.state
 
