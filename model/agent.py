@@ -3,7 +3,7 @@ import numpy as np
 
 from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.common.wrappers import ActionMasker
-from sb3_contrib.ppo_mask import MaskablePPO
+from sb3_contrib.ppo_mask import MaskablePPO, MultiInputPolicy
 
 from envs.base_env.env import CatanBaseEnv
 from envs.init_placement_env.env import CatanInitPlacementEnv
@@ -26,7 +26,7 @@ env = ActionMasker(env, mask_fn)
 # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
 # with ActionMasker. If the wrapper is detected, the masks are automatically
 # retrieved and used when learning.
-model = MaskablePPO(MaskableActorCriticPolicy, env, verbose=1)
+model = MaskablePPO(MultiInputPolicy, env, verbose=1)
 
 
 model.learn(total_timesteps=N_EPISODES * STEPS_PER_EPISODE)
