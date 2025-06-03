@@ -122,4 +122,3 @@ class CatanResetMixin:
                         self._ring_edges[node_id][edge_counter][0] = neighbor
                         self._ring_edges[node_id][edge_counter][1] = second_degree_nodes[i]
                         edge_counter += 1
-        print(self._ring_edges)
