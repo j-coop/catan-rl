@@ -160,7 +160,7 @@ class CatanStepMixin:
         # Get player, save simulated gain
         player = self._turn_order[self._turn_index]
         print(self._turn_index)
-        self._settlement_gains[player, floor((self._turn_index + 1) / 4)] = gains
+        self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
         # Award reward
         sum_gain = sum(gains)
         normalized_gain_score = sum_gain / BEST_EXPECTED_GAIN
