@@ -88,4 +88,4 @@ REWARD_WEIGHTS = {
 STEPS_PER_EPISODE = 16
 
 # Agent training number of episodes
-N_EPISODES = 100
+N_EPISODES = 10000
