@@ -281,14 +281,14 @@ class CatanMapPlotter:
         y = HEX_RADIUS * 3/2 * r
         return x, y
 
-    def plot_catan_map(self):
+    def plot_catan_map(self, path='_plot.png'):
         self.__setup_plot_area()
         self.__plot_land_hexes()
         self.__plot_sea_hexes()
         self.__plot_settlements()
         self.__plot_roads()
         self.__plot_ports()
-        self.__plot_settlement(12, 0)
+        #self.__plot_settlement(12, 0)
         plt.show()
-        plt.savefig("plot_.png")
+        plt.savefig(path)
         plt.close()

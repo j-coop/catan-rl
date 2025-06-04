@@ -161,7 +161,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         if self.__step_counter >= 16:
             self.__step_counter = 0
 
-        return self._obs, reward, done, False, {}
+        return self._obs, reward, done, False, {'base_obs': self._base_obs}
 
     def _update_settlement_placement_mask(self, node_id):
         """

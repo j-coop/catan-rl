@@ -19,7 +19,7 @@ class CatanStepMixin:
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
             if node_id < adj_nodes[0] or node_id > adj_nodes[-3]:
-                break
+                continue
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
                     self._base_obs["nodes_owners"][tile_id][i][player_id] = 1

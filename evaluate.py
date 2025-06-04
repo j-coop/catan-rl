@@ -6,6 +6,7 @@ from sb3_contrib.common.wrappers import ActionMasker
 
 from envs.base_env.env import CatanBaseEnv
 from envs.init_placement_env.env import CatanInitPlacementEnv
+from visualization.map_plotter import CatanMapPlotter
 
 
 # Action mask function
@@ -37,7 +38,7 @@ for placement_step in range(16):
     mask = placement_env.unwrapped.get_action_masks()
 
     # Predict with action mask
-    action, _states = model.predict(obs, deterministic=True, action_masks=mask)
+    action, _states = model.predict(obs, deterministic=False, action_masks=mask)
     print(f"Step {placement_step}: Chosen action {action}")
 
     # Step environment
@@ -46,5 +47,8 @@ for placement_step in range(16):
     # Save map image every pair (after road)
     if placement_step % 2 == 1:
         filename = os.path.join(save_dir, f"step_{placement_step:02d}.png")
-        # plot_map(placement_env.unwrapped, filename)
+
+        plotter = CatanMapPlotter(info['base_obs'])
+        plotter.plot_catan_map(filename)
+
         print(f"Saved map after step {placement_step} to {filename}")
