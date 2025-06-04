@@ -19,12 +19,11 @@ class CatanStepMixin:
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
             if node_id < adj_nodes[0] or node_id > adj_nodes[-3]:
-                break
+                continue
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
-                    tile_nodes = self._base_obs["tiles"]["nodes"]
-                    tile_nodes["owner"][tile_id][i][player_id] = 1
-                    tile_nodes["is_settlement"][tile_id][i] = 1
+                    self._base_obs["nodes_owners"][tile_id][i][player_id] = 1
+                    self._base_obs["nodes_settlements"][tile_id][i] = 1
 
     def __build_road(self, edge_id, player_id):
         a, b = EDGES_LIST[edge_id]
@@ -38,9 +37,8 @@ class CatanStepMixin:
             adj_nodes = TILES_TO_NODES[tile_id]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
-                    road_edges = self._base_obs["tiles"]["edges"]
-                    road_edges["is_road"][tile_id][i] = 1
-                    road_edges["owner"][tile_id][i][player_id] = 1
+                    self._base_obs["edges_roads"][tile_id][i] = 1
+                    self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
 
     def __check_if_placement_done(self):
@@ -162,7 +160,7 @@ class CatanStepMixin:
         # Get player, save simulated gain
         player = self._turn_order[self._turn_index]
         print(self._turn_index)
-        self._settlement_gains[player, floor((self._turn_index + 1) / 4)] = gains
+        self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
         # Award reward
         sum_gain = sum(gains)
         normalized_gain_score = sum_gain / BEST_EXPECTED_GAIN

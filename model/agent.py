@@ -1,5 +1,6 @@
 import gymnasium as gym
 import numpy as np
+from datetime import datetime
 
 from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.common.wrappers import ActionMasker
@@ -13,7 +14,7 @@ from params.catan_constants import N_EPISODES, STEPS_PER_EPISODE
 def mask_fn(_env: gym.Env) -> np.ndarray:
     return _env.get_action_masks()
 
-base_env = CatanBaseEnv()
+base_env = CatanBaseEnv(save_env=True)
 base_env_obs = base_env.reset()
 
 # Create custom env
@@ -30,6 +31,14 @@ model = MaskablePPO(MultiInputPolicy, env, verbose=1)
 
 
 model.learn(total_timesteps=N_EPISODES * STEPS_PER_EPISODE)
+
+# Get timestamp
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+model_path = f"trained_models/init-placement/ppo_mask_{timestamp}"
+
+# Save model
+model.save(model_path)
+print(f"Model saved to: {model_path}")
 
 # Note that use of masks is manual and optional outside of learning,
 # so masking can be "removed" at testing time

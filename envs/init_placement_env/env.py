@@ -54,6 +54,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._obs = self._CatanResetMixin__prepare_obs_dict()
 
     def get_action_masks(self) -> np.ndarray:
+        print(self._turn_index)
         player = self._turn_order[self._turn_index]
 
         # Start with base masks
@@ -71,10 +72,19 @@ class CatanInitPlacementEnv(CatanResetMixin,
         return action_mask
 
     def reset(self, seed=None, options=None):
+        print('=================== RESET ===================')
         super().reset(seed=seed)
         self._obs = self._CatanResetMixin__prepare_obs_dict()
 
         self._obs = self._CatanResetMixin__generate_obs()
+
+        self._turn_index = 0
+        self._placement_stage = "settlement"
+        self.__settlement_placement_mask = np.ones((N_NODES,), dtype=np.int8)
+        self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
+                                              dtype=np.int8)
+        self._last_settlement_node_index = 0
+        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_RESOURCE_TYPES))
 
         return self._obs, {}
 
@@ -139,14 +149,19 @@ class CatanInitPlacementEnv(CatanResetMixin,
                 reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
         else:
             # Road
-            self._turn_index += 1
+            if not done:
+                self._turn_index += 1
+            else:
+                self._turn_index = 0
             self._placement_stage = "settlement"
             # Set road masks to zero to avoid building second road from the same settlement
             self.__road_placement_mask[:, player] = 0
 
         self.__step_counter += 1
+        if self.__step_counter >= 16:
+            self.__step_counter = 0
 
-        return self._obs, reward, done, False, {}
+        return self._obs, reward, done, False, {'base_obs': self._base_obs}
 
     def _update_settlement_placement_mask(self, node_id):
         """

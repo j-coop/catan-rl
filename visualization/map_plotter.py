@@ -88,11 +88,12 @@ class CatanMapPlotter:
                                     edgecolor='black')
         self.__ax.add_patch(hex)
         if token >= 0:
+            token_color = 'red' if token + 2 == 6 or token + 2 == 8 else 'black'
             self.__ax.text(x, y, str(token + 2),
                     ha='center', 
                     va='center',
                     fontsize=15,
-                    color='black')
+                    color=token_color)
    
     def __plot_settlements(self):
         plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
@@ -280,11 +281,14 @@ class CatanMapPlotter:
         y = HEX_RADIUS * 3/2 * r
         return x, y
 
-    def plot_catan_map(self):
+    def plot_catan_map(self, path='_plot.png'):
         self.__setup_plot_area()
         self.__plot_land_hexes()
         self.__plot_sea_hexes()
         self.__plot_settlements()
         self.__plot_roads()
         self.__plot_ports()
+        #self.__plot_settlement(12, 0)
         plt.show()
+        plt.savefig(path)
+        plt.close()
