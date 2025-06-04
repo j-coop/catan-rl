@@ -14,14 +14,14 @@ def mask_fn(env) -> np.ndarray:
     return env.get_action_masks()
 
 # Load trained model
-model = MaskablePPO.load("trained_models/init-placement/init-model.zip")
+model = MaskablePPO.load("model/trained_models/init-placement/init-model.zip")
 
 # Create random base env
 base_env = CatanBaseEnv(save_env=True)
 base_env_obs = base_env.reset()
 
 # Create placement env and wrap with ActionMasker
-placement_env = CatanInitPlacementEnv(base_env_obs=base_env_obs)
+placement_env = CatanInitPlacementEnv(base_env_obs=base_env_obs, train=False)
 placement_env = ActionMasker(placement_env, mask_fn)
 
 # Reset environment (unpack Gym-style tuple)
@@ -38,11 +38,12 @@ for placement_step in range(16):
     mask = placement_env.unwrapped.get_action_masks()
 
     # Predict with action mask
-    action, _states = model.predict(obs, deterministic=False, action_masks=mask)
+    action, _states = model.predict(obs, deterministic=True, action_masks=mask)
     print(f"Step {placement_step}: Chosen action {action}")
 
     # Step environment
     obs, reward, done, truncated, info = placement_env.step(action)
+    print(reward)
 
     # Save map image every pair (after road)
     if placement_step % 2 == 1:
