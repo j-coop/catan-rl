@@ -11,19 +11,29 @@ class CatanResetMixin:
     def __init__(self):
         self._ring_edges = np.zeros((N_NODES, N_ADJACENT_EDGES, 2),
                                     dtype=np.uint8)
-        self._ring_neighbors = np.full((N_NODES, N_ADJACENT_NODES), -1, dtype=np.int8)
+        self._ring_neighbors = np.full((N_NODES, N_ADJACENT_NODES), -1,
+                                       dtype=np.int8)
 
     def __prepare_obs_dict(self):
         obs = {
-            "tiles_exist": np.zeros((N_NODES, N_ADJACENT_TILES), dtype=np.int8),
-            "tiles_tokens": np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES), dtype=np.int8),
-            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES), dtype=np.int8),
-            "edges_exist": np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8),
-            "edges_is_built": np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8),
-            "adj_exist": np.zeros((N_NODES, N_ADJACENT_NODES), dtype=np.int8),
-            "adj_is_built": np.zeros((N_NODES, N_ADJACENT_NODES), dtype=np.int8),
-            "adj_has_port": np.zeros((N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES), dtype=np.int8),
-            "has_port": np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8),
+            "tiles_exist":     np.zeros((N_NODES, N_ADJACENT_TILES),
+                                        dtype=np.int8),
+            "tiles_tokens":    np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES),
+                                        dtype=np.int8),
+            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES),
+                                        dtype=np.int8),
+            "edges_exist":     np.zeros((N_NODES, N_ADJACENT_EDGES),
+                                        dtype=np.int8),
+            "edges_is_built":  np.zeros((N_NODES, N_ADJACENT_EDGES),
+                                        dtype=np.int8),
+            "adj_exist":       np.zeros((N_NODES, N_ADJACENT_NODES),
+                                    dtype=np.int8),
+            "adj_is_built":    np.zeros((N_NODES, N_ADJACENT_NODES),
+                                        dtype=np.int8),
+            "adj_has_port":    np.zeros((N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES),
+                                        dtype=np.int8),
+            "has_port":        np.zeros((N_NODES, N_PORT_FIELD_TYPES),
+                                        dtype=np.int8),
         }
         return obs
 
@@ -56,8 +66,8 @@ class CatanResetMixin:
     def __fill_port_info(self):
         tile_ports = self._base_obs["nodes_ports"]
         for tile_id, node_ids in TILES_TO_NODES.items():
-            for local_idx, node_id in enumerate(node_ids):
-                port_vec = tile_ports[tile_id, local_idx]
+            for local_id, node_id in enumerate(node_ids):
+                port_vec = tile_ports[tile_id, local_id]
                 if port_vec.any():  # If there's a port
                     self._obs["has_port"][node_id] = port_vec
                     for i, _ in enumerate(self._ring_neighbors[node_id]):
@@ -65,13 +75,11 @@ class CatanResetMixin:
 
     def __fill_edge_existence_info(self):
         """Mark edges as existing based on previously computed ring edges."""
-        self._obs["edges_exist"] = np.zeros((N_NODES, N_ADJACENT_EDGES), dtype=np.int8)
         for node_id in range(N_NODES):
             for edge_id in range(N_ADJACENT_EDGES):
                 a, b = self._ring_edges[node_id][edge_id]
                 if a != 0 or b != 0:  # assumes empty = [0, 0]
                     self._obs["edges_exist"][node_id, edge_id] = 1
-
 
     def __compute_ring_nodes(self):
         for node in range(N_NODES):
@@ -102,16 +110,15 @@ class CatanResetMixin:
         for node_id in range(N_NODES):
             direct_neighbors = NODES_TO_NODES.get(node_id, [])
             edge_counter = 0
-
             for neighbor in direct_neighbors:
-                # Get nodes that are neighbors of our neighbor (excluding our original node)
-                second_degree_nodes = [n for n in NODES_TO_NODES.get(neighbor, []) if n != node_id]
-                
-                # For each pair of second-degree nodes that share our neighbor, create an edge in the ring
-                for i in range(len(second_degree_nodes)):
-                    for j in range(i + 1, len(second_degree_nodes)):
-                        if edge_counter < N_ADJACENT_EDGES:
-                            # Store the edge as a sorted pair to maintain consistency
-                            a, b = sorted([second_degree_nodes[i], second_degree_nodes[j]])
-                            self._ring_edges[node_id][edge_counter] = [a, b]
-                            edge_counter += 1
+                second_degree_nodes = NODES_TO_NODES.get(neighbor, []).copy()
+                second_degree_nodes.remove(node_id)
+                if len(second_degree_nodes) == 1:
+                    self._ring_edges[node_id][edge_counter][0] = neighbor
+                    self._ring_edges[node_id][edge_counter][1] = second_degree_nodes[0]
+                    edge_counter += 1
+                else:
+                    for i in range(2):
+                        self._ring_edges[node_id][edge_counter][0] = neighbor
+                        self._ring_edges[node_id][edge_counter][1] = second_degree_nodes[i]
+                        edge_counter += 1
