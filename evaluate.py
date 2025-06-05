@@ -43,7 +43,6 @@ for placement_step in range(16):
 
     # Step environment
     obs, reward, done, truncated, info = placement_env.step(action)
-    print(reward)
 
     # Save map image every pair (after road)
     if placement_step % 2 == 1:

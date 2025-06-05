@@ -31,7 +31,7 @@ model = MaskablePPO(
     MultiInputPolicy,
     env,
     verbose=1,
-    ent_coef=0.05
+    ent_coef=0.1
 )
 
 

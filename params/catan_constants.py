@@ -34,7 +34,7 @@ N_PORT_FIELD_TYPES = 6
 
 # Number tokens on tiles
 ALL_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
-TOKENS = [2, 3, 4, 5, 6, 8, 9, 10, 11, 12]
+TOKENS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 N_TOKEN_VALUES = 11
 
 DICE_PROBABILITIES = {
@@ -78,9 +78,9 @@ BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 
 # Rewards relative weights importance
 REWARD_WEIGHTS = {
-    "ROAD": 2,
-    "RESOURCES_NUM": 4,
-    "RESOURCES_DISTRIBUTION": 4
+    "ROAD": 0.5,
+    "RESOURCES_NUM": 9.5,
+    "RESOURCES_DISTRIBUTION": 0
 }
 
 # Number of steps in each episode
@@ -88,4 +88,4 @@ REWARD_WEIGHTS = {
 STEPS_PER_EPISODE = 16
 
 # Agent training number of episodes
-N_EPISODES = 100000
+N_EPISODES = 50000

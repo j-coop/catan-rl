@@ -133,6 +133,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             reward *= REWARD_WEIGHTS["ROAD"]
         else:
             reward = self._simulate_dice_rolls(settlement_action)
+            reward = np.exp(reward) - 1
             reward *= REWARD_WEIGHTS["RESOURCES_NUM"]
 
         done = self._turn_index == len(self._turn_order) - 1 and is_road
@@ -140,11 +141,12 @@ class CatanInitPlacementEnv(CatanResetMixin,
             # Settlement
             self._last_settlement_node_index = np.argmax(settlement_action)
             self._placement_stage = "road"
-            is_second_settlement = floor((self._turn_index + 1) / 4)
+            """is_second_settlement = floor((self._turn_index + 1) / 4)
             if is_second_settlement:
                 # Final reward for resources diversity
                 normalized_reward = self._evaluate_final_resources(self._settlement_gains)
                 reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
+                print(f'Reward (distribution): {reward}')"""
         else:
             # Road
             if not done:
