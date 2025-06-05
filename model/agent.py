@@ -27,7 +27,12 @@ env = ActionMasker(env, mask_fn)
 # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
 # with ActionMasker. If the wrapper is detected, the masks are automatically
 # retrieved and used when learning.
-model = MaskablePPO(MultiInputPolicy, env, verbose=1)
+model = MaskablePPO(
+    MultiInputPolicy,
+    env,
+    verbose=1,
+    ent_coef=0.1
+)
 
 
 model.learn(total_timesteps=N_EPISODES * STEPS_PER_EPISODE)

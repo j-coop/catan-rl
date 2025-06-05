@@ -1,10 +1,8 @@
-import random
-from math import floor
 import numpy as np
-
 from params.catan_constants import *
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
 
@@ -135,17 +133,19 @@ class CatanStepMixin:
     """
     def _simulate_dice_rolls(self, settlement_action):
         node_id = np.argmax(settlement_action)
-        adjacent_tiles_resources = [np.argmax(tile) for tile in self._obs["tiles_resources"][node_id]]
-        adjacent_tiles_tokens_ids = [np.argmax(tile) for tile in self._obs["tiles_tokens"][node_id]]
-        adjacent_tiles_tokens = [TOKENS[i - 2] for i in adjacent_tiles_tokens_ids]
+        adjacent_tiles = NODES_TO_TILES[node_id]
+        adjacent_tiles_resources = [np.argmax(self._base_obs["resources"][tile]) for tile in adjacent_tiles]
+        adjacent_tiles_tokens_ids = [np.argmax(self._base_obs["tokens"][tile]) for tile in adjacent_tiles]
+        adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
+
         gains = [0 for _ in range(N_RESOURCE_TYPES)]
-        for _ in range(NUM_ROLLS):
-            roll = random.randint(1,6) + random.randint(1, 6)
-            if roll in adjacent_tiles_tokens:
-                for i in range(len(adjacent_tiles_resources)):
-                    if adjacent_tiles_tokens[i] == roll:
-                        gains[adjacent_tiles_resources[i]] += 1
+        for i in range(len(adjacent_tiles_resources)):
+            resource = adjacent_tiles_resources[i]
+            token = adjacent_tiles_tokens[i]
+            expected_gain = DICE_PROBABILITIES[token] * NUM_ROLLS
+            gains[resource] += expected_gain
         gains[-1] = 0 # Desert
+
         # Get player, save simulated gain
         player = self._turn_order[self._turn_index]
         self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains

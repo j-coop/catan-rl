@@ -38,12 +38,11 @@ for placement_step in range(16):
     mask = placement_env.unwrapped.get_action_masks()
 
     # Predict with action mask
-    action, _states = model.predict(obs, deterministic=True, action_masks=mask)
+    action, _states = model.predict(obs, deterministic=False, action_masks=mask)
     print(f"Step {placement_step}: Chosen action {action}")
 
     # Step environment
     obs, reward, done, truncated, info = placement_env.step(action)
-    print(reward)
 
     # Save map image every pair (after road)
     if placement_step % 2 == 1:
