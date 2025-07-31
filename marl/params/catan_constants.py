@@ -1,0 +1,2 @@
+N_NODES = 54
+N_EDGES = 72
