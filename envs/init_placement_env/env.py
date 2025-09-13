@@ -133,7 +133,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             reward *= REWARD_WEIGHTS["ROAD"]
         else:
             reward = self._simulate_dice_rolls(settlement_action)
-            reward = np.exp(reward) - 1
+            reward = reward ** 2.5
             reward *= REWARD_WEIGHTS["RESOURCES_NUM"]
 
         done = self._turn_index == len(self._turn_order) - 1 and is_road

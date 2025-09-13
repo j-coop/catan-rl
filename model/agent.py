@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from datetime import datetime
+import torch
 
 from sb3_contrib.common.maskable.policies import MaskableActorCriticPolicy
 from sb3_contrib.common.wrappers import ActionMasker
@@ -27,15 +28,28 @@ env = ActionMasker(env, mask_fn)
 # MaskablePPO behaves the same as SB3's PPO unless the env is wrapped
 # with ActionMasker. If the wrapper is detected, the masks are automatically
 # retrieved and used when learning.
+
+print(torch.cuda.is_available())
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+tensorboard_log_dir = f"logs/tb/{timestamp}"
+
 model = MaskablePPO(
     MultiInputPolicy,
     env,
     verbose=1,
-    ent_coef=0.1
+    ent_coef=0.03,
+    learning_rate=1e-4,
+    n_epochs=4,
+    clip_range=0.2,
+    tensorboard_log=tensorboard_log_dir
 )
 
 
-model.learn(total_timesteps=N_EPISODES * STEPS_PER_EPISODE)
+model.learn(
+    total_timesteps=N_EPISODES * STEPS_PER_EPISODE,
+    tb_log_name="ppo_mask_run_{}".format(timestamp)
+)
 
 # Get timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
