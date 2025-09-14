@@ -7,6 +7,7 @@ import numpy as np
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.catan_constants import *
 from params.edges_list import EDGES_LIST
+from visualization.map_plotter import CatanMapPlotter
 from .reset_mixins import CatanResetMixin
 from .step_mixins import CatanStepMixin
 from .validation_mixin import CatanValidationMixin
@@ -22,6 +23,9 @@ class CatanInitPlacementEnv(CatanResetMixin,
         gym.Env.__init__(self)
         CatanResetMixin.__init__(self)
         self._base_obs = base_env_obs
+        if not self._base_obs:
+            base_env = CatanBaseEnv(save_env=False)
+            self._base_obs = base_env.reset()
         self._train = train
         self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
         self._turn_index = 0
@@ -84,6 +88,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._obs = self._CatanResetMixin__generate_obs()
 
         self._turn_index = 0
+        self.__step_counter = 0
         self._placement_stage = "settlement"
         self.__settlement_placement_mask = np.ones((N_NODES,), dtype=np.int8)
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
@@ -132,8 +137,14 @@ class CatanInitPlacementEnv(CatanResetMixin,
             reward = self._evaluate_road_heuristic(road_action, self._last_settlement_node_index)
             reward *= REWARD_WEIGHTS["ROAD"]
         else:
-            reward = self._simulate_dice_rolls(settlement_action)
-            reward = reward ** 2.5
+            placement_gain = self._simulate_dice_rolls(settlement_action)
+            reward = placement_gain - BASELINE_REWARD  # [-0.43 ; 0.57]
+            reward *= 2.0  # roughly [-1 ; 1] - considered best for PPO
+            alpha = 0.7  # exponential decay rate for early steps
+            min_significance = 0.2  # minimum weight for last steps
+            # Compute significance - make first settlements more important for correct order
+            significance = max(alpha ** self._turn_index, min_significance)
+            reward *= significance
             reward *= REWARD_WEIGHTS["RESOURCES_NUM"]
 
         done = self._turn_index == len(self._turn_order) - 1 and is_road
