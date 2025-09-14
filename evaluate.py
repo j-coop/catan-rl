@@ -14,7 +14,7 @@ def mask_fn(env) -> np.ndarray:
     return env.get_action_masks()
 
 # Load trained model
-model = MaskablePPO.load("model/trained_models/init-placement/init-model.zip")
+model = MaskablePPO.load("model/trained_models/init-placement/ppo_mask_20250914_173147.zip")
 
 # Create random base env
 base_env = CatanBaseEnv(save_env=True)
@@ -38,7 +38,7 @@ for placement_step in range(16):
     mask = placement_env.unwrapped.get_action_masks()
 
     # Predict with action mask
-    action, _states = model.predict(obs, deterministic=False, action_masks=mask)
+    action, _states = model.predict(obs, deterministic=True, action_masks=mask)
     print(f"Step {placement_step}: Chosen action {action}")
 
     # Step environment
