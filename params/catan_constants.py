@@ -78,8 +78,8 @@ BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 
 # Rewards relative weights importance
 REWARD_WEIGHTS = {
-    "ROAD": 0.5,
-    "RESOURCES_NUM": 9.5,
+    "ROAD": 0,
+    "RESOURCES_NUM": 10,
     "RESOURCES_DISTRIBUTION": 0
 }
 
@@ -88,4 +88,8 @@ REWARD_WEIGHTS = {
 STEPS_PER_EPISODE = 16
 
 # Agent training number of episodes
-N_EPISODES = 50000
+N_EPISODES = 500000
+
+
+# Magic statistical average reward for settlements (from baseline_reward.py)
+BASELINE_REWARD = 0.42962962962966283
