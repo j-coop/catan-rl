@@ -5,6 +5,7 @@ import numpy as np
 
 from marl.model.CatanBoard import CatanBoard
 from marl.params.catan_constants import RESOURCE_TYPES, DEV_CARD_TYPES, PORT_TYPES, BUILD_COSTS
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
 
 class CatanPlayer:
@@ -20,6 +21,28 @@ class CatanPlayer:
         self.cities: List[int] = []       # node indices
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
+
+    def take_resources(self, roll: int, board: CatanBoard):
+        """
+        Collect resources for this player after a dice roll.
+        Settlements yield +1, cities yield +2.
+        Robber blocks production on its tile.
+        """
+        if roll == 7:
+            return  # robber event, no production
+
+        for node in self.settlements + self.cities:
+            for tile_index in NODES_TO_TILES.get(node, []):
+                resource, token = board.tiles[tile_index]
+                if resource == "desert":
+                    continue
+                if token != roll:
+                    continue
+                if tile_index == board.robber_position:
+                    continue  # robber blocks production
+
+                gain = 1 if node in self.settlements else 2
+                self.resources[resource] += gain
 
     def can_afford(self, build_type: str) -> bool:
         """

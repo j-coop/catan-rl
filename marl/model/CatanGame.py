@@ -1,8 +1,9 @@
+import random
 from typing import List, Dict
 
 import numpy as np
 
-from marl.model import CatanBoard
+from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPlayer import CatanPlayer
 from marl.params.catan_constants import N_NODES, N_EDGES
@@ -12,13 +13,18 @@ class CatanGame:
     """
     Orchestrates game logic and provides observation/action mapping.
     """
-    def __init__(self, player_names: List[str]):
-        self.players: List[CatanPlayer] = [CatanPlayer(name) for name in player_names]
+    def __init__(self, player_colors: List[str]):
+        self.players: List[CatanPlayer] = [CatanPlayer(color) for color in player_colors]
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.turn: int = 0
         self.current_player: CatanPlayer = self.players[self.turn]
         self.game_over: bool = False
+
+    def get_dice_roll(self):
+        dice_one = random.randint(1, 6)
+        dice_two = random.randint(1, 6)
+        return dice_one + dice_two
 
     def step(self, player_name: str, action: int):
         # Decode action index, call appropriate place/robber/buy/end turn methods
