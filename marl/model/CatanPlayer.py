@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy as np
 
 from marl.model.CatanBoard import CatanBoard
-from marl.params.catan_constants import RESOURCE_TYPES, DEV_CARD_TYPES
+from marl.params.catan_constants import RESOURCE_TYPES, DEV_CARD_TYPES, PORT_TYPES
 
 
 class CatanPlayer:
@@ -14,10 +14,24 @@ class CatanPlayer:
         self.color: str = color
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
+        self.ports: Dict[str, bool] = {port: False for port in PORT_TYPES}
         self.settlements: List[int] = []  # node indices
         self.cities: List[int] = []       # node indices
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
+
+    def can_afford_settlement(self):
+        return (self.resources["wood"] >= 1 and self.resources["brick"] >= 1
+                and self.resources["sheep"] >= 1 and self.resources["wheat"] >= 1)
+
+    def can_afford_city(self):
+        return self.resources["ore"] >= 3 and self.resources["wheat"] >= 2
+
+    def can_afford_road(self):
+        return self.resources["wood"] >= 1 and self.resources["brick"] >= 1
+
+    def can_afford_dev_card(self):
+        return self.resources["ore"] >= 1 and self.resources["wheat"] >= 1 and self.resources["sheep"] >= 1
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:
         # Implement adjacency, distance rule, and resource checks
