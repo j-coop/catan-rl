@@ -29,6 +29,11 @@ class CatanGame:
         dice_two = random.randint(1, 6)
         return dice_one + dice_two
 
+    def handle_dice_roll(self):
+        roll = self.get_dice_roll()
+        for player in self.players:
+            player.take_resources(roll, self.board)
+
     def step(self, player_name: str, action: int):
         # Decode action index, call appropriate place/robber/buy/end turn methods
         # Update game_over if victory condition met

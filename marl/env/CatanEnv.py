@@ -37,6 +37,10 @@ class CatanEnv(AECEnv):
             for agent in self.agents
         }
 
+        # First roll is handled manually
+        self.pending_dice_roll = False
+        self.game.handle_dice_roll()
+
     @staticmethod
     def get_action_space_size() -> int:
         size = 0
@@ -58,12 +62,28 @@ class CatanEnv(AECEnv):
         return size
 
 
+    """
+    One step corresponds to one action (finer control, better action to reward association)
+    Only choosing 'end turn' action ends game logic turn
+    """
     def step(self, action):
         agent = self.agent_selection
         player = self.game.current_player
 
         # Apply the action in the game logic
         self.apply_action(agent, action)
+
+        # Check if this ends the current player's turn
+        if self.is_end_turn_action(action):
+            # Advance to next player (no dice roll yet)
+            self.game.end_turn()
+            self.agent_selection = self.game.current_player.color
+
+            # Mark that a dice roll should happen
+            self.pending_dice_roll = True
+        else:
+            # Continue with same agent
+            self.agent_selection = agent
 
         # Compute rewards
         reward = self.compute_reward(agent)
@@ -74,6 +94,12 @@ class CatanEnv(AECEnv):
 
         # Generate observation for next agent
         obs = self.observe(self.agent_selection)
+
+        # Handle dice roll if necessary
+        if self.pending_dice_roll:
+            self.game.handle_dice_roll()
+            self.pending_dice_roll = False
+
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
 
     def reset(self, seed = None, options = None):
