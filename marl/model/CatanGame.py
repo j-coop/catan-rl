@@ -18,8 +18,11 @@ class CatanGame:
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.turn: int = 0
-        self.current_player: CatanPlayer = self.players[self.turn]
         self.game_over: bool = False
+
+    @property
+    def current_player(self) -> CatanPlayer:
+        return self.players[self.turn]
 
     def get_dice_roll(self):
         dice_one = random.randint(1, 6)
@@ -57,4 +60,3 @@ class CatanGame:
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)
-        self.current_player = self.players[self.turn]

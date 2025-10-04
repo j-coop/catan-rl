@@ -2,6 +2,7 @@ import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
+from marl.model.CatanGame import CatanGame
 from marl.params.catan_constants import N_NODES, N_EDGES
 
 
@@ -13,7 +14,10 @@ class CatanEnv(AECEnv):
         super().__init__()
         self.agents = ['blue', 'red', 'white', 'black']
         self.possible_agents = self.agents[:]
-        self.agent_selection = None
+        self.agent_selection = self.agents[0]
+
+        # Game Logic Layer object
+        self.game = CatanGame(self.agents)
 
         self.action_spaces = {
             agent: spaces.Discrete(self.get_action_space_size()) for agent in self.agents
@@ -55,7 +59,22 @@ class CatanEnv(AECEnv):
 
 
     def step(self, action):
-        pass
+        agent = self.agent_selection
+        player = self.game.current_player
+
+        # Apply the action in the game logic
+        self.apply_action(agent, action)
+
+        # Compute rewards
+        reward = self.compute_reward(agent)
+        self.rewards[agent] = reward
+
+        # Determine next agent
+        self.agent_selection = self._next_agent()
+
+        # Generate observation for next agent
+        obs = self.observe(self.agent_selection)
+        return obs, reward, self.terminations[agent], self.truncations[agent], {}
 
     def reset(self, seed = None, options = None):
         pass
