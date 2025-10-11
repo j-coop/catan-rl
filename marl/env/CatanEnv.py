@@ -50,9 +50,10 @@ class CatanEnv(AECEnv):
         size += N_EDGES
         # 1 for buy dev card
         # 5 for playing dev cards
-        # 1 for move robber (steal included)
+        # 19 for moving robber to each field (steal included)
+        # 20 for trading with bank (each resource for each resource)
         # 1 for end turn
-        size += 1 + 5 + 1 + 1
+        size += 1 + 5 + 19 + 20 + 1
         return size
 
     @staticmethod
@@ -61,6 +62,8 @@ class CatanEnv(AECEnv):
         # TODO: define observation space shape
         return size
 
+    def apply_action(self, agent, action):
+        pass
 
     """
     One step corresponds to one action (finer control, better action to reward association)
