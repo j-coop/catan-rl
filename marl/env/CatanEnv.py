@@ -92,18 +92,37 @@ class CatanEnv(AECEnv):
         # Determine next agent
         self.agent_selection = self._next_agent()
 
-        # Generate observation for next agent
-        obs = self.observe(self.agent_selection)
-
         # Handle dice roll if necessary
         if self.pending_dice_roll:
             self.game.handle_dice_roll()
             self.pending_dice_roll = False
 
+        # Generate observation for next agent (includes state after player's dice roll)
+        obs = self.observe(self.agent_selection)
+
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
 
-    def reset(self, seed = None, options = None):
-        pass
+    def reset(self, seed=None, options=None):
+        # Reset PettingZoo base state
+        super().reset(seed=seed)
+
+        # Reset game logic layer
+        self.game = CatanGame(self.agents)
+
+        self.agent_selection = self.agents[0]
+
+        self.rewards = {agent: 0.0 for agent in self.agents}
+        self.terminations = {agent: False for agent in self.agents}
+        self.truncations = {agent: False for agent in self.agents}
+        self.infos = {agent: {} for agent in self.agents}
+
+        # Handle initial dice roll
+        # We want the first player to begin after a dice roll occurs.
+        self.game.handle_dice_roll()
+
+        # Generate the initial observation for the first agent
+        obs = self.observe(self.agent_selection)
+        return obs
 
     def observe(self, agent):
         pass
