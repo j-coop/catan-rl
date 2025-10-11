@@ -98,8 +98,18 @@ class CatanEnv(AECEnv):
         # TODO: define observation space shape
         return size
 
-    def apply_action(self, agent, action):
-        pass
+    """
+    Handles executing action with given index in action space for given agent
+    Calls delegating logic to game object logic layer (CatanGame)
+    """
+    def apply_action(self, agent: str, action: int):
+        for spec in self.action_specs:
+            start, end = spec.range
+            if start <= action < end:
+                local_index = action - start
+                spec.handler(agent, local_index)
+                return
+        raise ValueError(f"Invalid action index: {action}")
 
     """
     One step corresponds to one action (finer control, better action to reward association)
