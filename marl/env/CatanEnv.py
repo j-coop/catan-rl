@@ -4,6 +4,7 @@ from pettingzoo import AECEnv
 
 from marl.model.CatanGame import CatanGame
 from marl.params.catan_constants import N_NODES, N_EDGES
+from marl.util.ActionSpec import ActionSpec
 
 
 class CatanEnv(AECEnv):
@@ -15,6 +16,12 @@ class CatanEnv(AECEnv):
         self.agents = ['blue', 'red', 'white', 'black']
         self.possible_agents = self.agents[:]
         self.agent_selection = self.agents[0]
+
+        # Mapping of action space to action handlers
+        self.action_specs: list[ActionSpec] = []
+        # Action specs initialization
+        self.action_space_size = 0
+        self.init_action_specs()
 
         # Game Logic Layer object
         self.game = CatanGame(self.agents)
@@ -40,6 +47,35 @@ class CatanEnv(AECEnv):
         # First roll is handled manually
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
+
+    def init_action_specs(self):
+        start = 0
+
+        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), self.build_settlement))
+        start += N_NODES
+
+        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), self.build_city))
+        start += N_NODES
+
+        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), self.build_road))
+        start += N_EDGES
+
+        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), self.buy_dev_card))
+        start += 1
+
+        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), self.play_dev_card))
+        start += 5
+
+        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), self.move_robber))
+        start += 19
+
+        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.trade_bank))
+        start += 20
+
+        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.end_turn))
+        start += 1
+
+        self.action_space_size = start
 
     @staticmethod
     def get_action_space_size() -> int:
