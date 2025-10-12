@@ -120,30 +120,52 @@ class CatanStepMixin:
                     break
         return value
 
-    """
-    Returns normalized score for gained resources
-    """
-    def _simulate_dice_rolls(self, settlement_action):
+    def _compute_expected_resource_gain(self, settlement_action):
+
+        def get_adjacent_tiles(self, node_id):
+            return NODES_TO_TILES[node_id]
+
+        def get_adjacent_resources(self, adjacent_tiles):
+            return [
+                np.argmax(self._base_obs["resources"][tile])
+                for tile in adjacent_tiles
+            ]
+
+        def get_adjacent_tokens(self, adjacent_tiles):
+            adjacent_tiles_tokens_ids = [
+                np.argmax(self._base_obs["tokens"][tile])
+                for tile in adjacent_tiles
+            ]
+            return [TOKENS[i] for i in adjacent_tiles_tokens_ids]
+
+        def calculate_expected_gains(self, resources, tokens):
+            gains = [0 for _ in range(N_TILE_TYPES)]
+            for i in range(len(resources)):
+                resource = resources[i]
+                token = tokens[i]
+                expected_gain = DICE_PROBABILITIES[token] * NUM_ROLLS
+                gains[resource] += expected_gain
+            return gains
+
+        def save_settlement_gains(self, gains):
+            player = self._turn_order[self._turn_index]
+            self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
+
+        def normalize_gain_score(self, gains):
+            sum_gain = sum(gains)
+            return sum_gain / BEST_EXPECTED_GAIN
+    
+
         node_id = np.argmax(settlement_action)
-        adjacent_tiles = NODES_TO_TILES[node_id]
-        adjacent_tiles_resources = [np.argmax(self._base_obs["resources"][tile]) for tile in adjacent_tiles]
-        adjacent_tiles_tokens_ids = [np.argmax(self._base_obs["tokens"][tile]) for tile in adjacent_tiles]
-        adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
+        adjacent_tiles = get_adjacent_tiles(node_id)
+        resources = get_adjacent_resources(adjacent_tiles)
+        tokens = get_adjacent_tokens(adjacent_tiles)
 
-        gains = [0 for _ in range(N_TILE_TYPES)]
-        for i in range(len(adjacent_tiles_resources)):
-            resource = adjacent_tiles_resources[i]
-            token = adjacent_tiles_tokens[i]
-            expected_gain = DICE_PROBABILITIES[token] * NUM_ROLLS
-            gains[resource] += expected_gain
-        gains[-1] = 0 # Desert
+        gains = calculate_expected_gains(resources, tokens)
+        gains[-1] = 0  # Desert
 
-        # Get player, save simulated gain
-        player = self._turn_order[self._turn_index]
-        self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
-        # Award reward
-        sum_gain = sum(gains)
-        normalized_gain_score = sum_gain / BEST_EXPECTED_GAIN
+        save_settlement_gains(gains)
+        normalized_gain_score = normalize_gain_score(gains)
         return normalized_gain_score
 
     """
@@ -157,8 +179,7 @@ class CatanStepMixin:
         if total == 0:
             return 0
         probs = gained / total  # Normalize to probability distribution
-        entropy = -np.sum(probs * np.log(probs + 1e-9))  # Jest jak prosiles xd
-
+        entropy = -np.sum(probs * np.log(probs + 1e-9))
         max_entropy = np.log(len(gained))  # Max entropy for uniform distribution
         score = entropy / max_entropy
         return float(score)

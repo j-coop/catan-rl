@@ -94,7 +94,6 @@ class CatanInitPlacementEnv(CatanResetMixin,
                                               dtype=np.int8)
         self._last_settlement_node_index = 0
         self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
-        # print(self._base_obs["resources"])
 
         return self._obs, {}
 
@@ -102,78 +101,89 @@ class CatanInitPlacementEnv(CatanResetMixin,
         """
         Agent places EITHER a settlement OR a road in this step.
         """
-        # Convert discrete action to one-hot encoded values
-        settlement_action = np.zeros(N_NODES, dtype=np.int8)
-        road_action = np.zeros(N_EDGES, dtype=np.int8)
-        
-        if action < N_NODES:
-            # Settlement
-            settlement_action[action] = 1
-        else:
-            # Road
-            road_action[action - N_NODES] = 1
-
+        settlement_action, road_action = self._decode_action(action)
         self._verify_action(action, settlement_action, road_action)
         player = self._turn_order[self._turn_index]
 
+        self._apply_action(player, settlement_action, road_action)
+        reward = self._calculate_reward(settlement_action, road_action)
+        done = self._check_all_moves_done(road_action)
+
+        if not self._is_placing_1_road(road_action):
+            self._after_settlement(settlement_action, reward)
+        else:
+            self._after_road(done, player)
+
+        self._increment_step_counter()
+
+        return self._obs, reward, done, False, {'base_obs': self._base_obs}
+
+    def _decode_action(self, action):
+        settlement_action = np.zeros(N_NODES, dtype=np.int8)
+        road_action = np.zeros(N_EDGES, dtype=np.int8)
+        if action < N_NODES:
+            settlement_action[action] = 1
+        else:
+            road_action[action - N_NODES] = 1
+        return settlement_action, road_action
+
+    def _apply_action(self, player, settlement_action, road_action):
+        if self._is_placing_1_settlement(settlement_action):
+            self._make_settlement_action(player, settlement_action)
+        elif self._is_placing_1_road(road_action):
+            self._make_road_action(player, road_action)
+
+    def _calculate_reward(self, settlement_action, road_action):
         """
         Road gets instant heuristic reward for step
         Settlements are rewarded based on simulated resources gained
         Reward is given for number of simulated resources gained for both settlements
         Additional reward after second settlement for resources diversity
         """
+      
         is_road = self._is_placing_1_road(road_action)
-
-        if self._is_placing_1_settlement(settlement_action):
-            self._make_settlement_action(player, settlement_action)
-        elif self._is_placing_1_road(road_action):
-            self._make_road_action(player, road_action)
-        else:
-            raise ValueError("Action must specify either 1 road or 1 settlement.")
-
-        # Set rewards
         if is_road:
-            reward = self._evaluate_road_heuristic(road_action, self._last_settlement_node_index)
+            reward = self._evaluate_road_heuristic(
+                road_action, self._last_settlement_node_index)
             reward *= REWARD_WEIGHTS["ROAD"]
         else:
-            placement_gain = self._simulate_dice_rolls(settlement_action)
-            reward = placement_gain - BASELINE_REWARD  # [-0.43 ; 0.57]
-            reward *= 2.0  # roughly [-1 ; 1] - considered best for PPO
-            alpha = 0.7  # exponential decay rate for early steps
-            min_significance = 0.2  # minimum weight for last steps
-            # Compute significance - make first settlements more important for correct order
+            placement_gain = self._compute_expected_resource_gain(settlement_action)
+            reward = placement_gain - BASELINE_REWARD # [-0.43 ; 0.57]
+            reward *= 2.0 # roughly [-1 ; 1] - considered best for PPO
+            alpha = 0.7 # exponential decay rate for early steps
+            min_significance = 0.2 # minimum weight for last steps
             significance = max(alpha ** self._turn_index, min_significance)
             reward *= significance
             reward *= REWARD_WEIGHTS["RESOURCES_NUM"]
+        return reward
 
-        done = self._turn_index == len(self._turn_order) - 1 and is_road
-        if not is_road:
-            # Settlement
-            self._last_settlement_node_index = np.argmax(settlement_action)
-            self._placement_stage = "road"
-            """is_second_settlement = floor((self._turn_index + 1) / 4)
-            if is_second_settlement:
-                # Final reward for resources diversity
-                normalized_reward = self._evaluate_final_resources(self._settlement_gains)
-                reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
-                print(f'Reward (distribution): {reward}')"""
+    def _check_all_moves_done(self, road_action):
+        is_road = self._is_placing_1_road(road_action)
+        return self._turn_index == len(self._turn_order) - 1 and is_road
+
+    def _after_settlement(self, settlement_action, reward):
+        self._last_settlement_node_index = np.argmax(settlement_action)
+        self._placement_stage = "road"
+        is_second_settlement = floor((self._turn_index + 1) / 4)
+        if is_second_settlement:
+            normalized_reward = self._evaluate_final_resources(self._settlement_gains)
+            reward += normalized_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
+            print(f'Reward (distribution): {reward}')
+
+    def _after_road(self, done, player):
+        if not done:
+            self._turn_index += 1
         else:
-            # Road
-            if not done:
-                self._turn_index += 1
-            else:
-                self._turn_index = 0
-                self.__episode_counter += 1
-                print(f'{self.__episode_counter} / {N_EPISODES}')
-            self._placement_stage = "settlement"
-            # Set road masks to zero to avoid building second road from the same settlement
-            self.__road_placement_mask[:, player] = 0
+            self._turn_index = 0
+            self.__episode_counter += 1
+            print(f'{self.__episode_counter} / {N_EPISODES}')
+        self._placement_stage = "settlement"
+        self.__road_placement_mask[:, player] = 0
 
+    def _increment_step_counter(self):
         self.__step_counter += 1
         if self.__step_counter >= 16:
             self.__step_counter = 0
-
-        return self._obs, reward, done, False, {'base_obs': self._base_obs}
 
     def _update_settlement_placement_mask(self, node_id):
         """
