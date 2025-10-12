@@ -8,7 +8,7 @@ import math
 from params.visualization_constants import (TILE_COLOR_MAP,
                                             HEX_RADIUS,
                                             PLAYER_COLOR_MAP)
-from params.catan_constants import (RESOURCE_TYPES,
+from params.catan_constants import (TILE_TYPES,
                                     N_NODES,
                                     N_EDGES,
                                     PORT_TYPES,
@@ -69,7 +69,7 @@ class CatanMapPlotter:
         for i, (q, r) in enumerate(LAND_POSITIONS):
             x, y = self.__get_hex_position(q, r)
             resource_type = np.argmax(self.__resources[i])
-            color_name = RESOURCE_TYPES[resource_type]
+            color_name = TILE_TYPES[resource_type]
             color = TILE_COLOR_MAP[color_name]
             token = np.argmax(self.__tokens[i])
             if token == 0 and np.sum(self.__tokens[i]) == 0:

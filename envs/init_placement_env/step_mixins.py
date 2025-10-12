@@ -130,7 +130,7 @@ class CatanStepMixin:
         adjacent_tiles_tokens_ids = [np.argmax(self._base_obs["tokens"][tile]) for tile in adjacent_tiles]
         adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
 
-        gains = [0 for _ in range(N_RESOURCE_TYPES)]
+        gains = [0 for _ in range(N_TILE_TYPES)]
         for i in range(len(adjacent_tiles_resources)):
             resource = adjacent_tiles_resources[i]
             token = adjacent_tiles_tokens[i]

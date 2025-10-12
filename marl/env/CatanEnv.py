@@ -2,8 +2,10 @@ import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
+from params.catan_constants import (N_NODES,
+                                    N_EDGES,
+                                    RESOURCE_TYPES)
 from marl.model.CatanGame import CatanGame
-from marl.params.catan_constants import N_NODES, N_EDGES
 from marl.util.ActionSpec import ActionSpec
 
 
@@ -215,11 +217,10 @@ class CatanEnv(AECEnv):
         """Trade with the bank (or ports if owned) using the best available ratio."""
         # There are 20 possible trades = 5 give × 4 receive (excluding same resource).
         # Map flat index → (give_resource, receive_resource)
-        resource_types = ["wood", "brick", "sheep", "wheat", "ore"]
         give_idx = trade_index // 4
         recv_idx = trade_index % 4
-        give_resource = resource_types[give_idx]
-        receive_resource = [r for r in resource_types if r != give_resource][recv_idx]
+        give_resource = RESOURCE_TYPES[give_idx]
+        receive_resource = [r for r in RESOURCE_TYPES if r != give_resource][recv_idx]
         self.game.trade_with_bank(agent, give_resource, receive_resource)
 
     def end_turn(self, agent: str, _: int):

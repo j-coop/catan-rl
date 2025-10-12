@@ -20,7 +20,7 @@ class CatanResetMixin:
                                         dtype=np.int8),
             "tiles_tokens":    np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES),
                                         dtype=np.int8),
-            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES),
+            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_TILE_TYPES),
                                         dtype=np.int8),
             "edges_exist":     np.zeros((N_NODES, N_ADJACENT_EDGES),
                                         dtype=np.int8),
@@ -30,9 +30,9 @@ class CatanResetMixin:
                                     dtype=np.int8),
             "adj_is_built":    np.zeros((N_NODES, N_ADJACENT_NODES),
                                         dtype=np.int8),
-            "adj_has_port":    np.zeros((N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES),
+            "adj_has_port":    np.zeros((N_NODES, N_ADJACENT_NODES, N_PORT_TYPES),
                                         dtype=np.int8),
-            "has_port":        np.zeros((N_NODES, N_PORT_FIELD_TYPES),
+            "has_port":        np.zeros((N_NODES, N_PORT_TYPES),
                                         dtype=np.int8),
         }
         return obs

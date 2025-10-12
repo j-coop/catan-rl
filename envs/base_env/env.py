@@ -18,7 +18,7 @@ class CatanBaseEnv(gym.Env):
         self.save_env = save_env
         self.observation_space = gym.spaces.Dict({
             "resources": gym.spaces.MultiBinary([N_TILES, 
-                                                    N_RESOURCE_TYPES]),
+                                                    N_TILE_TYPES]),
             "tokens": gym.spaces.MultiBinary([N_TILES, 
                                                 N_TOKEN_VALUES]),
             "has_robber": gym.spaces.MultiBinary([N_TILES]),
@@ -27,7 +27,7 @@ class CatanBaseEnv(gym.Env):
             "nodes_owners": gym.spaces.MultiBinary([N_TILES, 6,
                                                             N_PLAYERS]),
             "nodes_ports": gym.spaces.MultiBinary([N_TILES, 6,
-                                                        N_PORT_FIELD_TYPES]),
+                                                        N_PORT_TYPES]),
             "edges_owners": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
             "edges_roads": gym.spaces.MultiBinary([N_TILES, 6])
         })
@@ -87,15 +87,15 @@ class CatanBaseEnv(gym.Env):
         Return a MultiBinary matrix of shape (19, 6), one-hot per tile
         """
         res_list = (
-            [0] * TILE_TYPE_COUNTS[RESOURCE_TYPES[0]] +
-            [1] * TILE_TYPE_COUNTS[RESOURCE_TYPES[1]] +
-            [2] * TILE_TYPE_COUNTS[RESOURCE_TYPES[2]] +
-            [3] * TILE_TYPE_COUNTS[RESOURCE_TYPES[3]] +
-            [4] * TILE_TYPE_COUNTS[RESOURCE_TYPES[4]] +
-            [5] * TILE_TYPE_COUNTS[RESOURCE_TYPES[5]]
+            [0] * TILE_TYPE_COUNTS[TILE_TYPES[0]] +
+            [1] * TILE_TYPE_COUNTS[TILE_TYPES[1]] +
+            [2] * TILE_TYPE_COUNTS[TILE_TYPES[2]] +
+            [3] * TILE_TYPE_COUNTS[TILE_TYPES[3]] +
+            [4] * TILE_TYPE_COUNTS[TILE_TYPES[4]] +
+            [5] * TILE_TYPE_COUNTS[TILE_TYPES[5]]
         )
         np.random.shuffle(res_list)
-        return np.eye(N_RESOURCE_TYPES)[res_list].astype(np.int8)
+        return np.eye(N_TILE_TYPES)[res_list].astype(np.int8)
 
     def __generate_tokens(self, desert_tile_id):
         tokens = np.zeros((N_TILES, N_TOKEN_VALUES), dtype=np.int8)
@@ -129,15 +129,15 @@ class CatanBaseEnv(gym.Env):
         for port_type in port_types:
             port_nodes.extend([-1, -1, port_type, port_type])
         port_nodes.extend([-1, -1])
-        result = np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8)
+        result = np.zeros((N_NODES, N_PORT_TYPES), dtype=np.int8)
         rnd = randint(0, 3)
         coastal_nodes = COASTAL_NODES_LIST[rnd:] + COASTAL_NODES_LIST[:rnd]
         for i, node_id in enumerate(coastal_nodes):
             if port_nodes[i] != -1:
-                result[node_id] = np.eye(N_PORT_FIELD_TYPES,
+                result[node_id] = np.eye(N_PORT_TYPES,
                                          dtype=np.int8)[port_nodes[i]]
 
-        tile_ports = np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES), dtype=np.int8)
+        tile_ports = np.zeros((N_TILES, 6, N_PORT_TYPES), dtype=np.int8)
         for tile_id, node_ids in TILES_TO_NODES.items():
             for i, node_id in enumerate(node_ids):
                 if node_id in COASTAL_NODES_LIST:
