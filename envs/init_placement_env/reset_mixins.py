@@ -20,7 +20,7 @@ class CatanResetMixin:
                                         dtype=np.int8),
             "tiles_tokens":    np.zeros((N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES),
                                         dtype=np.int8),
-            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES),
+            "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_TILE_TYPES),
                                         dtype=np.int8),
             "edges_exist":     np.zeros((N_NODES, N_ADJACENT_EDGES),
                                         dtype=np.int8),

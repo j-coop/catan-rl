@@ -1,7 +1,7 @@
 from typing import Dict
 
-from marl.params.catan_constants import RESOURCE_TYPES
-from params.catan_constants import DEV_CARD_COUNTS
+from params.catan_constants import (DEV_CARD_COUNTS,
+                                    RESOURCE_TYPES)
 
 
 class CatanBank:

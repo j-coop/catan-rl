@@ -1,6 +1,5 @@
 import random
 from typing import List, Optional, Tuple
-
 import numpy as np
 
 from marl.model.CatanPlayer import CatanPlayer

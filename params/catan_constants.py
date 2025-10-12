@@ -1,17 +1,25 @@
-# Board configuration
+#############################  Board parameters  ###############################
 N_TILES = 19           # Total land tiles (including desert)
 N_NODES = 54           # Intersections (settlements/cities)
 N_EDGES = 72           # Paths (roads)
 N_PLAYERS = 4
+N_PORT_NODES = 30
+
+RESOURCE_TYPES = ["wood", "brick", "sheep", "wheat", "ore"]
+
+BUILD_COSTS = {
+    "settlement": {"wood": 1, "brick": 1, "sheep": 1, "wheat": 1},
+    "city": {"ore": 3, "wheat": 2},
+    "road": {"wood": 1, "brick": 1},
+    "dev_card": {"ore": 1, "wheat": 1, "sheep": 1},
+}
 
 N_ADJACENT_TILES = 3
 N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
-N_PORT_NODES = 30
-
 # Resources and tile types
-RESOURCE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "desert"]
+TILE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "desert"]
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,
@@ -20,7 +28,7 @@ TILE_TYPE_COUNTS = {
     "ore": 3,
     "desert": 1
 }
-N_RESOURCE_TYPES = 6
+N_TILE_TYPES = 6
 
 PORT_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "3for1"]
 PORT_TYPE_COUNTS = {
@@ -68,11 +76,11 @@ DEV_CARD_COUNTS = {
     "year_of_plenty": 2,
     "monopoly": 2
 }
-TOTAL_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
+N_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 
-# Game phases (if useful for state management)
-PHASES = ["setup", "roll_dice", "build", "trade", "end_turn"]
 
+
+#############################  Training parameters  ###############################
 NUM_ROLLS = 100
 
 # Expected number of resources gained in NUM_ROLLS rolls

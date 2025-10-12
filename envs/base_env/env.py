@@ -18,7 +18,7 @@ class CatanBaseEnv(gym.Env):
         self.save_env = save_env
         self.observation_space = gym.spaces.Dict({
             "resources": gym.spaces.MultiBinary([N_TILES, 
-                                                    N_RESOURCE_TYPES]),
+                                                    N_TILE_TYPES]),
             "tokens": gym.spaces.MultiBinary([N_TILES, 
                                                 N_TOKEN_VALUES]),
             "has_robber": gym.spaces.MultiBinary([N_TILES]),
@@ -87,15 +87,15 @@ class CatanBaseEnv(gym.Env):
         Return a MultiBinary matrix of shape (19, 6), one-hot per tile
         """
         res_list = (
-            [0] * TILE_TYPE_COUNTS[RESOURCE_TYPES[0]] +
-            [1] * TILE_TYPE_COUNTS[RESOURCE_TYPES[1]] +
-            [2] * TILE_TYPE_COUNTS[RESOURCE_TYPES[2]] +
-            [3] * TILE_TYPE_COUNTS[RESOURCE_TYPES[3]] +
-            [4] * TILE_TYPE_COUNTS[RESOURCE_TYPES[4]] +
-            [5] * TILE_TYPE_COUNTS[RESOURCE_TYPES[5]]
+            [0] * TILE_TYPE_COUNTS[TILE_TYPES[0]] +
+            [1] * TILE_TYPE_COUNTS[TILE_TYPES[1]] +
+            [2] * TILE_TYPE_COUNTS[TILE_TYPES[2]] +
+            [3] * TILE_TYPE_COUNTS[TILE_TYPES[3]] +
+            [4] * TILE_TYPE_COUNTS[TILE_TYPES[4]] +
+            [5] * TILE_TYPE_COUNTS[TILE_TYPES[5]]
         )
         np.random.shuffle(res_list)
-        return np.eye(N_RESOURCE_TYPES)[res_list].astype(np.int8)
+        return np.eye(N_TILE_TYPES)[res_list].astype(np.int8)
 
     def __generate_tokens(self, desert_tile_id):
         tokens = np.zeros((N_TILES, N_TOKEN_VALUES), dtype=np.int8)

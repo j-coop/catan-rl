@@ -4,9 +4,9 @@ from typing import Dict, List
 import numpy as np
 
 from marl.model.CatanBoard import CatanBoard
-from marl.params.catan_constants import RESOURCE_TYPES, BUILD_COSTS
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
-from params.catan_constants import DEV_CARD_TYPES, PORT_TYPES
+from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
+                                    RESOURCE_TYPES, BUILD_COSTS)
 
 
 class CatanPlayer:

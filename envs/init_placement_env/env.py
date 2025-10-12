@@ -33,7 +33,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
                                              dtype=np.int8)
         self._last_settlement_node_index = 0
-        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_RESOURCE_TYPES))
+        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
 
         self.__step_counter = 0
         self.__episode_counter = 0
@@ -48,7 +48,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.observation_space = spaces.Dict({
             "tiles_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES]),
             "tiles_tokens": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES, N_TOKEN_VALUES]),
-            "tiles_resources": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES, N_RESOURCE_TYPES]),
+            "tiles_resources": spaces.MultiBinary([N_NODES, N_ADJACENT_TILES, N_TILE_TYPES]),
             "edges_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_EDGES]),
             "edges_is_built": spaces.MultiBinary([N_NODES, N_ADJACENT_EDGES]),
             "adj_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES]),
@@ -93,7 +93,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS),
                                               dtype=np.int8)
         self._last_settlement_node_index = 0
-        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_RESOURCE_TYPES))
+        self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
         # print(self._base_obs["resources"])
 
         return self._obs, {}
