@@ -10,7 +10,6 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor
 
 from envs.base_env.env import CatanBaseEnv
-from envs.init_placement_env.CatanPolicy import CatanPolicy
 from envs.init_placement_env.env import CatanInitPlacementEnv
 from params.catan_constants import N_EPISODES, STEPS_PER_EPISODE
 
@@ -38,7 +37,6 @@ timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 tensorboard_log_dir = f"logs/tb/{timestamp}"
 
 model = MaskablePPO(
-    # CatanPolicy,
     MultiInputPolicy,
     env,
     verbose=1,
