@@ -7,7 +7,6 @@ import numpy as np
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 from params.catan_constants import *
 from params.edges_list import EDGES_LIST
-from visualization.map_plotter import CatanMapPlotter
 from .reset_mixins import CatanResetMixin
 from .step_mixins import CatanStepMixin
 from .validation_mixin import CatanValidationMixin

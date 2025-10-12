@@ -38,14 +38,6 @@ class CatanStepMixin:
                     self._base_obs["edges_roads"][tile_id][i] = 1
                     self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
-
-    def __check_if_placement_done(self):
-        # Return True if all agents have finished their initial placements
-        # Could track self.__num_settlements or self.__placements_done
-        return False
-
-    # Both actions should just update observation space
-
     def _make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         self.__build_settlement(node_id, player)
