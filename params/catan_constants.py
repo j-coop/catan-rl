@@ -2,6 +2,7 @@
 N_TILES = 19           # Total land tiles (including desert)
 N_NODES = 54           # Intersections (settlements/cities)
 N_EDGES = 72           # Paths (roads)
+N_PLAYERS = 4
 
 N_ADJACENT_TILES = 3
 N_ADJACENT_EDGES = 6
@@ -21,16 +22,16 @@ TILE_TYPE_COUNTS = {
 }
 N_RESOURCE_TYPES = 6
 
-PORT_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "generic"]
+PORT_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "3for1"]
 PORT_TYPE_COUNTS = {
     "brick": 1,
     "wood": 1,
     "sheep": 1,
     "wheat": 1,
     "ore": 1,
-    "generic": 2,  # port 3:1
+    "3for1": 2,
 }
-N_PORT_FIELD_TYPES = 6
+N_PORT_TYPES = 6
 
 # Number tokens on tiles
 ALL_TOKENS = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12]
@@ -53,12 +54,13 @@ DICE_PROBABILITIES = {
 MAX_PROBABILITY = 5/36
 
 # Player limits
-N_PLAYERS = 4
 ROADS_PER_PLAYER = 15
 SETTLEMENTS_PER_PLAYER = 5
 CITIES_PER_PLAYER = 4
 
 # Development cards (optional for early version)
+DEV_CARD_TYPES = ["knight", "victory_point", "road_building",
+                  "year_of_plenty", "monopoly"]
 DEV_CARD_COUNTS = {
     "knight": 14,
     "victory_point": 5,
@@ -73,7 +75,8 @@ PHASES = ["setup", "roll_dice", "build", "trade", "end_turn"]
 
 NUM_ROLLS = 100
 
-# Expected number of resources gained in NUM_ROLLS rolls for best possible token setup (6, 6, 8)
+# Expected number of resources gained in NUM_ROLLS rolls
+# for best possible token setup (6, 6, 8)
 BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 
 # Rewards relative weights importance
@@ -89,7 +92,6 @@ STEPS_PER_EPISODE = 16
 
 # Agent training number of episodes
 N_EPISODES = 500000
-
 
 # Magic statistical average reward for settlements (from baseline_reward.py)
 BASELINE_REWARD = 0.42962962962966283

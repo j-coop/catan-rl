@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from marl.model.CatanPlayer import CatanPlayer
-from marl.params.catan_constants import N_NODES, N_EDGES
+from params.catan_constants import N_NODES, N_EDGES
 
 RESOURCE_DISTRIBUTION = [
     "wood", "wood", "wood", "wood",

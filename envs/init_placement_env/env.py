@@ -53,8 +53,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
             "edges_is_built": spaces.MultiBinary([N_NODES, N_ADJACENT_EDGES]),
             "adj_exist": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES]),
             "adj_is_built": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES]),
-            "adj_has_port": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES, N_PORT_FIELD_TYPES]),
-            "has_port": spaces.MultiBinary([N_NODES, N_PORT_FIELD_TYPES])
+            "adj_has_port": spaces.MultiBinary([N_NODES, N_ADJACENT_NODES, N_PORT_TYPES]),
+            "has_port": spaces.MultiBinary([N_NODES, N_PORT_TYPES])
         })
 
         self._obs = self._CatanResetMixin__prepare_obs_dict()

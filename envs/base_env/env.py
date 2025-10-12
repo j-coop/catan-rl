@@ -27,7 +27,7 @@ class CatanBaseEnv(gym.Env):
             "nodes_owners": gym.spaces.MultiBinary([N_TILES, 6,
                                                             N_PLAYERS]),
             "nodes_ports": gym.spaces.MultiBinary([N_TILES, 6,
-                                                        N_PORT_FIELD_TYPES]),
+                                                        N_PORT_TYPES]),
             "edges_owners": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
             "edges_roads": gym.spaces.MultiBinary([N_TILES, 6])
         })
@@ -129,15 +129,15 @@ class CatanBaseEnv(gym.Env):
         for port_type in port_types:
             port_nodes.extend([-1, -1, port_type, port_type])
         port_nodes.extend([-1, -1])
-        result = np.zeros((N_NODES, N_PORT_FIELD_TYPES), dtype=np.int8)
+        result = np.zeros((N_NODES, N_PORT_TYPES), dtype=np.int8)
         rnd = randint(0, 3)
         coastal_nodes = COASTAL_NODES_LIST[rnd:] + COASTAL_NODES_LIST[:rnd]
         for i, node_id in enumerate(coastal_nodes):
             if port_nodes[i] != -1:
-                result[node_id] = np.eye(N_PORT_FIELD_TYPES,
+                result[node_id] = np.eye(N_PORT_TYPES,
                                          dtype=np.int8)[port_nodes[i]]
 
-        tile_ports = np.zeros((N_TILES, 6, N_PORT_FIELD_TYPES), dtype=np.int8)
+        tile_ports = np.zeros((N_TILES, 6, N_PORT_TYPES), dtype=np.int8)
         for tile_id, node_ids in TILES_TO_NODES.items():
             for i, node_id in enumerate(node_ids):
                 if node_id in COASTAL_NODES_LIST:

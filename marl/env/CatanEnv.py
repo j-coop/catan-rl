@@ -2,8 +2,8 @@ import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
+from params.catan_constants import N_NODES, N_EDGES
 from marl.model.CatanGame import CatanGame
-from marl.params.catan_constants import N_NODES, N_EDGES
 from marl.util.ActionSpec import ActionSpec
 
 
