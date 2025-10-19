@@ -45,6 +45,22 @@ class CatanPlayer:
                 gain = 1 if node in self.settlements else 2
                 self.resources[resource] += gain
 
+    def pay_for_build(self, build_type: str):
+        """
+        Deduct resources from the player for a given build type.
+        build_type (str): One of 'settlement', 'city', 'road', or 'dev_card'.
+        """
+        if build_type not in BUILD_COSTS:
+            raise ValueError(f"Unknown build type: {build_type}")
+
+        cost = BUILD_COSTS[build_type]
+        # Check affordability first (should already be validated)
+        if not self.can_afford(build_type):
+            raise ValueError(f"Player {self.color} cannot afford to build {build_type}")
+
+        for resource, amount in cost.items():
+            self.resources[resource] -= amount
+
     def can_afford(self, build_type: str) -> bool:
         """
         Check if the player can afford a given build (settlement, city, road, dev_card),
