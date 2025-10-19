@@ -78,6 +78,8 @@ DEV_CARD_COUNTS = {
 }
 N_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 
+LONGEST_ROAD_MIN_LENGTH = 5
+
 
 
 #############################  Training parameters  ###############################
