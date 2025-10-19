@@ -6,7 +6,7 @@ import numpy as np
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES
+from params.catan_constants import N_NODES, N_EDGES, BUILD_COSTS
 
 
 class CatanGame:
@@ -63,5 +63,41 @@ class CatanGame:
         size = 2 * N_NODES + N_EDGES + 1 + 5 + 1 + 1
         return size
 
+    def get_player(self, agent):
+        return next((p for p in self.players if p.color == agent), CatanPlayer(""))
+
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)
+
+    def build_settlement(self, agent, node_index):
+        self.board.nodes[node_index] = agent
+        player = self.get_player(agent)
+        player.settlements.append(node_index)
+        player.pay_for_build("settlement")
+        player.points += 1
+
+    def build_city(self, agent, node_index):
+        player = self.get_player(agent)
+        player.cities.append(node_index)
+        player.pay_for_build("city")
+        player.points += 1
+        # Remove settlement
+        player.settlements.remove(node_index)
+
+    def build_road(self, agent, edge_index):
+        pass
+
+    def buy_dev_card(self, agent):
+        pass
+
+    def play_dev_card(self, agent, card_type):
+        pass
+
+    def move_robber(self, agent, tile_index):
+        pass
+
+    def trade_with_bank(self, agent, give_resource, receive_resource):
+        pass
+
+    def end_turn(self, agent):
+        pass
