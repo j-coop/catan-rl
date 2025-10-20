@@ -71,7 +71,7 @@ class CatanGame:
 
     @staticmethod
     def get_action_space_size() -> int:
-        size = 2 * N_NODES + N_EDGES + 1 + 5 + 1 + 1
+        size = 2 * N_NODES + N_EDGES + 1 + 5 + 19 + 20 + 5 + 1
         return size
 
     def get_player(self, agent):
@@ -148,10 +148,13 @@ class CatanGame:
                 previous_holder.points -= 2
                 self.largest_army_owner = player
         elif card_type == "road_building":
+            # TODO: next two steps: build a road
             self.handle_road_building_card(player)
         elif card_type == "year_of_plenty":
+            # TODO: next two steps: choose resource to get from bank
             self.handle_year_of_plenty_card(player)
         elif card_type == "monopoly":
+            # TODO: next step: choose one resource to demand from others
             self.handle_monopoly_card(player)
         elif card_type == "victory_point":
             player.hidden_points += 1
@@ -164,6 +167,10 @@ class CatanGame:
 
     def trade_with_bank(self, agent, give_resource, receive_resource):
         pass
+
+    def take_resource(self, agent, resource: str):
+        player = self.get_player(agent)
+        player.resources[resource] += 1
 
     def end_turn(self, agent):
         pass

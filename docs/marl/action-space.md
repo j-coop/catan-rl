@@ -20,17 +20,18 @@ It outlines how player decisions are represented as discrete actions, and explai
 
 ## 🧠 Action Space Overview
 
-| Category | Count | Description |
-|-----------|--------|-------------|
-| Build Settlement | `N_NODES` | Place a settlement on a valid, unoccupied node. |
-| Build City | `N_NODES` | Upgrade an existing settlement on a node to a city. |
-| Build Road | `N_EDGES` | Place a road on a valid edge connected to owned structures. |
-| Buy Development Card | `1` | Purchase one card from the development deck. |
-| Play Development Card | `5` | Play a specific development card type (Knight, Monopoly, Road Building, Year of Plenty, Victory Point). |
-| Move Robber | `19` | Move the robber to a new tile (stealing handled heuristically). |
-| Trade with Bank / Ports | `20` | Execute a trade of one resource for another at the best available rate for the player. |
-| End Turn | `1` | Explicitly end the current player’s turn. |
-| **Total (standard board)** | ≈ **226** | For `N_NODES=54`, `N_EDGES=72`. |
+| Category                   | Count     | Description                                                                                             |
+|----------------------------|-----------|---------------------------------------------------------------------------------------------------------|
+| Build Settlement           | `N_NODES` | Place a settlement on a valid, unoccupied node.                                                         |
+| Build City                 | `N_NODES` | Upgrade an existing settlement on a node to a city.                                                     |
+| Build Road                 | `N_EDGES` | Place a road on a valid edge connected to owned structures.                                             |
+| Buy Development Card       | `1`       | Purchase one card from the development deck.                                                            |
+| Play Development Card      | `5`       | Play a specific development card type (Knight, Monopoly, Road Building, Year of Plenty, Victory Point). |
+| Move Robber                | `19`      | Move the robber to a new tile (stealing handled heuristically).                                         |
+| Trade with Bank / Ports    | `20`      | Execute a trade of one resource for another at the best available rate for the player.                  |
+| Choose resource            | `5`       | Choose which resource you want to obtain (Year of Plenty, Monopoly)                                     |
+| End Turn                   | `1`       | Explicitly end the current player’s turn.                                                               |
+| **Total (standard board)** | ≈ **226** | For `N_NODES=54`, `N_EDGES=72`.                                                                         |
 
 ---
 
@@ -100,7 +101,7 @@ It outlines how player decisions are represented as discrete actions, and explai
 
 The total discrete action space size is:
 
-ActionSpaceSize = 2 * N_nodes + N_edges + 1 + 5 + 19 + 20 + 1
+ActionSpaceSize = 2 * N_nodes + N_edges + 1 + 5 + 19 + 20 + 5 + 1
 
 Where:
 - `N_nodes` = number of buildable intersections (typically 54)
@@ -108,7 +109,7 @@ Where:
 
 Total (standard board):
 
-ActionSpaceSize = 2 * 54 + 72 + 1 + 5 + 19 + 20 + 1 = 226 actions
+ActionSpaceSize = 2 * 54 + 72 + 1 + 5 + 19 + 20 + 5 + 1 = 231 actions
 
 ---
 
