@@ -21,6 +21,7 @@ class CatanGame:
         self.bank: CatanBank = CatanBank()
         self.turn: int = 0
         self.game_over: bool = False
+        self.winner: str | None = None
 
         # Longest road
         self.longest_road_length = 0
@@ -72,6 +73,13 @@ class CatanGame:
     def get_player(self, agent):
         return next((p for p in self.players if p.color == agent), CatanPlayer(""))
 
+    def check_victory(self, agent: str):
+        player = self.get_player(agent)
+        won = player.victory_points >= 10
+        if won:
+            self.winner = agent
+            self.game_over = True
+
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)
 
@@ -81,12 +89,14 @@ class CatanGame:
         player.settlements.append(node_index)
         player.pay_for_build("settlement")
         player.points += 1
+        self.check_victory(agent)
 
     def build_city(self, agent, node_index):
         player = self.get_player(agent)
         player.cities.append(node_index)
         player.pay_for_build("city")
         player.points += 1
+        self.check_victory(agent)
         # Remove settlement
         player.settlements.remove(node_index)
 
@@ -102,6 +112,7 @@ class CatanGame:
             if player_longest_road >= LONGEST_ROAD_MIN_LENGTH:
                 # 2 points for player
                 player.points += 2
+                self.check_victory(agent)
                 previous_holder = self.longest_road_owner
                 previous_holder.points -= 2
             self.longest_road_owner = player
@@ -130,7 +141,8 @@ class CatanGame:
         elif card_type == "monopoly":
             self.handle_monopoly_card(player)
         elif card_type == "victory_point":
-            self.handle_victory_point_card(player)
+            player.hidden_points += 1
+            self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 

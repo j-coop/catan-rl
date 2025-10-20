@@ -22,6 +22,11 @@ class CatanPlayer:
         self.cities: List[int] = []       # node indices
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
+        self.hidden_points: int = 0 # victory points other players don't know about
+
+    @property
+    def victory_points(self) -> int:
+        return self.points + self.hidden_points
 
     def take_resources(self, roll: int, board: CatanBoard):
         """
