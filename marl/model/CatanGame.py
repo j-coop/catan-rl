@@ -7,7 +7,7 @@ import numpy as np
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, BUILD_COSTS, LONGEST_ROAD_MIN_LENGTH
+from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH
 from params.edges_list import EDGES_LIST
 
 
@@ -35,7 +35,8 @@ class CatanGame:
     def current_player(self) -> CatanPlayer:
         return self.players[self.turn]
 
-    def get_dice_roll(self):
+    @staticmethod
+    def get_dice_roll():
         dice_one = random.randint(1, 6)
         dice_two = random.randint(1, 6)
         return dice_one + dice_two
@@ -165,8 +166,34 @@ class CatanGame:
     def move_robber(self, agent, tile_index):
         pass
 
-    def trade_with_bank(self, agent, give_resource, receive_resource):
-        pass
+    def trade_with_bank(self, agent, give_resource: str, receive_resource: str):
+        """
+        Trades resources with the bank using the best available ratio for the player.
+        """
+        player = self.get_player(agent)
+
+        # Determine trade ratio (lowest available)
+        if player.ports.get(give_resource, False):
+            ratio = 2  # 2:1 specific port
+        elif player.ports.get("3for1", False):
+            ratio = 3  # 3:1 general port
+        else:
+            ratio = 4  # 4:1 default bank rate
+
+        # Validate resource availability
+        if player.resources[give_resource] < ratio:
+            raise ValueError(f"{player.color} does not have enough {give_resource} to trade with bank.")
+
+        # Validate bank has the requested resource
+        if self.bank.resources[receive_resource] <= 0:
+            raise ValueError(f"Bank is out of {receive_resource}! - this should have been masked")
+
+        # Perform trade
+        player.resources[give_resource] -= ratio
+        player.resources[receive_resource] += 1
+
+        self.bank.resources[give_resource] += ratio
+        self.bank.resources[receive_resource] -= 1
 
     def take_resource(self, agent, resource: str):
         player = self.get_player(agent)
