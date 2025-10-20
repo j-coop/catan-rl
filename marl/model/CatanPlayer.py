@@ -16,7 +16,11 @@ class CatanPlayer:
     def __init__(self, color: str):
         self.color: str = color
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
+
+        # Dev cards
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
+        self.knights_played: int = 0
+
         self.ports: Dict[str, bool] = {port: False for port in PORT_TYPES}
         self.settlements: List[int] = []  # node indices
         self.cities: List[int] = []       # node indices

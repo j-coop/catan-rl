@@ -27,6 +27,10 @@ class CatanGame:
         self.longest_road_length = 0
         self.longest_road_owner: CatanPlayer | None = None
 
+        # Largest army
+        self.largest_army_count = 0
+        self.largest_army_owner: CatanPlayer | None = None
+
     @property
     def current_player(self) -> CatanPlayer:
         return self.players[self.turn]
@@ -133,7 +137,16 @@ class CatanGame:
 
         # Dispatch to specific handlers
         if card_type == "knight":
-            self.handle_knight_card(player)
+            player.knights_played += 1
+            self.move_robber(agent, 0) # TODO: swap with real action flow - masking to 19 move robber actions
+            # Check for largest army
+            if player.knights_played >= 3 and player.knights_played > self.largest_army_count:
+                # 2 points for player
+                player.points += 2
+                self.check_victory(agent)
+                previous_holder = self.largest_army_owner
+                previous_holder.points -= 2
+                self.largest_army_owner = player
         elif card_type == "road_building":
             self.handle_road_building_card(player)
         elif card_type == "year_of_plenty":
