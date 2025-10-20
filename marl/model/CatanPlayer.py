@@ -16,12 +16,21 @@ class CatanPlayer:
     def __init__(self, color: str):
         self.color: str = color
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
+
+        # Dev cards
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
+        self.knights_played: int = 0
+
         self.ports: Dict[str, bool] = {port: False for port in PORT_TYPES}
         self.settlements: List[int] = []  # node indices
         self.cities: List[int] = []       # node indices
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
+        self.hidden_points: int = 0 # victory points other players don't know about
+
+    @property
+    def victory_points(self) -> int:
+        return self.points + self.hidden_points
 
     def take_resources(self, roll: int, board: CatanBoard):
         """
@@ -44,6 +53,22 @@ class CatanPlayer:
 
                 gain = 1 if node in self.settlements else 2
                 self.resources[resource] += gain
+
+    def pay_for_build(self, build_type: str):
+        """
+        Deduct resources from the player for a given build type.
+        build_type (str): One of 'settlement', 'city', 'road', or 'dev_card'.
+        """
+        if build_type not in BUILD_COSTS:
+            raise ValueError(f"Unknown build type: {build_type}")
+
+        cost = BUILD_COSTS[build_type]
+        # Check affordability first (should already be validated)
+        if not self.can_afford(build_type):
+            raise ValueError(f"Player {self.color} cannot afford to build {build_type}")
+
+        for resource, amount in cost.items():
+            self.resources[resource] -= amount
 
     def can_afford(self, build_type: str) -> bool:
         """

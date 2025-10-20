@@ -74,6 +74,9 @@ class CatanEnv(AECEnv):
         self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.trade_bank))
         start += 20
 
+        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), self.choose_resource))
+        start += 5
+
         self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.end_turn))
         start += 1
 
@@ -90,6 +93,7 @@ class CatanEnv(AECEnv):
         # 5 for playing dev cards
         # 19 for moving robber to each field (steal included)
         # 20 for trading with bank (each resource for each resource)
+        # 5 for choosing resource (year of plenty, monopoly)
         # 1 for end turn
         size += 1 + 5 + 19 + 20 + 1
         return size
@@ -222,6 +226,12 @@ class CatanEnv(AECEnv):
         give_resource = RESOURCE_TYPES[give_idx]
         receive_resource = [r for r in RESOURCE_TYPES if r != give_resource][recv_idx]
         self.game.trade_with_bank(agent, give_resource, receive_resource)
+
+    def choose_resource(self, agent: str, resource_index: int):
+        if resource_index >= len(RESOURCE_TYPES):
+            raise ValueError("No such resource")
+        resource = RESOURCE_TYPES[resource_index]
+        self.game.take_resource(agent, resource)
 
     def end_turn(self, agent: str, _: int):
         """End the player's turn."""
