@@ -107,10 +107,32 @@ class CatanGame:
             self.longest_road_owner = player
 
     def buy_dev_card(self, agent):
-        pass
+        player = self.get_player(agent)
+        card = self.bank.draw_dev_card()
+        if card:
+            player.dev_cards[card] += 1
+            player.pay_for_build("dev_card")
 
     def play_dev_card(self, agent, card_type):
-        pass
+        player = self.get_player(agent)
+        if player.dev_cards[card_type] <= 0:
+            raise ValueError(f"{player.color} does not have a {card_type} card to play.")
+
+        player.dev_cards[card_type] -= 1
+
+        # Dispatch to specific handlers
+        if card_type == "knight":
+            self.handle_knight_card(player)
+        elif card_type == "road_building":
+            self.handle_road_building_card(player)
+        elif card_type == "year_of_plenty":
+            self.handle_year_of_plenty_card(player)
+        elif card_type == "monopoly":
+            self.handle_monopoly_card(player)
+        elif card_type == "victory_point":
+            self.handle_victory_point_card(player)
+        else:
+            raise ValueError(f"Unknown dev card type: {card_type}")
 
     def move_robber(self, agent, tile_index):
         pass
