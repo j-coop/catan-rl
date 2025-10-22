@@ -1,15 +1,10 @@
-from typing import Optional
-
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
-from marl.model.CatanPhase import CatanPhase
-from params.catan_constants import (N_NODES,
-                                    N_EDGES,
-                                    RESOURCE_TYPES)
+from marl.env.ActionSpace import ActionSpace
+from params.catan_constants import (RESOURCE_TYPES)
 from marl.model.CatanGame import CatanGame
-from marl.util.ActionSpec import ActionSpec
 
 
 class CatanEnv(AECEnv):
@@ -22,17 +17,14 @@ class CatanEnv(AECEnv):
         self.possible_agents = self.agents[:]
         self.agent_selection = self.agents[0]
 
-        # Mapping of action space to action handlers
-        self.action_specs: list[ActionSpec] = []
-        # Action specs initialization
-        self.action_space_size = 0
-        self.init_action_specs()
-
         # Game Logic Layer object
         self.game = CatanGame(self.agents)
 
+        # Action space handling object
+        self.actions = ActionSpace(self.game)
+
         self.action_spaces = {
-            agent: spaces.Discrete(self.get_action_space_size()) for agent in self.agents
+            agent: spaces.Discrete(self.actions.get_action_space_size()) for agent in self.agents
         }
 
         self.observation_spaces = {
@@ -49,61 +41,9 @@ class CatanEnv(AECEnv):
             for agent in self.agents
         }
 
-        self.phase = CatanPhase.NORMAL
-        self.phase_actor: Optional[str] = None  # agent color who is making the phase decision
-        self.phase_data: dict = {}
-
         # First roll is handled manually
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
-
-    def init_action_specs(self):
-        start = 0
-
-        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), self.build_settlement))
-        start += N_NODES
-
-        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), self.build_city))
-        start += N_NODES
-
-        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), self.build_road))
-        start += N_EDGES
-
-        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), self.buy_dev_card))
-        start += 1
-
-        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), self.play_dev_card))
-        start += 5
-
-        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), self.move_robber))
-        start += 19
-
-        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.trade_bank))
-        start += 20
-
-        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), self.choose_resource))
-        start += 5
-
-        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.end_turn))
-        start += 1
-
-        self.action_space_size = start
-
-    @staticmethod
-    def get_action_space_size() -> int:
-        size = 0
-        # N_NODES for placing settlements and cities each
-        size += 2 * N_NODES
-        # N_EDGES for placing roads
-        size += N_EDGES
-        # 1 for buy dev card
-        # 5 for playing dev cards
-        # 19 for moving robber to each field (steal included)
-        # 20 for trading with bank (each resource for each resource)
-        # 5 for choosing resource (year of plenty, monopoly)
-        # 1 for end turn
-        size += 1 + 5 + 19 + 20 + 1
-        return size
 
     @staticmethod
     def get_observation_space_size() -> int:
@@ -112,7 +52,7 @@ class CatanEnv(AECEnv):
         return size
 
     def get_spec_for_action(self, agent: str, action: int):
-        for spec in self.action_specs:
+        for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
@@ -125,7 +65,7 @@ class CatanEnv(AECEnv):
     Calls delegating logic to game object logic layer (CatanGame)
     """
     def apply_action(self, agent: str, action: int):
-        for spec in self.action_specs:
+        for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
@@ -147,7 +87,7 @@ class CatanEnv(AECEnv):
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
             # Advance to next player (no dice roll yet)
-            self.game.end_turn()
+            self.game.end_turn(agent)
             self.agent_selection = self.game.current_player.color
 
             # Mark that a dice roll should happen
@@ -160,9 +100,6 @@ class CatanEnv(AECEnv):
         reward = self.compute_reward(agent)
         self.rewards[agent] = reward
 
-        # Determine next agent
-        self.agent_selection = self._next_agent()
-
         # Handle dice roll if necessary
         if self.pending_dice_roll:
             self.game.handle_dice_roll()
@@ -170,6 +107,10 @@ class CatanEnv(AECEnv):
 
         # Generate observation for next agent (includes state after player's dice roll)
         obs = self.observe(self.agent_selection)
+
+        # Masking actions depending on game state and phase - dynamically updated inside ActionSpace
+        mask = self.actions.get_action_mask()
+        obs["action_mask"] = mask
 
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
 

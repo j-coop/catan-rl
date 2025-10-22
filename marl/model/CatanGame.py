@@ -1,11 +1,12 @@
 import random
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import numpy as np
 
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
+from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH
 from params.edges_list import EDGES_LIST
@@ -23,6 +24,10 @@ class CatanGame:
         self.turn: int = 0
         self.game_over: bool = False
         self.winner: str | None = None
+
+        self.phase = CatanPhase.NORMAL
+        self.phase_actor: Optional[CatanPlayer] = None
+        self.phase_data: dict = {}
 
         # Longest road
         self.longest_road_length = 0
