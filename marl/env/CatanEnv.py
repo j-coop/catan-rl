@@ -1,7 +1,10 @@
+from typing import Optional
+
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
+from marl.model.CatanPhase import CatanPhase
 from params.catan_constants import (N_NODES,
                                     N_EDGES,
                                     RESOURCE_TYPES)
@@ -45,6 +48,10 @@ class CatanEnv(AECEnv):
             )
             for agent in self.agents
         }
+
+        self.phase = CatanPhase.NORMAL
+        self.phase_actor: Optional[str] = None  # agent color who is making the phase decision
+        self.phase_data: dict = {}
 
         # First roll is handled manually
         self.pending_dice_roll = False
@@ -103,6 +110,15 @@ class CatanEnv(AECEnv):
         size = 0
         # TODO: define observation space shape
         return size
+
+    def get_spec_for_action(self, agent: str, action: int):
+        for spec in self.action_specs:
+            start, end = spec.range
+            if start <= action < end:
+                local_index = action - start
+                # spec.handler(agent, local_index)
+                return spec
+        raise ValueError(f"Invalid action index: {action}")
 
     """
     Handles executing action with given index in action space for given agent
