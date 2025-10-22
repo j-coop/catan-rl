@@ -9,6 +9,7 @@ from marl.model.CatanBank import CatanBank
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH
 from params.edges_list import EDGES_LIST
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
 
 class CatanGame:
@@ -163,8 +164,55 @@ class CatanGame:
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
-    def move_robber(self, agent, tile_index):
-        pass
+    def move_robber(self, agent_color: str, tile_index: int):
+        """
+        Move robber to tile_index. Then select a victim among players
+        adjacent to that tile using heuristic: choose player with most total resources (if any).
+        Steal one random resource from victim (if they have any).
+        """
+        # Set robber position
+        self.board.robber_position = tile_index
+
+        # Find players adjacent to tile_index (players who have settlement or city on any node touching that tile)
+        adjacent_nodes = [node for node, tiles in NODES_TO_TILES.items() if tile_index in tiles]
+        adjacent_players = set()
+        for node in adjacent_nodes:
+            owner = self.board.nodes[node]
+            if owner is not None and owner != agent_color:
+                adjacent_players.add(owner)
+
+        if not adjacent_players:
+            return  # no victims
+
+        # Heuristic: choose player with most total resource cards
+        victims = []
+        max_resources = -1
+        for victim_color in adjacent_players:
+            victim_player = self.get_player(victim_color)
+            if victim_player is None:
+                continue
+            total = sum(victim_player.resources.values())
+            if total > max_resources:
+                victims = [victim_player]
+                max_resources = total
+            elif total == max_resources:
+                victims.append(victim_player)
+
+        # If there's at least one victim with resources, steal one random resource from one selected victim
+        if not victims or max_resources == 0:
+            return
+
+        victim = random.choice(victims)
+        # choose a random resource the victim has (>0)
+        available = [r for r, cnt in victim.resources.items() if cnt > 0]
+        if not available:
+            return
+
+        stolen_resource = random.choice(available)
+        victim.resources[stolen_resource] -= 1
+        thief = self.get_player(agent_color)
+        if thief:
+            thief.resources[stolen_resource] += 1
 
     def trade_with_bank(self, agent, give_resource: str, receive_resource: str):
         """
