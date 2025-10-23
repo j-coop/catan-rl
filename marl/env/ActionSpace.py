@@ -90,9 +90,20 @@ class ActionSpace:
         elif phase == CatanPhase.MONOPOLY:
             self._enable(mask, "choose_resource")
         elif phase == CatanPhase.ROAD_BUILDING:
-            self._enable(mask, "build_road")
+            self._apply_road_building_mask(mask, player)
 
         return mask
+
+    def _apply_road_building_mask(self, mask: list[bool], player: CatanPlayer):
+        """
+        Enable valid road placement actions for the Road Building development card.
+        Rules are the same as in normal phase, but only roads are allowed.
+        """
+        valid_edges = self.game.board.get_valid_road_spots(player)
+        spec = next(s for s in self.action_specs if s.name == "build_road")
+
+        for edge in valid_edges:
+            mask[spec.range[0] + edge] = True
 
     def _apply_normal_phase_mask(self, mask: list[bool], player: CatanPlayer):
         """
