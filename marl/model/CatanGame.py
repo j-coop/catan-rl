@@ -1,14 +1,16 @@
 import random
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import numpy as np
 
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
+from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH
+from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS, RESOURCE_TYPES
 from params.edges_list import EDGES_LIST
+from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
 
 class CatanGame:
@@ -23,6 +25,10 @@ class CatanGame:
         self.game_over: bool = False
         self.winner: str | None = None
 
+        self.phase = CatanPhase.NORMAL
+        self.phase_actor: Optional[CatanPlayer] = None
+        self.phase_data: dict = {}
+
         # Longest road
         self.longest_road_length = 0
         self.longest_road_owner: CatanPlayer | None = None
@@ -30,6 +36,10 @@ class CatanGame:
         # Largest army
         self.largest_army_count = 0
         self.largest_army_owner: CatanPlayer | None = None
+
+        # Special actions control
+        self._year_of_plenty_choices = []
+        self._roads_remaining_from_card = None
 
     @property
     def current_player(self) -> CatanPlayer:
@@ -139,7 +149,8 @@ class CatanGame:
         # Dispatch to specific handlers
         if card_type == "knight":
             player.knights_played += 1
-            self.move_robber(agent, 0) # TODO: swap with real action flow - masking to 19 move robber actions
+            # Switch to robber move phase – the player will select where to move next
+            self.phase = CatanPhase.ROBBER_MOVE
             # Check for largest army
             if player.knights_played >= 3 and player.knights_played > self.largest_army_count:
                 # 2 points for player
@@ -148,23 +159,83 @@ class CatanGame:
                 previous_holder = self.largest_army_owner
                 previous_holder.points -= 2
                 self.largest_army_owner = player
-        elif card_type == "road_building":
-            # TODO: next two steps: build a road
-            self.handle_road_building_card(player)
-        elif card_type == "year_of_plenty":
-            # TODO: next two steps: choose resource to get from bank
-            self.handle_year_of_plenty_card(player)
-        elif card_type == "monopoly":
-            # TODO: next step: choose one resource to demand from others
-            self.handle_monopoly_card(player)
-        elif card_type == "victory_point":
-            player.hidden_points += 1
-            self.check_victory(agent)
+            elif card_type == "road_building":
+                # Player will now be able to build two roads
+                self.phase = CatanPhase.ROAD_BUILDING
+                self._roads_remaining_from_card = 2  # Track roads to build
+            elif card_type == "year_of_plenty":
+                # Player chooses 2 resources from bank in two consecutive actions
+                self.phase = CatanPhase.YEAR_OF_PLENTY
+                self._year_of_plenty_choices = []
+            elif card_type == "monopoly":
+                # Player chooses one resource type to take from all others
+                self.phase = CatanPhase.MONOPOLY
+            elif card_type == "victory_point":
+                # Immediate hidden point
+                player.hidden_points += 1
+                self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
-    def move_robber(self, agent, tile_index):
-        pass
+    def move_robber(self, agent_color: str, tile_index: int):
+        """
+        Move robber to tile_index. Then select a victim among players
+        adjacent to that tile using heuristic: choose player with most total resources (if any).
+        Steal one random resource from victim (if they have any).
+        """
+        # Set robber position
+        self.board.robber_position = tile_index
+
+        # Find players adjacent to tile_index (players who have settlement or city on any node touching that tile)
+        adjacent_nodes = [node for node, tiles in NODES_TO_TILES.items() if tile_index in tiles]
+        adjacent_players = set()
+        for node in adjacent_nodes:
+            owner = self.board.nodes[node]
+            if owner is not None and owner != agent_color:
+                adjacent_players.add(owner)
+
+        if not adjacent_players:
+            return  # no victims
+
+        # Heuristic: choose player with most total resource cards
+        victims = []
+        max_resources = -1
+        for victim_color in adjacent_players:
+            victim_player = self.get_player(victim_color)
+            if victim_player is None:
+                continue
+            total = sum(victim_player.resources.values())
+            if total > max_resources:
+                victims = [victim_player]
+                max_resources = total
+            elif total == max_resources:
+                victims.append(victim_player)
+
+        # If there's at least one victim with resources, steal one random resource from one selected victim
+        if not victims or max_resources == 0:
+            return
+
+        victim = random.choice(victims)
+        # choose a random resource the victim has (>0)
+        available = [r for r, cnt in victim.resources.items() if cnt > 0]
+        if not available:
+            return
+
+        stolen_resource = random.choice(available)
+        victim.resources[stolen_resource] -= 1
+        thief = self.get_player(agent_color)
+        if thief:
+            thief.resources[stolen_resource] += 1
+
+    def trade_bank(self, agent, trade_index: int):
+        """
+        Executes a trade with the bank based on an explicit trade index.
+        """
+        if not (0 <= trade_index < len(BANK_TRADE_PAIRS)):
+            raise ValueError(f"Invalid trade index: {trade_index}")
+
+        give_resource, receive_resource = BANK_TRADE_PAIRS[trade_index]
+        self.trade_with_bank(agent, give_resource, receive_resource)
 
     def trade_with_bank(self, agent, give_resource: str, receive_resource: str):
         """
@@ -194,6 +265,46 @@ class CatanGame:
 
         self.bank.resources[give_resource] += ratio
         self.bank.resources[receive_resource] -= 1
+
+    def choose_resource(self, agent, resource_index: int):
+        """
+        Handles resource selection actions for special dev cards:
+        - YEAR_OF_PLENTY: choose two different resources (two consecutive steps)
+        - MONOPOLY: choose one resource type to monopolize
+        """
+        player = self.get_player(agent)
+        resource = RESOURCE_TYPES[resource_index]
+
+        # --- YEAR OF PLENTY ---
+        if self.phase == CatanPhase.YEAR_OF_PLENTY:
+            if not hasattr(self, "_year_of_plenty_choices"):
+                self._year_of_plenty_choices = []
+
+            self._year_of_plenty_choices.append(resource)
+
+            # After two resources are chosen, give them to the player
+            if len(self._year_of_plenty_choices) == 2:
+                for res in self._year_of_plenty_choices:
+                    # Bank gives resource if available
+                    if self.bank.resources[res] > 0:
+                        self.bank.resources[res] -= 1
+                        player.resources[res] += 1
+                # Reset
+                del self._year_of_plenty_choices
+                self.phase = CatanPhase.NORMAL
+        # --- MONOPOLY ---
+        elif self.phase == CatanPhase.MONOPOLY:
+            for other_player in self.players:
+                if other_player.color == player.color:
+                    continue
+                stolen = other_player.resources[resource]
+                if stolen > 0:
+                    other_player.resources[resource] = 0
+                    player.resources[resource] += stolen
+
+            self.phase = CatanPhase.NORMAL
+        else:
+            raise RuntimeError("choose_resource called outside a valid special card phase.")
 
     def take_resource(self, agent, resource: str):
         player = self.get_player(agent)
