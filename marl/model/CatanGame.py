@@ -8,7 +8,7 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS
+from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS, RESOURCE_TYPES
 from params.edges_list import EDGES_LIST
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
@@ -257,6 +257,46 @@ class CatanGame:
 
         self.bank.resources[give_resource] += ratio
         self.bank.resources[receive_resource] -= 1
+
+    def choose_resource(self, agent, resource_index: int):
+        """
+        Handles resource selection actions for special dev cards:
+        - YEAR_OF_PLENTY: choose two different resources (two consecutive steps)
+        - MONOPOLY: choose one resource type to monopolize
+        """
+        player = self.get_player(agent)
+        resource = RESOURCE_TYPES[resource_index]
+
+        # --- YEAR OF PLENTY ---
+        if self.phase == CatanPhase.YEAR_OF_PLENTY:
+            if not hasattr(self, "_year_of_plenty_choices"):
+                self._year_of_plenty_choices = []
+
+            self._year_of_plenty_choices.append(resource)
+
+            # After two resources are chosen, give them to the player
+            if len(self._year_of_plenty_choices) == 2:
+                for res in self._year_of_plenty_choices:
+                    # Bank gives resource if available
+                    if self.bank.resources[res] > 0:
+                        self.bank.resources[res] -= 1
+                        player.resources[res] += 1
+                # Reset
+                del self._year_of_plenty_choices
+                self.phase = CatanPhase.NORMAL
+        # --- MONOPOLY ---
+        elif self.phase == CatanPhase.MONOPOLY:
+            for other_player in self.players:
+                if other_player.color == player.color:
+                    continue
+                stolen = other_player.resources[resource]
+                if stolen > 0:
+                    other_player.resources[resource] = 0
+                    player.resources[resource] += stolen
+
+            self.phase = CatanPhase.NORMAL
+        else:
+            raise RuntimeError("choose_resource called outside a valid special card phase.")
 
     def take_resource(self, agent, resource: str):
         player = self.get_player(agent)
