@@ -7,6 +7,34 @@ N_PORT_NODES = 30
 
 RESOURCE_TYPES = ["wood", "brick", "sheep", "wheat", "ore"]
 
+# Explicitly ordered 20 possible bank trade pairs
+BANK_TRADE_PAIRS = [
+    ("wood", "brick"),
+    ("wood", "sheep"),
+    ("wood", "wheat"),
+    ("wood", "ore"),
+
+    ("brick", "wood"),
+    ("brick", "sheep"),
+    ("brick", "wheat"),
+    ("brick", "ore"),
+
+    ("sheep", "wood"),
+    ("sheep", "brick"),
+    ("sheep", "wheat"),
+    ("sheep", "ore"),
+
+    ("wheat", "wood"),
+    ("wheat", "brick"),
+    ("wheat", "sheep"),
+    ("wheat", "ore"),
+
+    ("ore", "wood"),
+    ("ore", "brick"),
+    ("ore", "sheep"),
+    ("ore", "wheat"),
+]
+
 BUILD_COSTS = {
     "settlement": {"wood": 1, "brick": 1, "sheep": 1, "wheat": 1},
     "city": {"ore": 3, "wheat": 2},

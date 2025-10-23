@@ -8,7 +8,7 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH
+from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS
 from params.edges_list import EDGES_LIST
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
@@ -218,6 +218,16 @@ class CatanGame:
         thief = self.get_player(agent_color)
         if thief:
             thief.resources[stolen_resource] += 1
+
+    def trade_bank(self, agent, trade_index: int):
+        """
+        Executes a trade with the bank based on an explicit trade index.
+        """
+        if not (0 <= trade_index < len(BANK_TRADE_PAIRS)):
+            raise ValueError(f"Invalid trade index: {trade_index}")
+
+        give_resource, receive_resource = BANK_TRADE_PAIRS[trade_index]
+        self.trade_with_bank(agent, give_resource, receive_resource)
 
     def trade_with_bank(self, agent, give_resource: str, receive_resource: str):
         """
