@@ -37,6 +37,10 @@ class CatanGame:
         self.largest_army_count = 0
         self.largest_army_owner: CatanPlayer | None = None
 
+        # Special actions control
+        self._year_of_plenty_choices = []
+        self._roads_remaining_from_card = None
+
     @property
     def current_player(self) -> CatanPlayer:
         return self.players[self.turn]
@@ -145,7 +149,8 @@ class CatanGame:
         # Dispatch to specific handlers
         if card_type == "knight":
             player.knights_played += 1
-            self.move_robber(agent, 0) # TODO: swap with real action flow - masking to 19 move robber actions
+            # Switch to robber move phase – the player will select where to move next
+            self.phase = CatanPhase.ROBBER_MOVE
             # Check for largest army
             if player.knights_played >= 3 and player.knights_played > self.largest_army_count:
                 # 2 points for player
@@ -154,18 +159,21 @@ class CatanGame:
                 previous_holder = self.largest_army_owner
                 previous_holder.points -= 2
                 self.largest_army_owner = player
-        elif card_type == "road_building":
-            # TODO: next two steps: build a road
-            self.handle_road_building_card(player)
-        elif card_type == "year_of_plenty":
-            # TODO: next two steps: choose resource to get from bank
-            self.handle_year_of_plenty_card(player)
-        elif card_type == "monopoly":
-            # TODO: next step: choose one resource to demand from others
-            self.handle_monopoly_card(player)
-        elif card_type == "victory_point":
-            player.hidden_points += 1
-            self.check_victory(agent)
+            elif card_type == "road_building":
+                # Player will now be able to build two roads
+                self.phase = CatanPhase.ROAD_BUILDING
+                self._roads_remaining_from_card = 2  # Track roads to build
+            elif card_type == "year_of_plenty":
+                # Player chooses 2 resources from bank in two consecutive actions
+                self.phase = CatanPhase.YEAR_OF_PLENTY
+                self._year_of_plenty_choices = []
+            elif card_type == "monopoly":
+                # Player chooses one resource type to take from all others
+                self.phase = CatanPhase.MONOPOLY
+            elif card_type == "victory_point":
+                # Immediate hidden point
+                player.hidden_points += 1
+                self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
