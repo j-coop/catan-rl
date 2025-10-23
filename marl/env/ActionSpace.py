@@ -1,5 +1,6 @@
 from marl.model.CatanGame import CatanGame
 from marl.model.CatanPhase import CatanPhase
+from marl.model.CatanPlayer import CatanPlayer
 from marl.util.ActionSpec import ActionSpec
 from params.catan_constants import N_NODES, N_EDGES
 
@@ -81,24 +82,61 @@ class ActionSpace:
 
         # Phase-based logic
         if phase == CatanPhase.NORMAL:
-            self._enable(mask, "build_settlement")
-            self._enable(mask, "build_city")
-            self._enable(mask, "build_road")
-            self._enable(mask, "buy_dev_card")
-            self._enable(mask, "play_dev_card")
-            self._enable(mask, "trade_bank")
-            self._enable(mask, "end_turn")
-
+            self._apply_normal_phase_mask(mask, player)
         elif phase == CatanPhase.ROBBER_MOVE:
             self._enable(mask, "move_robber")
-
         elif phase == CatanPhase.YEAR_OF_PLENTY:
             self._enable(mask, "choose_resource")
-
         elif phase == CatanPhase.MONOPOLY:
             self._enable(mask, "choose_resource")
-
         elif phase == CatanPhase.ROAD_BUILDING:
             self._enable(mask, "build_road")
 
         return mask
+
+    def _apply_normal_phase_mask(self, mask: list[bool], player: CatanPlayer):
+        """
+        Enable actions based on affordability and legality
+        """
+
+        # --- Building settlements ---
+        if player.can_afford("settlement"):
+            valid_nodes = self.game.board.get_valid_settlement_spots(player)
+            spec = next(s for s in self.action_specs if s.name == "build_settlement")
+            for node in valid_nodes:
+                mask[spec.range[0] + node] = True
+
+        # --- Building cities ---
+        if player.can_afford("city"):
+            # player can only upgrade existing settlements
+            spec = next(s for s in self.action_specs if s.name == "build_city")
+            for node in player.settlements:
+                mask[spec.range[0] + node] = True
+
+        # --- Building roads ---
+        if player.can_afford("road"):
+            valid_edges = self.game.board.get_valid_road_spots(player)
+            spec = next(s for s in self.action_specs if s.name == "build_road")
+            for edge in valid_edges:
+                mask[spec.range[0] + edge] = True
+
+        # --- Buying dev card ---
+        if player.can_afford("dev_card") and not self.game.bank.remaining_dev_cards() > 0:
+            self._enable(mask, "buy_dev_card")
+
+        # --- Playing dev cards ---
+        playable_cards = player.get_playable_dev_cards()
+        spec = next(s for s in self.action_specs if s.name == "play_dev_card")
+        for i, card_type in enumerate(["knight", "victory_point", "road_building", "year_of_plenty", "monopoly"]):
+            if card_type in playable_cards:
+                mask[spec.range[0] + i] = True
+
+        # --- Trading with bank ---
+        trade_pairs = self._get_valid_bank_trades(player)
+        spec = next(s for s in self.action_specs if s.name == "trade_bank")
+        for idx in trade_pairs:
+            mask[spec.range[0] + idx] = True
+
+        # --- Always allow end turn ---
+        self._enable(mask, "end_turn")
+
