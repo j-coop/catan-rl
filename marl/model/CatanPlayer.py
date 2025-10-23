@@ -137,3 +137,40 @@ class CatanPlayer:
             dtype=np.float32,
         )
         return obs
+
+    def get_playable_dev_cards(self):
+        return [card_type for card_type in DEV_CARD_TYPES if self.dev_cards.get(card_type, 0) > 0]
+
+    def get_valid_bank_trades(self) -> List[(str, str)]:
+        """
+        Returns all valid (give_resource, receive_resource) trade pairs
+        the player can perform with the bank or their ports.
+        """
+        valid_trades: List[(str, str)] = []
+
+        for give in RESOURCE_TYPES:
+            amount = self.resources.get(give, 0)
+
+            # Skip if no resources of that type
+            if amount <= 0:
+                continue
+
+            # Determine trade ratio for this resource
+            if self.ports.get(give, False):
+                ratio = 2
+            elif self.ports.get("3for1", False):
+                ratio = 3
+            else:
+                ratio = 4
+
+            # Check if player can afford trade
+            if amount < ratio:
+                continue
+
+            # Can trade into any *other* resource
+            for receive in RESOURCE_TYPES:
+                if receive == give:
+                    continue
+                valid_trades.append((give, receive))
+
+        return valid_trades

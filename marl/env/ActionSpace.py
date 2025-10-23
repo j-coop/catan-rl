@@ -2,7 +2,7 @@ from marl.model.CatanGame import CatanGame
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
 from marl.util.ActionSpec import ActionSpec
-from params.catan_constants import N_NODES, N_EDGES
+from params.catan_constants import N_NODES, N_EDGES, DEV_CARD_TYPES
 
 
 class ActionSpace:
@@ -127,12 +127,12 @@ class ActionSpace:
         # --- Playing dev cards ---
         playable_cards = player.get_playable_dev_cards()
         spec = next(s for s in self.action_specs if s.name == "play_dev_card")
-        for i, card_type in enumerate(["knight", "victory_point", "road_building", "year_of_plenty", "monopoly"]):
+        for i, card_type in enumerate(DEV_CARD_TYPES):
             if card_type in playable_cards:
                 mask[spec.range[0] + i] = True
 
         # --- Trading with bank ---
-        trade_pairs = self._get_valid_bank_trades(player)
+        trade_pairs = player.get_valid_bank_trades()
         spec = next(s for s in self.action_specs if s.name == "trade_bank")
         for idx in trade_pairs:
             mask[spec.range[0] + idx] = True
