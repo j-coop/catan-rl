@@ -4,6 +4,8 @@ import numpy as np
 
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import N_NODES, N_EDGES
+from params.edges_list import EDGES_LIST
+from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
 RESOURCE_DISTRIBUTION = [
     "wood", "wood", "wood", "wood",
@@ -82,3 +84,63 @@ class CatanBoard:
         node_obs = np.array([0 if n is None else 1 for n in self.nodes], dtype=np.float32)
         edge_obs = np.array([0 if e is None else 1 for e in self.edges], dtype=np.float32)
         return np.concatenate([node_obs, edge_obs, [self.robber_position / len(self.tiles)]])
+
+    def get_valid_settlement_spots(self, player: CatanPlayer) -> List[int]:
+        """
+        Returns all node indices where the player can legally build a settlement.
+        - Node must be empty
+        - Adjacent nodes must also be empty (distance rule)
+        - Must be connected to player's road
+        """
+        valid_nodes = []
+
+        for node_idx, owner in enumerate(self.nodes):
+            # Node must be empty
+            if owner is not None:
+                continue
+
+            # No adjacent settlements (distance rule)
+            if any(self.nodes[adj] is not None for adj in NODES_TO_NODES.get(node_idx, [])):
+                continue
+
+            # Must connect to one of player’s roads
+            connected_edges = [edge_idx for edge_idx, (a, b) in enumerate(EDGES_LIST) if node_idx in (a, b)]
+            if not any(self.edges[e] == player.color for e in connected_edges):
+                continue
+
+            valid_nodes.append(node_idx)
+
+        return valid_nodes
+
+    def get_valid_road_spots(self, player: CatanPlayer) -> List[int]:
+        """
+        Returns all edge indices where the player can legally build a road.
+        - Edge must be empty.
+        - Must connect to player's existing road or settlement.
+        """
+        valid_edges = []
+
+        for edge_idx, (a, b) in enumerate(EDGES_LIST):
+            # Edge must be empty
+            if self.edges[edge_idx] is not None:
+                continue
+
+            # Must connect to player’s structure (settlement/city) or road
+            node_connection = self.nodes[a] == player.color or self.nodes[b] == player.color
+
+            road_connection = any(
+                self.edges[e] == player.color
+                for e in self._get_connected_edges(a) + self._get_connected_edges(b)
+            )
+
+            if node_connection or road_connection:
+                valid_edges.append(edge_idx)
+
+        return valid_edges
+
+    # --- Helper Methods ---
+
+    @staticmethod
+    def _get_connected_edges(node_idx: int) -> List[int]:
+        """Return all edge indices that connect to the given node."""
+        return [i for i, (a, b) in enumerate(EDGES_LIST) if node_idx in (a, b)]
