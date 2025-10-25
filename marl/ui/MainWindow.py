@@ -54,15 +54,18 @@ class MainWindow(QMainWindow):
         return panel
 
     def create_board_placeholder(self) -> QWidget:
+        from marl.ui.board_view import BoardView  # import here to avoid circular imports
+
         frame = QFrame()
-        frame.setFrameShape(QFrame.Shape.Box)
+        frame.setFrameShape(QFrame.Shape.NoFrame)
         layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         frame.setLayout(layout)
 
-        label = QLabel("BOARD AREA")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
-        layout.addWidget(label)
+        # Create the interactive board view
+        board = BoardView(hex_radius=60)
+        layout.addWidget(board)
+
         return frame
 
     def create_action_panel(self) -> QWidget:
