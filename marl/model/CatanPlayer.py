@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 from collections import Counter
 from typing import Dict, List
 
 import numpy as np
 
-from marl.model.CatanBoard import CatanBoard
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
                                     RESOURCE_TYPES, BUILD_COSTS)
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from marl.model.CatanBoard import CatanBoard
 
 
 class CatanPlayer:

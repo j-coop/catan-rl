@@ -1,3 +1,4 @@
+from __future__ import annotations
 import random
 from typing import List, Optional, Tuple
 import numpy as np
