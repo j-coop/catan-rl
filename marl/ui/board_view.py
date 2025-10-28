@@ -1,10 +1,14 @@
 import math
+import os
+
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem, QGraphicsEllipseItem,
-    QGraphicsLineItem, QGraphicsTextItem, QWidget, QApplication, QVBoxLayout
+    QGraphicsLineItem, QGraphicsTextItem, QWidget, QApplication, QVBoxLayout, QGraphicsPixmapItem
 )
-from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter
-from PyQt6.QtCore import QPointF, Qt
+from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter, QPixmap, QPainterPath
+from PyQt6.QtCore import QPointF, Qt, QRectF
+
+from marl.model.CatanGame import CatanGame
 
 
 class NodeItem(QGraphicsEllipseItem):
@@ -102,27 +106,55 @@ class EdgeItem(QGraphicsLineItem):
 
 
 class HexItem(QGraphicsPolygonItem):
-    def __init__(self, center: QPointF, radius: float, fill: QColor = QColor(224, 179, 101)):
+    def __init__(self, center: QPointF, radius: float, fill: QColor = QColor(224, 179, 101), texture_path: str | None = None):
         super().__init__()
-        self.setPolygon(self._create_hex_polygon(center, radius))
-        self.setBrush(QBrush(fill))
+        self.center = center
+        self.radius = radius
+
+        polygon = self._create_hex_polygon(center, radius)
+        self.setPolygon(QPolygonF(polygon))
         self.setPen(QPen(Qt.GlobalColor.black, 1))
         self.setZValue(0)
 
+        # Default flat color
+        brush = QBrush(fill)
+
+        # If texture provided, load and use as brush
+        if texture_path:
+            texture_path = os.path.abspath(os.path.join(os.path.dirname(__file__), texture_path))
+            pixmap = QPixmap(texture_path)
+            print(f"Loading {texture_path} Exists={os.path.exists(texture_path)} Null={pixmap.isNull()}")
+
+            if not pixmap.isNull():
+                # scale the texture roughly to hex size
+                size = int(radius * 2.2)
+                pixmap = pixmap.scaled(size, size,
+                                       Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                                       Qt.TransformationMode.SmoothTransformation)
+                brush = QBrush(pixmap)
+            else:
+                print(f"⚠️ Failed to load texture: {texture_path}")
+
+        self.setBrush(brush)
+
     @staticmethod
-    def _create_hex_polygon(center: QPointF, r: float):
-        return QPolygonF([
-            QPointF(center.x() + r * math.cos(math.radians(60 * i - 30)),
-                    center.y() + r * math.sin(math.radians(60 * i - 30)))
-            for i in range(6)
-        ])
+    def _create_hex_polygon(center: QPointF, radius: float):
+        pts = []
+        for i in range(6):
+            angle_deg = 60 * i - 30
+            angle_rad = math.radians(angle_deg)
+            x = center.x() + radius * math.cos(angle_rad)
+            y = center.y() + radius * math.sin(angle_rad)
+            pts.append(QPointF(x, y))
+        return pts
 
 
 class BoardView(QGraphicsView):
     ROW_COUNTS = [3, 4, 5, 4, 3]
 
-    def __init__(self, hex_radius: float = 70):
+    def __init__(self, game: CatanGame | None = None, hex_radius: float = 70):
         super().__init__()
+        self.game = game
         self.setRenderHints(self.renderHints() | QPainter.RenderHint.Antialiasing)
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -165,9 +197,9 @@ class BoardView(QGraphicsView):
 
         # create hexes, nodes, edges
         node_map = {}
-        for center in hex_centers:
+        for i, center in enumerate(hex_centers):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
-            hex_item = HexItem(center, r)
+            hex_item = HexItem(center, r, texture_path=f'./assets/{self.game.board.tiles[i][0]}.jpg')
             self.scene.addItem(hex_item)
             corners = HexItem._create_hex_polygon(center, r)
             # add nodes with deduplication

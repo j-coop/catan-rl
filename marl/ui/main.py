@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
 def main():
     app = QApplication(sys.argv)
-    game = CatanGame(player_colors=['blue', 'red', 'black', 'white'])
+    game = CatanGame(player_colors=['blue', 'red', 'green', 'purple'])
     window = CatanWindow(game)
     window.show()
     sys.exit(app.exec())
