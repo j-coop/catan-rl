@@ -311,7 +311,10 @@ class CatanGame:
         player.resources[resource] += 1
 
     def end_turn(self, agent):
-        pass
+        # Set current player to next player
+        self.turn += 1
+        if self.turn >= 3:
+            self.turn = 0
 
     def get_longest_road_length(self, player_color: str) -> int:
         """

@@ -1,4 +1,3 @@
-# train_rllib_catan.py
 import argparse
 import os
 from functools import partial
@@ -8,12 +7,10 @@ from ray import tune
 from ray.rllib.env import PettingZooEnv
 from ray.rllib.algorithms.ppo import PPO, PPOConfig
 
-# import our environment factory
 from marl.env.CatanEnv import CatanEnv
 
 
 def env_creator(config=None):
-    # config can be used to pass env-specific settings
     return CatanEnv()
 
 

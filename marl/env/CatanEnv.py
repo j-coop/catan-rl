@@ -31,7 +31,7 @@ class CatanEnv(AECEnv):
             agent: spaces.Dict(
                 {
                     "action_mask": spaces.Box(
-                        low=0, high=1, shape=(self.action_spaces[agent].n,), dtype=np.int8
+                        low=0, high=1, shape=(self.action_spaces[agent].shape[0],), dtype=np.int8
                     ),
                     "observation": spaces.Box(
                         low=0, high=1, shape=(self.get_observation_space_size(),), dtype=np.float32
@@ -193,3 +193,9 @@ class CatanEnv(AECEnv):
     def end_turn(self, agent: str, _: int):
         """End the player's turn."""
         self.game.end_turn(agent)
+
+    def is_end_turn_action(self, action):
+        return action == self.actions.get_action_space_size() - 1
+
+    def compute_reward(self, agent) -> int:
+        return 0
