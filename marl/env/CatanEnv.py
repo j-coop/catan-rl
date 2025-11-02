@@ -137,7 +137,26 @@ class CatanEnv(AECEnv):
         return obs
 
     def observe(self, agent):
-        pass
+        """
+        Return the observation dict for `agent`.
+        We return:
+            {
+                "observation": np.array([...], dtype=np.float32),
+                "action_mask": np.array([...], dtype=np.int8)
+            }
+        This function expects CatanGame to provide:
+         - game.get_observation(agent) -> numpy array
+        """
+        # observation vector
+        obs_vec = np.array(self.game.get_observation(agent), dtype=np.float32)
+
+        # action mask
+        mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
+
+        return {
+            "observation": obs_vec,
+            "action_mask": mask
+        }
 
     def render(self):
         pass

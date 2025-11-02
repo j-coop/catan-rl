@@ -65,12 +65,13 @@ class CatanGame:
         # Return list of action indices that are legal
         return []
 
-    def get_observation(self, player: CatanPlayer) -> Dict[str, np.ndarray]:
+    def get_observation(self, agent: str) -> Dict[str, np.ndarray]:
         """
         Returns PettingZoo-friendly observation:
         - observation: full numeric features
         - action_mask: valid action indices
         """
+        player = self.get_player(agent)
         obs = np.concatenate([
             self.board.get_board_observation(),
             player.get_observation()
