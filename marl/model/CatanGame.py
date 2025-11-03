@@ -65,6 +65,11 @@ class CatanGame:
         # Return list of action indices that are legal
         return []
 
+    def rotate_players(self, current_agent_index: int):
+        players = self.players
+        rotated = players[current_agent_index:] + players[:current_agent_index]
+        return rotated
+
     def get_observation(self, agent: str) -> Dict[str, np.ndarray]:
         """
         Returns PettingZoo-friendly observation:
