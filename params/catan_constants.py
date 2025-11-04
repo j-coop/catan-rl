@@ -57,6 +57,7 @@ TILE_TYPE_COUNTS = {
     "desert": 1
 }
 N_TILE_TYPES = 6
+MAX_RESOURCE_COUNT = 19
 
 PORT_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "3for1"]
 PORT_TYPE_COUNTS = {
@@ -93,6 +94,8 @@ MAX_PROBABILITY = 5/36
 ROADS_PER_PLAYER = 15
 SETTLEMENTS_PER_PLAYER = 5
 CITIES_PER_PLAYER = 4
+MAX_VICTORY_POINTS = 10
+MAX_KNIGHTS = 14
 
 # Development cards (optional for early version)
 DEV_CARD_TYPES = ["knight", "victory_point", "road_building",

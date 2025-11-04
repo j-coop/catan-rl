@@ -3,7 +3,9 @@ from gymnasium import spaces
 from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
-from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES)
+from marl.model.CatanPlayer import CatanPlayer
+from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_RESOURCE_COUNT, MAX_VICTORY_POINTS,
+                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS)
 from marl.model.CatanGame import CatanGame
 
 
@@ -283,3 +285,31 @@ class CatanEnv(AECEnv):
         node_feats = np.concatenate(node_feats)
 
         return np.concatenate([tile_feats, port_feats, road_feats, node_feats])
+
+    def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
+        res_counts = np.array(player.resources, dtype=np.float32) / MAX_RESOURCE_COUNT
+        dev_counts = np.array(player.dev_cards, dtype=np.float32) / 5.0
+
+        victory_points = np.array([player.victory_points / MAX_VICTORY_POINTS])
+        has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == player.color
+        has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == player.color
+        longest_road = np.array([float(has_longest_road)])
+        largest_army = np.array([float(has_largest_army)])
+
+        built_structs = np.array([
+            len(player.roads) / ROADS_PER_PLAYER,
+            len(player.settlements) / SETTLEMENTS_PER_PLAYER,
+            len(player.cities) / CITIES_PER_PLAYER
+        ])
+
+        knights_played = np.array([player.knights_played / MAX_KNIGHTS])
+
+        return np.concatenate([
+            res_counts,
+            dev_counts,
+            victory_points,
+            longest_road,
+            largest_army,
+            built_structs,
+            knights_played
+        ])
