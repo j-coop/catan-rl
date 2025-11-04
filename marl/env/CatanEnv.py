@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
@@ -313,3 +315,23 @@ class CatanEnv(AECEnv):
             built_structs,
             knights_played
         ])
+
+    def encode_others_info(self, others: List[CatanPlayer]) -> np.ndarray:
+        features = []
+
+        for p in others:
+            has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == p.color
+            has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == p.color
+            feats = np.array([
+                len(p.roads) / ROADS_PER_PLAYER,
+                len(p.settlements) / SETTLEMENTS_PER_PLAYER,
+                len(p.cities) / CITIES_PER_PLAYER,
+                len(p.dev_cards) / 10.0,
+                p.hidden_points / MAX_VICTORY_POINTS,
+                float(has_longest_road),
+                float(has_largest_army),
+                p.knights_played / MAX_KNIGHTS
+            ], dtype=np.float32)
+            features.append(feats)
+
+        return np.concatenate(features)
