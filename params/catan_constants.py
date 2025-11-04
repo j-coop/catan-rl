@@ -47,7 +47,7 @@ N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
 # Resources and tile types
-TILE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "desert"]
+TILE_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "desert"]
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,

@@ -3,7 +3,7 @@ from gymnasium import spaces
 from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
-from params.catan_constants import (RESOURCE_TYPES)
+from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES)
 from marl.model.CatanGame import CatanGame
 
 
@@ -148,7 +148,7 @@ class CatanEnv(AECEnv):
          - game.get_observation(agent) -> numpy array
         """
         # observation vector
-        obs_vec = np.array(self.game.get_observation(agent), dtype=np.float32)
+        obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
 
         # action mask
         mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
@@ -218,3 +218,68 @@ class CatanEnv(AECEnv):
 
     def compute_reward(self, agent) -> int:
         return 0
+
+    def get_observation(self, agent):
+        pass
+
+    def encode_global_board(self) -> np.ndarray:
+        board = self.game.board
+        num_players = len(self.agents)
+
+        # --- Tiles ---
+        tile_feats = []
+        for i, tile in enumerate(board.tiles):
+            tile_res = tile[0]
+            res_onehot = np.zeros(len(TILE_TYPES))
+            if tile_res in TILE_TYPES:
+                res_onehot[TILE_TYPES.index(tile_res)] = 1.0
+            # normalize number_token to [0,1]
+            tile_token = tile[1]
+            number_val = tile_token / 12.0 if tile_token is not None else 0
+            robber_flag = 1.0 if board.robber_position == i or tile_token == 7 or tile_token is None else 0.0
+            tile_feats.append(np.concatenate([res_onehot, [number_val, robber_flag]]))
+        tile_feats = np.concatenate(tile_feats)
+
+        # --- Ports ---
+        port_feats = []
+        for port in board.ports:
+            type_onehot = np.zeros(len(PORT_TYPES))
+            if port.type in PORT_TYPES:
+                type_onehot[PORT_TYPES.index(port.type)] = 1.0
+            owner_onehot = np.zeros(num_players + 1)  # +1 for empty
+            if port.owner is not None:
+                owner_onehot[self.agents.index(port.owner.color)] = 1.0
+            else:
+                owner_onehot[-1] = 1.0
+            port_feats.append(np.concatenate([type_onehot, owner_onehot]))
+        port_feats = np.concatenate(port_feats)
+
+        # --- Roads ---
+        road_feats = []
+        for edge in board.edges:
+            owner_onehot = np.zeros(num_players + 1)
+            if edge is not None:
+                owner_onehot[self.agents.index(edge)] = 1.0
+            else:
+                owner_onehot[-1] = 1.0
+            road_feats.append(owner_onehot)
+        road_feats = np.concatenate(road_feats)
+
+        # --- Nodes ---
+        node_feats = []
+        for node in board.nodes:
+            owner_onehot = np.zeros(num_players + 1)
+            if node.owner is not None:
+                owner_onehot[self.agents.index(node.owner.color)] = 1.0
+            else:
+                owner_onehot[-1] = 1.0
+            # Two-hot for building type
+            building = np.zeros(2)
+            if node.building_type == "settlement":
+                building[0] = 1.0
+            elif node.building_type == "city":
+                building[1] = 1.0
+            node_feats.append(np.concatenate([owner_onehot[:-1], building]))
+        node_feats = np.concatenate(node_feats)
+
+        return np.concatenate([tile_feats, port_feats, road_feats, node_feats])
