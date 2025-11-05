@@ -55,122 +55,142 @@ class CatanStepMixin:
         target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
         possible_nodes = self.__get_other_adjacent_nodes(target_node, node_index)
 
-        # Heuristic 1: Estimation of two possible settlements road can lead to (0 if already occupied or impossible)
-        potential_value = self.__estimate_future_node_values(possible_nodes)
-
-        # Heuristic 2: Is it directed towards a port?
-        is_toward_port = self.__check_if_toward_port(target_node, possible_nodes)
-
-        return potential_value * 0.75 + is_toward_port * 0.25
+        nodes_value = self.__evaluate_future_node_values(possible_nodes)
+        return nodes_value
 
     """
-    Gives 1 to 'perfect' node. Returns sum of values
+    Gives 1 to a 'perfect' node
     """
-    def __estimate_future_node_values(self, possible_nodes):
+    def __evaluate_future_node_values(self, possible_nodes):
+
+        def is_node_occupied(node_id):
+            adj_tile = NODES_TO_TILES[node_id][0] # 1 of the adj nodes
+            nodes = TILES_TO_NODES[adj_tile]
+            index = nodes.index(node_id)
+            return self._base_obs["nodes_owners"][adj_tile][index].any()
+
         value = 0
         for node in possible_nodes:
             if not self._is_valid_settlement_placement(node):
                 continue
-            tokens = [TOKENS[np.argmax(tile) - 2] for tile in self._obs["tiles_tokens"][node]]
-            norm_prob = [DICE_PROBABILITIES[token] / MAX_PROBABILITY for token in tokens]
-            value += np.mean(norm_prob)
-        return value
-
-    def __has_port(self, node):
-        return self._obs["has_port"][node].sum() > 0
-
-    """
-    Returns points for port chances
-    1 - for close port (one more edge)
-    0.4 - for far port (two more edges)
-    0 - no found port chances
-    Assumption: ports are of equal value at the beginning
-    """
-    def __check_if_toward_port(self, base_node, possible_nodes):
-        value = 0
-        for node in possible_nodes:
-            # Check if road can be placed
-            edge_index = EDGES_LIST.index((min(base_node, node), max(base_node, node)))
-            if not self._is_valid_road_placement(edge_index):
+            if is_node_occupied(node):
+                value -= 0.5
                 continue
-            # Check for possible port
-            if self.__has_port(node) and self._is_valid_settlement_placement(node):
-                # Close port - full point
-                value += 1
-                break
-            # Check further port
-            further_nodes = self.__get_other_adjacent_nodes(node, base_node)
-            for further_node in further_nodes:
-                edge_index = EDGES_LIST.index((min(node, further_node), max(node, further_node)))
-                if not self._is_valid_road_placement(edge_index):
-                    continue
-                # Check for possible port
-                if self.__has_port(further_node) and self._is_valid_settlement_placement(further_node):
-                    # Far port - lower value
-                    value += 0.4
-                    break
+            tokens = [
+                0 if np.all(tile == 0) else TOKENS[np.argmax(tile)]
+                for tile in self._obs["tiles_tokens"][node]
+            ]
+            for token in tokens:
+                if token != 0 :
+                    value += DICE_PROBABILITIES[token] / MAX_PROBABILITY
         return value
 
-    def _compute_expected_resource_gain(self, settlement_action):
+    def _evaluate_placement(self, settlement_action):
+        node_id = np.argmax(settlement_action)
+        return self._obs["has_port"][node_id].sum() > 0
 
-        def get_adjacent_tiles(self, node_id):
+    # """
+    # Returns points for port chances
+    # 1 - for close port (one more edge)
+    # 0.4 - for far port (two more edges)
+    # 0 - no found port chances
+    # Assumption: ports are of equal value at the beginning
+    # """
+    # def __check_if_toward_port(self, base_node, possible_nodes):
+
+    #     def has_port(node_id):
+    #         return self._obs["has_port"][node_id].sum() > 0
+
+    #     value = 0
+    #     for node in possible_nodes:
+    #         # Check if road can be placed
+    #         edge_index = EDGES_LIST.index((min(base_node, node),
+    #                                        max(base_node, node)))
+    #         if not self._is_valid_road_placement(edge_index):
+    #             continue
+    #         # Check for possible port
+    #         if has_port(node) and self._is_valid_settlement_placement(node):
+    #             # Close port - full point
+    #             value += 1
+    #             break
+    #         # Check further port
+    #         further_nodes = self.__get_other_adjacent_nodes(node, base_node)
+    #         for further_node in further_nodes:
+    #             edge_index = EDGES_LIST.index((min(node, further_node), max(node, further_node)))
+    #             if not self._is_valid_road_placement(edge_index):
+    #                 continue
+    #             # Check for possible port
+    #             if has_port(further_node) and self._is_valid_settlement_placement(further_node):
+    #                 # Far port - lower value
+    #                 value += 0.4
+    #                 break
+    #     return value
+
+    def _evaluate_expected_resource_gain(self, settlement_action):
+
+        def get_adjacent_tiles(node_id):
             return NODES_TO_TILES[node_id]
 
-        def get_adjacent_resources(self, adjacent_tiles):
+        def get_adjacent_resources(adjacent_tiles):
             return [
                 np.argmax(self._base_obs["resources"][tile])
                 for tile in adjacent_tiles
             ]
 
-        def get_adjacent_tokens(self, adjacent_tiles):
+        def get_adjacent_tokens(adjacent_tiles):
             adjacent_tiles_tokens_ids = [
                 np.argmax(self._base_obs["tokens"][tile])
                 for tile in adjacent_tiles
             ]
             return [TOKENS[i] for i in adjacent_tiles_tokens_ids]
 
-        def calculate_expected_gains(self, resources, tokens):
+        def calculate_expected_gains(resources, tokens):
             gains = [0 for _ in range(N_TILE_TYPES)]
             for i in range(len(resources)):
                 resource = resources[i]
                 token = tokens[i]
                 expected_gain = DICE_PROBABILITIES[token] * NUM_ROLLS
                 gains[resource] += expected_gain
+            gains[-1] = 0  # Desert
             return gains
 
-        def save_settlement_gains(self, gains):
+        def save_settlement_gains(gains):
             player = self._turn_order[self._turn_index]
             self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
 
-        def normalize_gain_score(self, gains):
+        def normalize_gain_score(gains):
             sum_gain = sum(gains)
             return sum_gain / BEST_EXPECTED_GAIN
-    
 
         node_id = np.argmax(settlement_action)
         adjacent_tiles = get_adjacent_tiles(node_id)
         resources = get_adjacent_resources(adjacent_tiles)
         tokens = get_adjacent_tokens(adjacent_tiles)
-
         gains = calculate_expected_gains(resources, tokens)
-        gains[-1] = 0  # Desert
 
         save_settlement_gains(gains)
         normalized_gain_score = normalize_gain_score(gains)
         return normalized_gain_score
 
-    """
-    Returns reward for well distributed resources
-    """
-    def _evaluate_final_resources(self, gains):
+    def _evaluate_resources_distribution(self, gains):
         player = self._turn_order[self._turn_index]
         gained = gains[player][0] + gains[player][1]
 
         total = np.sum(gained)
         if total == 0:
-            return 0
-        probs = gained / total  # Normalize to probability distribution
+            return 0.0
+
+        # Normalize for diversity (entropy)
+        probs = gained / total
         entropy = -np.sum(probs * np.log(probs + 1e-9))
-        max_entropy = np.log(len(gained))  # Max entropy for uniform distribution
-        score = entropy / max_entropy
-        return float(score)
+        max_entropy = np.log(len(gained))
+        diversity_score = entropy / max_entropy
+
+        # Add coverage: fraction of resource types actually gained
+        coverage_score = np.count_nonzero(gained) / len(gained)
+        coverage_score -= 0.7  # baseline adjustment
+        coverage_score *= 10/3  # normalize to [0, 1]
+
+        # Combine them (tunable weights)
+        return float(DIVERSITY_SCORE_WEIGHT * diversity_score +
+                     COVERAGE_SCORE_WEIGHT * coverage_score)

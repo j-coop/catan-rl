@@ -3,10 +3,10 @@ from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
 class CatanValidationMixin:
 
-    def _is_placing_1_settlement(self, settlement_action):
+    def _is_placing_settlement(self, settlement_action):
         return settlement_action.sum() == 1
     
-    def _is_placing_1_road(self, road_action):
+    def _is_placing_road(self, road_action):
         return road_action.sum() == 1
     
     def _is_valid_settlement_placement(self, node_id):
