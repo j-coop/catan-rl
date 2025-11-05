@@ -89,43 +89,6 @@ class CatanStepMixin:
         node_id = np.argmax(settlement_action)
         return self._obs["has_port"][node_id].sum() > 0
 
-    # """
-    # Returns points for port chances
-    # 1 - for close port (one more edge)
-    # 0.4 - for far port (two more edges)
-    # 0 - no found port chances
-    # Assumption: ports are of equal value at the beginning
-    # """
-    # def __check_if_toward_port(self, base_node, possible_nodes):
-
-    #     def has_port(node_id):
-    #         return self._obs["has_port"][node_id].sum() > 0
-
-    #     value = 0
-    #     for node in possible_nodes:
-    #         # Check if road can be placed
-    #         edge_index = EDGES_LIST.index((min(base_node, node),
-    #                                        max(base_node, node)))
-    #         if not self._is_valid_road_placement(edge_index):
-    #             continue
-    #         # Check for possible port
-    #         if has_port(node) and self._is_valid_settlement_placement(node):
-    #             # Close port - full point
-    #             value += 1
-    #             break
-    #         # Check further port
-    #         further_nodes = self.__get_other_adjacent_nodes(node, base_node)
-    #         for further_node in further_nodes:
-    #             edge_index = EDGES_LIST.index((min(node, further_node), max(node, further_node)))
-    #             if not self._is_valid_road_placement(edge_index):
-    #                 continue
-    #             # Check for possible port
-    #             if has_port(further_node) and self._is_valid_settlement_placement(further_node):
-    #                 # Far port - lower value
-    #                 value += 0.4
-    #                 break
-    #     return value
-
     def _evaluate_expected_resource_gain(self, settlement_action):
 
         def get_adjacent_tiles(node_id):
