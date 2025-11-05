@@ -24,25 +24,16 @@ class CatanStepMixin:
                     self._base_obs["nodes_settlements"][tile_id][i] = 1
 
     def __build_road(self, edge_id, player_id):
-        a, b = EDGES_LIST[edge_id]
-        for i in range(N_NODES):
-            for j in range(N_ADJACENT_EDGES):
-                if [a, b] == self._ring_edges[i][j].tolist():
-                    self._obs["edges_is_built"][i][j] = 1
-
         edge_coords = EDGES_LIST[edge_id]
         for tile_id in range(N_TILES):
             adj_nodes = TILES_TO_NODES[tile_id]
             for i in range(len(adj_nodes)):
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
-                    self._base_obs["edges_roads"][tile_id][i] = 1
                     self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
     def _make_settlement_action(self, player, settlement_action):
         node_id = np.argmax(settlement_action)
         self.__build_settlement(node_id, player)
-
-        # Update placement masks
         self._update_settlement_placement_mask(node_id)
         self._update_road_placement_mask(node_id, player)
 
