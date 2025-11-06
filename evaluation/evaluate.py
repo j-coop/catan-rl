@@ -14,7 +14,7 @@ def mask_fn(env) -> np.ndarray:
     return env.get_action_masks()
 
 # Load trained model
-model = MaskablePPO.load("trained_models\init-placement\ppo_mask_20251103_163113.zip")
+model = MaskablePPO.load("trained_models\init-placement\ppo_mask_20251104_131634.zip")
 
 # Create random base env
 base_env = CatanBaseEnv(save_env=True)
