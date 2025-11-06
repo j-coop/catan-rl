@@ -6,6 +6,7 @@ N_PLAYERS = 4
 N_PORT_NODES = 30
 
 RESOURCE_TYPES = ["wood", "brick", "sheep", "wheat", "ore"]
+N_RESOURCE_TYPES = 5
 
 # Explicitly ordered 20 possible bank trade pairs
 BANK_TRADE_PAIRS = [
@@ -119,17 +120,23 @@ BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 
 # Rewards relative weights importance
 REWARD_WEIGHTS = {
-    "ROAD": 0,
-    "RESOURCES_NUM": 10,
-    "RESOURCES_DISTRIBUTION": 0
+    "ROAD": 0.3,
+    "RESOURCES_NUM": 12,
+    "PLACEMENT": 3,
+    "RESOURCES_DISTRIBUTION": 9
 }
+
+DIVERSITY_SCORE_WEIGHT = 0.3
+COVERAGE_SCORE_WEIGHT = 0.7
 
 # Number of steps in each episode
 # (4 players place 2 settlements and 2 roads in total)
 STEPS_PER_EPISODE = 16
 
-# Agent training number of episodes
-N_EPISODES = 500000
+# Agent training
+N_EPISODES = 340000
+EVAL_FREQ = 2000 * STEPS_PER_EPISODE
+PATIENCE = 14
 
 # Magic statistical average reward for settlements (from baseline_reward.py)
 BASELINE_REWARD = 0.42962962962966283

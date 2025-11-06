@@ -7,7 +7,6 @@ import os
 
 from params.catan_constants import *
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
-from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.coastal_nodes_list import COASTAL_NODES_LIST
 
 class CatanBaseEnv(gym.Env):
@@ -18,18 +17,18 @@ class CatanBaseEnv(gym.Env):
         self.save_env = save_env
         self.observation_space = gym.spaces.Dict({
             "resources": gym.spaces.MultiBinary([N_TILES, 
-                                                    N_TILE_TYPES]),
+                                                 N_TILE_TYPES]),
             "tokens": gym.spaces.MultiBinary([N_TILES, 
-                                                N_TOKEN_VALUES]),
+                                              N_TOKEN_VALUES]),
             "has_robber": gym.spaces.MultiBinary([N_TILES]),
             "nodes_settlements": gym.spaces.MultiBinary([N_TILES, 6]),
             "nodes_cities": gym.spaces.MultiBinary([N_TILES, 6]),
-            "nodes_owners": gym.spaces.MultiBinary([N_TILES, 6,
-                                                            N_PLAYERS]),
+            "nodes_owners": gym.spaces.MultiBinary([N_TILES,
+                                                    6,
+                                                    N_PLAYERS]),
             "nodes_ports": gym.spaces.MultiBinary([N_TILES, 6,
-                                                        N_PORT_TYPES]),
+                                                   N_PORT_TYPES]),
             "edges_owners": gym.spaces.MultiBinary([N_TILES, 6, N_PLAYERS]),
-            "edges_roads": gym.spaces.MultiBinary([N_TILES, 6])
         })
 
     def reset(self):
@@ -47,8 +46,7 @@ class CatanBaseEnv(gym.Env):
             "nodes_cities": np.zeros((N_TILES, 6), dtype=np.int8),
             "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
             "nodes_ports": self.__generate_ports(),
-            "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
-            "edges_roads": np.zeros((N_TILES, 6), dtype=np.int8)
+            "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8)
         }
 
         # Save generated env to json

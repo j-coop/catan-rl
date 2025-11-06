@@ -1,5 +1,3 @@
-import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
@@ -146,7 +144,7 @@ class CatanMapPlotter:
                         owners_vec = self.__edges[tile_id][index]
                         if np.any(owners_vec):
                             player_id = np.argmax(owners_vec)
-                            self.__plot_settlement(edge, player_id)
+                            self.__plot_road(edge, player_id)
                         plotted_edges[edge_id] = 1
                         break
                     else:

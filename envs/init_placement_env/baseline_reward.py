@@ -1,5 +1,10 @@
 from envs.base_env.env import CatanBaseEnv
-from params.catan_constants import N_NODES, N_TILE_TYPES, TOKENS, DICE_PROBABILITIES, NUM_ROLLS, BEST_EXPECTED_GAIN
+from params.catan_constants import (N_NODES,
+                                    N_RESOURCE_TYPES,
+                                    TOKENS,
+                                    DICE_PROBABILITIES,
+                                    NUM_ROLLS,
+                                    BEST_EXPECTED_GAIN)
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 import numpy as np
 
@@ -10,13 +15,14 @@ def _simulate_dice_rolls(obs, node_id):
     adjacent_tiles_tokens_ids = [np.argmax(obs["tokens"][tile]) for tile in adjacent_tiles]
     adjacent_tiles_tokens = [TOKENS[i] for i in adjacent_tiles_tokens_ids]
 
-    gains = [0 for _ in range(N_TILE_TYPES)]
+    gains = [0 for _ in range(N_RESOURCE_TYPES)]
     for i in range(len(adjacent_tiles_resources)):
         resource = adjacent_tiles_resources[i]
         token = adjacent_tiles_tokens[i]
         expected_gain = DICE_PROBABILITIES[token] * NUM_ROLLS
-        gains[resource] += expected_gain
-    gains[-1] = 0  # Desert
+
+        if resource < N_RESOURCE_TYPES:  # Ignore desert
+            gains[resource] += expected_gain
 
     # Award reward
     sum_gain = sum(gains)
