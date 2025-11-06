@@ -151,8 +151,8 @@ class CatanStepMixin:
 
         # Add coverage: fraction of resource types actually gained
         coverage_score = np.count_nonzero(gained) / len(gained)
-        coverage_score -= 0.7  # baseline adjustment
-        coverage_score *= 10/3  # normalize to [0, 1]
+        coverage_score -= 0.6  # baseline adjustment
+        coverage_score *= 2.5  # normalize to [0, 1]
 
         # Combine them (tunable weights)
         return float(DIVERSITY_SCORE_WEIGHT * diversity_score +

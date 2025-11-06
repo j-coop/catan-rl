@@ -121,13 +121,13 @@ BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 # Rewards relative weights importance
 REWARD_WEIGHTS = {
     "ROAD": 0.3,
-    "RESOURCES_NUM": 14,
+    "RESOURCES_NUM": 12,
     "PLACEMENT": 3,
-    "RESOURCES_DISTRIBUTION": 8
+    "RESOURCES_DISTRIBUTION": 9
 }
 
-DIVERSITY_SCORE_WEIGHT = 0.35
-COVERAGE_SCORE_WEIGHT = 0.65
+DIVERSITY_SCORE_WEIGHT = 0.3
+COVERAGE_SCORE_WEIGHT = 0.7
 
 # Number of steps in each episode
 # (4 players place 2 settlements and 2 roads in total)
