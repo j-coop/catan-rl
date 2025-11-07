@@ -112,6 +112,20 @@ N_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 LONGEST_ROAD_MIN_LENGTH = 5
 
 
+# Predefined node indices that correspond to the 9 physical port locations.
+# Each tuple is a pair of node indices representing the two nodes that touch that port.
+PORT_NODE_PAIRS = [
+    (0, 1),
+    (3, 4),
+    (10, 11),
+    (16, 17),
+    (26, 27),
+    (33, 34),
+    (42, 43),
+    (47, 48),
+    (51, 52),
+]
+
 
 #############################  Training parameters  ###############################
 NUM_ROLLS = 100

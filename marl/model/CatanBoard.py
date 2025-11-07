@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES
+from params.catan_constants import N_NODES, N_EDGES, PORT_NODE_PAIRS
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
 
@@ -38,9 +38,11 @@ class CatanBoard:
         self.tiles: List[Optional[Tuple[str, Optional[int]]]] = [None] * 19  # resource types
         self.nodes: List[Optional[str]] = [None] * N_NODES  # player who owns settlement/city
         self.edges: List[Optional[str]] = [None] * N_EDGES  # player who owns road
+        self.ports: List[Optional[str]] = [None] * N_NODES  # type of port on each node
         self.robber_position: int = 0  # index of tile with robber
 
         self.generate_tiles()
+        self.generate_ports()
 
     def generate_tiles(self, seed: Optional[int] = None):
         """
@@ -73,6 +75,22 @@ class CatanBoard:
         # Save results
         self.tiles = tiles
         self.robber_position = robber_position if robber_position is not None else 0
+
+    def generate_ports(self, seed: Optional[int] = None):
+        """
+        Assign port types to specific node indices around the board perimeter.
+        Each port is associated with 2 adjacent nodes.
+        """
+        rand = random.Random(seed)
+
+        # Standard Catan ports: 9 ports (5 resource-specific + 4 generic 3:1)
+        port_types = ["wood", "brick", "wheat", "sheep", "ore"] + ["generic"] * 4
+        rand.shuffle(port_types)
+
+        # Assign port types to these node pairs
+        for port_type, (n1, n2) in zip(port_types, PORT_NODE_PAIRS):
+            self.ports[n1] = port_type
+            self.ports[n2] = port_type
 
     def place_settlement(self, node: int, player: CatanPlayer):
         self.nodes[node] = player.color
