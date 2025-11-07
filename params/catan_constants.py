@@ -48,7 +48,7 @@ N_ADJACENT_EDGES = 6
 N_ADJACENT_NODES = 6
 
 # Resources and tile types
-TILE_TYPES = ["brick", "wood", "sheep", "wheat", "ore", "desert"]
+TILE_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "desert"]
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,
@@ -58,6 +58,7 @@ TILE_TYPE_COUNTS = {
     "desert": 1
 }
 N_TILE_TYPES = 6
+MAX_RESOURCE_COUNT = 19
 
 PORT_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "3for1"]
 PORT_TYPE_COUNTS = {
@@ -94,6 +95,8 @@ MAX_PROBABILITY = 5/36
 ROADS_PER_PLAYER = 15
 SETTLEMENTS_PER_PLAYER = 5
 CITIES_PER_PLAYER = 4
+MAX_VICTORY_POINTS = 10
+MAX_KNIGHTS = 14
 
 # Development cards (optional for early version)
 DEV_CARD_TYPES = ["knight", "victory_point", "road_building",
@@ -109,6 +112,20 @@ N_DEV_CARDS = sum(DEV_CARD_COUNTS.values())
 
 LONGEST_ROAD_MIN_LENGTH = 5
 
+
+# Predefined node indices that correspond to the 9 physical port locations.
+# Each tuple is a pair of node indices representing the two nodes that touch that port.
+PORT_NODE_PAIRS = [
+    (0, 1),
+    (3, 4),
+    (10, 11),
+    (16, 17),
+    (26, 27),
+    (33, 34),
+    (42, 43),
+    (47, 48),
+    (51, 52),
+]
 
 
 #############################  Training parameters  ###############################

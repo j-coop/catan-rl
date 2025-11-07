@@ -65,12 +65,18 @@ class CatanGame:
         # Return list of action indices that are legal
         return []
 
-    def get_observation(self, player: CatanPlayer) -> Dict[str, np.ndarray]:
+    def rotate_players(self, current_agent_index: int):
+        players = self.players
+        rotated = players[current_agent_index:] + players[:current_agent_index]
+        return rotated
+
+    def get_observation(self, agent: str) -> Dict[str, np.ndarray]:
         """
         Returns PettingZoo-friendly observation:
         - observation: full numeric features
         - action_mask: valid action indices
         """
+        player = self.get_player(agent)
         obs = np.concatenate([
             self.board.get_board_observation(),
             player.get_observation()
@@ -311,7 +317,10 @@ class CatanGame:
         player.resources[resource] += 1
 
     def end_turn(self, agent):
-        pass
+        # Set current player to next player
+        self.turn += 1
+        if self.turn >= 3:
+            self.turn = 0
 
     def get_longest_road_length(self, player_color: str) -> int:
         """

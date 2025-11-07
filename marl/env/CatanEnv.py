@@ -1,9 +1,13 @@
+from typing import List
+
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
-from params.catan_constants import (RESOURCE_TYPES)
+from marl.model.CatanPlayer import CatanPlayer
+from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_RESOURCE_COUNT, MAX_VICTORY_POINTS,
+                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS)
 from marl.model.CatanGame import CatanGame
 
 
@@ -31,7 +35,7 @@ class CatanEnv(AECEnv):
             agent: spaces.Dict(
                 {
                     "action_mask": spaces.Box(
-                        low=0, high=1, shape=(self.action_spaces[agent].n,), dtype=np.int8
+                        low=0, high=1, shape=(self.action_spaces[agent].shape[0],), dtype=np.int8
                     ),
                     "observation": spaces.Box(
                         low=0, high=1, shape=(self.get_observation_space_size(),), dtype=np.float32
@@ -47,9 +51,9 @@ class CatanEnv(AECEnv):
 
     @staticmethod
     def get_observation_space_size() -> int:
-        size = 0
-        # TODO: define observation space shape
-        return size
+        """Return the flattened size of the observation vector."""
+        # Global board (1214) + self (23) + others (42) = 1279
+        return 1279
 
     def get_spec_for_action(self, agent: str, action: int):
         for spec in self.actions.action_specs:
@@ -137,7 +141,26 @@ class CatanEnv(AECEnv):
         return obs
 
     def observe(self, agent):
-        pass
+        """
+        Return the observation dict for `agent`.
+        We return:
+            {
+                "observation": np.array([...], dtype=np.float32),
+                "action_mask": np.array([...], dtype=np.int8)
+            }
+        This function expects CatanGame to provide:
+         - game.get_observation(agent) -> numpy array
+        """
+        # observation vector
+        obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
+
+        # action mask
+        mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
+
+        return {
+            "observation": obs_vec,
+            "action_mask": mask
+        }
 
     def render(self):
         pass
@@ -193,3 +216,151 @@ class CatanEnv(AECEnv):
     def end_turn(self, agent: str, _: int):
         """End the player's turn."""
         self.game.end_turn(agent)
+
+    def is_end_turn_action(self, action):
+        return action == self.actions.get_action_space_size() - 1
+
+    def compute_reward(self, agent) -> int:
+        return 0
+
+    def get_observation(self, agent: str) -> np.ndarray:
+        """Encodes full game state into a flat vector for the given agent."""
+        player_index = self.agents.index(agent)
+        players = self.game.rotate_players(player_index)
+
+        global_features = self.encode_global_board()
+        self_features = self.encode_self_info(players[0])
+        others_features = self.encode_others_info(players[1:])
+
+        obs = np.concatenate([
+            global_features,
+            self_features,
+            others_features
+        ])
+        assert obs.shape[0] == self.get_observation_space_size(), \
+            f"Unexpected observation size: {obs.shape[0]}"
+        return obs.astype(np.float32)
+
+    def encode_global_board(self) -> np.ndarray:
+        board = self.game.board
+        num_players = len(self.agents)
+
+        # --- Tiles ---
+        tile_feats = []
+        for i, tile in enumerate(board.tiles):
+            tile_res = tile[0]
+            res_onehot = np.zeros(len(TILE_TYPES))
+            if tile_res in TILE_TYPES:
+                res_onehot[TILE_TYPES.index(tile_res)] = 1.0
+            # normalize number_token to [0,1]
+            tile_token = tile[1]
+            number_val = tile_token / 12.0 if tile_token is not None else 0
+            robber_flag = 1.0 if board.robber_position == i or tile_token == 7 or tile_token is None else 0.0
+            tile_feats.append(np.concatenate([res_onehot, [number_val, robber_flag]]))
+        tile_feats = np.concatenate(tile_feats)
+
+        # --- Roads ---
+        road_feats = []
+        for edge in board.edges:
+            owner_onehot = np.zeros(num_players + 1)
+            if edge is not None:
+                owner_onehot[self.agents.index(edge)] = 1.0
+            else:
+                owner_onehot[-1] = 1.0
+            road_feats.append(owner_onehot)
+        road_feats = np.concatenate(road_feats)
+
+        # --- Nodes ---
+        node_feats = []
+        for i, node in enumerate(board.nodes):
+            # owner encoding
+            owner_onehot = np.zeros(num_players + 1)
+            if node is not None:
+                owner_onehot[self.agents.index(node)] = 1.0
+            else:
+                owner_onehot[-1] = 1.0
+
+            # building type two-hot
+            building = np.zeros(2)
+            building_owner = self.game.get_player(node)
+            if building_owner.settlements.count(i) > 0:
+                building[0] = 1.0
+            elif building_owner.cities.count(i) > 0:
+                building[1] = 1.0
+
+            # port one-hot (6 flags)
+            port_onehot = np.zeros(len(PORT_TYPES))
+            if board.ports[i] in PORT_TYPES:
+                port_onehot[PORT_TYPES.index(board.ports[i])] = 1.0
+
+            node_feats.append(np.concatenate([owner_onehot[:-1], building, port_onehot]))
+        node_feats = np.concatenate(node_feats)
+
+        return np.concatenate([tile_feats, road_feats, node_feats])
+
+    def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
+        res_counts = np.array(player.resources, dtype=np.float32) / MAX_RESOURCE_COUNT
+        dev_counts = np.array(player.dev_cards, dtype=np.float32) / 5.0
+
+        victory_points = np.array([player.victory_points / MAX_VICTORY_POINTS])
+        has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == player.color
+        has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == player.color
+        longest_road = np.array([float(has_longest_road)])
+        largest_army = np.array([float(has_largest_army)])
+
+        built_structs = np.array([
+            len(player.roads) / ROADS_PER_PLAYER,
+            len(player.settlements) / SETTLEMENTS_PER_PLAYER,
+            len(player.cities) / CITIES_PER_PLAYER
+        ])
+
+        knights_played = np.array([player.knights_played / MAX_KNIGHTS])
+
+        port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
+        owned_nodes = list(player.settlements) + list(player.cities)
+        for node_idx in owned_nodes:
+            port_type = self.game.board.ports[node_idx]
+            if port_type in PORT_TYPES:
+                port_flags[PORT_TYPES.index(port_type)] = 1.0
+
+        return np.concatenate([
+            res_counts,
+            dev_counts,
+            victory_points,
+            longest_road,
+            largest_army,
+            built_structs,
+            knights_played,
+            port_flags
+        ])
+
+    def encode_others_info(self, others: List[CatanPlayer]) -> np.ndarray:
+        features = []
+
+        for p in others:
+            has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == p.color
+            has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == p.color
+
+            port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
+            owned_nodes = list(p.settlements) + list(p.cities)
+            for node_idx in owned_nodes:
+                port_type = self.game.board.ports[node_idx]
+                if port_type in PORT_TYPES:
+                    port_flags[PORT_TYPES.index(port_type)] = 1.0
+
+            feats = np.concatenate([
+                np.array([
+                    len(p.roads) / ROADS_PER_PLAYER,
+                    len(p.settlements) / SETTLEMENTS_PER_PLAYER,
+                    len(p.cities) / CITIES_PER_PLAYER,
+                    len(p.dev_cards) / 10.0,
+                    p.hidden_points / MAX_VICTORY_POINTS,
+                    float(has_longest_road),
+                    float(has_largest_army),
+                    p.knights_played / MAX_KNIGHTS
+                ], dtype=np.float32),
+                port_flags
+            ])
+            features.append(feats)
+
+        return np.concatenate(features)
