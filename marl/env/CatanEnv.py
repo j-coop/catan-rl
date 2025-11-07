@@ -259,20 +259,6 @@ class CatanEnv(AECEnv):
             tile_feats.append(np.concatenate([res_onehot, [number_val, robber_flag]]))
         tile_feats = np.concatenate(tile_feats)
 
-        # --- Ports ---
-        port_feats = []
-        for port in board.ports:
-            type_onehot = np.zeros(len(PORT_TYPES))
-            if port.type in PORT_TYPES:
-                type_onehot[PORT_TYPES.index(port.type)] = 1.0
-            owner_onehot = np.zeros(num_players + 1)  # +1 for empty
-            if port.owner is not None:
-                owner_onehot[self.agents.index(port.owner.color)] = 1.0
-            else:
-                owner_onehot[-1] = 1.0
-            port_feats.append(np.concatenate([type_onehot, owner_onehot]))
-        port_feats = np.concatenate(port_feats)
-
         # --- Roads ---
         road_feats = []
         for edge in board.edges:
@@ -286,22 +272,31 @@ class CatanEnv(AECEnv):
 
         # --- Nodes ---
         node_feats = []
-        for node in board.nodes:
+        for i, node in enumerate(board.nodes):
+            # owner encoding
             owner_onehot = np.zeros(num_players + 1)
-            if node.owner is not None:
-                owner_onehot[self.agents.index(node.owner.color)] = 1.0
+            if node is not None:
+                owner_onehot[self.agents.index(node)] = 1.0
             else:
                 owner_onehot[-1] = 1.0
-            # Two-hot for building type
+
+            # building type two-hot
             building = np.zeros(2)
-            if node.building_type == "settlement":
+            building_owner = self.game.get_player(node)
+            if building_owner.settlements.count(i) > 0:
                 building[0] = 1.0
-            elif node.building_type == "city":
+            elif building_owner.cities.count(i) > 0:
                 building[1] = 1.0
-            node_feats.append(np.concatenate([owner_onehot[:-1], building]))
+
+            # port one-hot (6 flags)
+            port_onehot = np.zeros(len(PORT_TYPES))
+            if board.ports[i] in PORT_TYPES:
+                port_onehot[PORT_TYPES.index(board.ports[i])] = 1.0
+
+            node_feats.append(np.concatenate([owner_onehot[:-1], building, port_onehot]))
         node_feats = np.concatenate(node_feats)
 
-        return np.concatenate([tile_feats, port_feats, road_feats, node_feats])
+        return np.concatenate([tile_feats, road_feats, node_feats])
 
     def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
         res_counts = np.array(player.resources, dtype=np.float32) / MAX_RESOURCE_COUNT
@@ -321,6 +316,13 @@ class CatanEnv(AECEnv):
 
         knights_played = np.array([player.knights_played / MAX_KNIGHTS])
 
+        port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
+        owned_nodes = list(player.settlements) + list(player.cities)
+        for node_idx in owned_nodes:
+            port_type = self.game.board.ports[node_idx]
+            if port_type in PORT_TYPES:
+                port_flags[PORT_TYPES.index(port_type)] = 1.0
+
         return np.concatenate([
             res_counts,
             dev_counts,
@@ -328,7 +330,8 @@ class CatanEnv(AECEnv):
             longest_road,
             largest_army,
             built_structs,
-            knights_played
+            knights_played,
+            port_flags
         ])
 
     def encode_others_info(self, others: List[CatanPlayer]) -> np.ndarray:
@@ -337,16 +340,27 @@ class CatanEnv(AECEnv):
         for p in others:
             has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == p.color
             has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == p.color
-            feats = np.array([
-                len(p.roads) / ROADS_PER_PLAYER,
-                len(p.settlements) / SETTLEMENTS_PER_PLAYER,
-                len(p.cities) / CITIES_PER_PLAYER,
-                len(p.dev_cards) / 10.0,
-                p.hidden_points / MAX_VICTORY_POINTS,
-                float(has_longest_road),
-                float(has_largest_army),
-                p.knights_played / MAX_KNIGHTS
-            ], dtype=np.float32)
+
+            port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
+            owned_nodes = list(p.settlements) + list(p.cities)
+            for node_idx in owned_nodes:
+                port_type = self.game.board.ports[node_idx]
+                if port_type in PORT_TYPES:
+                    port_flags[PORT_TYPES.index(port_type)] = 1.0
+
+            feats = np.concatenate([
+                np.array([
+                    len(p.roads) / ROADS_PER_PLAYER,
+                    len(p.settlements) / SETTLEMENTS_PER_PLAYER,
+                    len(p.cities) / CITIES_PER_PLAYER,
+                    len(p.dev_cards) / 10.0,
+                    p.hidden_points / MAX_VICTORY_POINTS,
+                    float(has_longest_road),
+                    float(has_largest_army),
+                    p.knights_played / MAX_KNIGHTS
+                ], dtype=np.float32),
+                port_flags
+            ])
             features.append(feats)
 
         return np.concatenate(features)
