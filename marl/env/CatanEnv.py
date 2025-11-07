@@ -52,8 +52,8 @@ class CatanEnv(AECEnv):
     @staticmethod
     def get_observation_space_size() -> int:
         """Return the flattened size of the observation vector."""
-        # Global board (935) + self (17) + others (24) = 976
-        return 976
+        # Global board (1214) + self (23) + others (42) = 1279
+        return 1279
 
     def get_spec_for_action(self, agent: str, action: int):
         for spec in self.actions.action_specs:
