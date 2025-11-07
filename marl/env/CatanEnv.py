@@ -223,8 +223,23 @@ class CatanEnv(AECEnv):
     def compute_reward(self, agent) -> int:
         return 0
 
-    def get_observation(self, agent):
-        pass
+    def get_observation(self, agent: str) -> np.ndarray:
+        """Encodes full game state into a flat vector for the given agent."""
+        player_index = self.agents.index(agent)
+        players = self.game.rotate_players(player_index)
+
+        global_features = self.encode_global_board()
+        self_features = self.encode_self_info(players[0])
+        others_features = self.encode_others_info(players[1:])
+
+        obs = np.concatenate([
+            global_features,
+            self_features,
+            others_features
+        ])
+        assert obs.shape[0] == self.get_observation_space_size(), \
+            f"Unexpected observation size: {obs.shape[0]}"
+        return obs.astype(np.float32)
 
     def encode_global_board(self) -> np.ndarray:
         board = self.game.board
