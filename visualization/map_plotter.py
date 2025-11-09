@@ -38,8 +38,8 @@ class CatanMapPlotter:
     def __init__(self, base_obs):
         self.__resources = base_obs['resources']
         self.__tokens = base_obs['tokens']
-        # self.__nodes_settlements = base_obs['nodes_settlements']
-        # self.__nodes_cities = base_obs['nodes_cities']
+        self.__nodes_settlements = base_obs['nodes_settlements']
+        self.__nodes_cities = base_obs['nodes_cities']
         self.__nodes_owners = base_obs['nodes_owners']
         self.__nodes_ports = base_obs['nodes_ports']
         self.__edges = base_obs['edges_owners']
@@ -94,74 +94,92 @@ class CatanMapPlotter:
                     va='center',
                     fontsize=15,
                     color=token_color)
-   
-    def __plot_settlements(self):
-        plotted_nodes = np.zeros((N_NODES,), dtype=np.int8)
-        for node_id in range(N_NODES):
-            for tile_id in range(N_TILES):
-                if node_id in TILES_TO_NODES[tile_id]:
-                    if plotted_nodes[node_id] == 0:
-                        index = TILES_TO_NODES[tile_id].index(node_id)
-                        owners_vec = self.__nodes_owners[tile_id][index]
-                        if np.any(owners_vec):
-                            player_id = np.argmax(owners_vec)
-                            self.__plot_settlement(node_id, player_id)
-                        plotted_nodes[node_id] = 1
-                        break
+            
+    def __plot_settlements_and_cities(self):
+        for tile_id in range(N_TILES):
+            for node_id in range(6):
+                if self.__is_node_occupied(tile_id, node_id):
+                    node = TILES_TO_NODES[tile_id][node_id]
+                    owners_vec = self.__nodes_owners[tile_id][node_id]
+                    player_id = np.argmax(owners_vec)
+                    if self.__is_settlement(tile_id, node_id):
+                        self.__plot_settlement(node, player_id)
+                    elif self.__is_city(tile_id, node_id):
+                        self.__plot_city(node, player_id)
                     else:
-                        break
+                        raise ValueError("Unknown building type") 
+   
+    def __is_node_occupied(self, tile_id, node_id):
+        return np.any(self.__nodes_owners[tile_id][node_id])
+    
+    def __is_settlement(self, tile_id, node_id):
+        return self.__nodes_settlements[tile_id][node_id] == 1
+    
+    def __is_city(self, tile_id, node_id):
+        return self.__nodes_cities[tile_id][node_id] == 1
 
     def __plot_settlement(self, node_id, player_id):
         for tile_id, (q, r) in enumerate(LAND_POSITIONS):
             if node_id in TILES_TO_NODES[tile_id]:
-                k = TILES_TO_NODES[tile_id].index(node_id)
-                x_tile_center, y_tile_center = self.__get_hex_position(q, r)
-                x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
-                y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
+                x_node, y_node = self.__calculate_coordinates(tile_id,
+                                                              node_id,
+                                                              q, r)
                 self.__plot_settlement_marker(x_node, y_node, player_id)
                 break
 
+    def __plot_city(self, node_id, player_id):
+        for tile_id, (q, r) in enumerate(LAND_POSITIONS):
+            if node_id in TILES_TO_NODES[tile_id]:
+                x_node, y_node = self.__calculate_coordinates(tile_id,
+                                                              node_id,
+                                                              q, r)
+                self.__plot_city_marker(x_node, y_node, player_id)
+                break
+
+    def __calculate_coordinates(self, tile_id, node_id, q, r):
+        k = TILES_TO_NODES[tile_id].index(node_id)
+        x_tile_center, y_tile_center = self.__get_hex_position(q, r)
+        x_node = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
+        y_node = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
+        return x_node, y_node
+
     def __plot_settlement_marker(self, x_node, y_node, player_id):
         self.__ax.plot(x_node, y_node,
-                       marker='D', 
+                       marker='H', 
                        color=PLAYER_COLOR_MAP[player_id],
-                       markersize=16,
-                       markeredgewidth=2,
+                       markersize=25,
+                       markeredgewidth=1,
                        markeredgecolor='black')
-        
+
     def __plot_city_marker(self, x_node, y_node, player_id):
-        # TODO Finish this func basing on the above one
-        pass
+        self.__ax.plot(x_node, y_node,
+                       marker='H', 
+                       color=PLAYER_COLOR_MAP[player_id],
+                       markersize=30,
+                       markeredgewidth=4,
+                       markeredgecolor='black')
 
     def __plot_roads(self):
-        plotted_edges = np.zeros((N_EDGES,), dtype=np.int8)
-        for edge_id in range(len(EDGES_LIST)):
-            edge = EDGES_LIST[edge_id]
-            for tile_id in range(N_TILES):
-                if edge in TILES_TO_EDGES[tile_id]:
-                    if plotted_edges[edge_id] == 0:
-                        index = TILES_TO_EDGES[tile_id].index(edge)
-                        owners_vec = self.__edges[tile_id][index]
-                        if np.any(owners_vec):
-                            player_id = np.argmax(owners_vec)
-                            self.__plot_road(edge, player_id)
-                        plotted_edges[edge_id] = 1
-                        break
-                    else:
-                        break
+        for tile_id in range(N_TILES):
+            for node_id in range(6):
+                if self.__is_edge_occupied(tile_id, node_id):
+                    edge = TILES_TO_EDGES[tile_id][node_id]
+                    owners_vec = self.__edges[tile_id][node_id]
+                    player_id = np.argmax(owners_vec)
+                    self.__plot_road(edge, player_id)
+
+    def __is_edge_occupied(self, tile_id, node_id):
+        return np.any(self.__edges[tile_id][node_id])
 
     def __plot_road(self, edge, player_id):
         for tile_id, (q, r) in enumerate(LAND_POSITIONS):
-            edge = tuple(sorted(edge))
             if edge in TILES_TO_EDGES[tile_id]:
                 k = TILES_TO_EDGES[tile_id].index(edge)
                 x_tile_center, y_tile_center = self.__get_hex_position(q, r)
                 x_a = x_tile_center + HEX_RADIUS * math.cos(ANGLES[k])
                 y_a = y_tile_center + HEX_RADIUS * math.sin(ANGLES[k])
-                x_b = x_tile_center + HEX_RADIUS \
-                    * math.cos(ANGLES[(k + 1) % 6])
-                y_b = y_tile_center + HEX_RADIUS \
-                    * math.sin(ANGLES[(k + 1) % 6])
+                x_b = x_tile_center + HEX_RADIUS * math.cos(ANGLES[(k + 1) % 6])
+                y_b = y_tile_center + HEX_RADIUS * math.sin(ANGLES[(k + 1) % 6])
                 self.__plot_road_marker(vertex_1_coords=(x_a, y_a),
                                         vertex_2_coords=(x_b, y_b),
                                         player_id=player_id)
@@ -285,10 +303,9 @@ class CatanMapPlotter:
         self.__setup_plot_area()
         self.__plot_land_hexes()
         self.__plot_sea_hexes()
-        self.__plot_settlements()
+        self.__plot_settlements_and_cities()
         self.__plot_roads()
         self.__plot_ports()
-        #self.__plot_settlement(12, 0)
         plt.show()
         plt.savefig(path)
         plt.close()
