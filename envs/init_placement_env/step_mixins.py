@@ -31,11 +31,9 @@ class CatanStepMixin:
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
                     self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
-    def _make_settlement_action(self, player, settlement_action):
-        node_id = np.argmax(settlement_action)
+    def _make_settlement_action(self, player, node_id):
         self.__build_settlement(node_id, player)
         self._update_settlement_placement_mask(node_id)
-        self._update_road_placement_mask(node_id, player)
 
     def _make_road_action(self, player, road_action):
         edge_id = np.argmax(road_action)
@@ -85,14 +83,14 @@ class CatanStepMixin:
                     value += DICE_PROBABILITIES[token] / MAX_PROBABILITY
         return value
 
-    def _evaluate_placement(self, settlement_action):
-        node_id = np.argmax(settlement_action)
+    def _evaluate_placement(self, node_id):
         return self._obs["has_port"][node_id].sum() > 0
 
-    def _evaluate_expected_resource_gain(self, settlement_action):
+    def _evaluate_expected_resource_gain(self, node_id):
 
         def get_adjacent_tiles(node_id):
-            return NODES_TO_TILES[node_id]
+            node_id = int(node_id)
+            return NODES_TO_TILES.get(node_id, [])
 
         def get_adjacent_resources(adjacent_tiles):
             return [
@@ -125,7 +123,6 @@ class CatanStepMixin:
             sum_gain = sum(gains)
             return sum_gain / BEST_EXPECTED_GAIN
 
-        node_id = np.argmax(settlement_action)
         adjacent_tiles = get_adjacent_tiles(node_id)
         resources = get_adjacent_resources(adjacent_tiles)
         tokens = get_adjacent_tokens(adjacent_tiles)
