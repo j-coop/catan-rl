@@ -13,7 +13,7 @@ class PlayerInfoPanel(QWidget):
         self.game = game
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.setFixedWidth(180)
+        self.setFixedWidth(210)
         self.refresh()
 
     def refresh(self):
@@ -31,19 +31,15 @@ class PlayerInfoPanel(QWidget):
             name_label.setStyleSheet("color: white; font-weight: bold;")
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             name_label.setFont(QFont("Arial", 12))
-            v.addWidget(name_label)
-
             points_label = QLabel(f"Points: {player.points}")
-            v.addWidget(points_label)
-
             road_label = QLabel(f"Longest road:{self._get_road_desc(player)}")
-            v.addWidget(road_label)
-
             army_label = QLabel(f"Largest army:{self._get_knight_desc(player)}")
-            v.addWidget(army_label)
+            resources_label = QLabel(f"{self._get_resources_desc(player)}")
 
-            res_summary = ", ".join(f"{r[0].upper()}:{r[1]}" for r in player.resources.items())
-            resources_label = QLabel(f"Resources: {res_summary}")
+            v.addWidget(name_label)
+            v.addWidget(points_label)
+            v.addWidget(road_label)
+            v.addWidget(army_label)
             v.addWidget(resources_label)
 
             block.setLayout(v)
@@ -53,15 +49,25 @@ class PlayerInfoPanel(QWidget):
 
     def _get_road_desc(self, player):
         if self.game.has_player_the_longest_road(player):
-            return "<span style='font-size:16px; font-weight:bold;'>✅</span>"
+            return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
         else:
-            return "<span style='font-size:16px; font-weight:bold;'>🚫</span>"
+            return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
         
     def _get_knight_desc(self, player):
         if self.game.has_player_the_largest_army(player):
-            return "<span style='font-size:16px; font-weight:bold;'>✅</span>"
+            return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
         else:
-            return "<span style='font-size:16px; font-weight:bold;'>🚫</span>"
+            return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
+        
+    def _get_resources_desc(self, player):
+        icons = ["🪵", "🧱", "🐑", "🌾", "🪨"]
+        amounts = list(player.resources.values())
+
+        # Make each entry 3 characters wide for alignment
+        res_parts = [f"{icon}{str(amount)}"
+                     for icon, amount in zip(icons, amounts)]
+        res = " ".join(res_parts)
+        return "<span style='font-size:16px; font-weight:bold;'>" + res + "</span>"
 
     def _clear_old_content(self):
         for i in reversed(range(self.layout.count())):
