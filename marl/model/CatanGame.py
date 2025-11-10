@@ -17,8 +17,13 @@ class CatanGame:
     """
     Orchestrates game logic and provides observation/action mapping.
     """
-    def __init__(self, player_colors: List[str]):
-        self.players: List[CatanPlayer] = [CatanPlayer(color) for color in player_colors]
+    def __init__(self,
+                 player_colors: List[str], 
+                 player_names: List[str]):
+        self.players = [
+            CatanPlayer(name, color)
+            for name, color in zip(player_names, player_colors)
+        ]
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.turn: int = 0
@@ -356,3 +361,9 @@ class CatanGame:
             max_chain = max(max_chain, dfs(node, set()))
 
         return max_chain
+
+    def has_player_the_longest_road(self, player):
+        return self.longest_road_owner == player
+    
+    def has_player_the_largest_army(self, player):
+        return self.largest_army_owner == player

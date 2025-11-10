@@ -19,7 +19,8 @@ class CatanPlayer:
     """
     Stores player-specific game state.
     """
-    def __init__(self, color: str):
+    def __init__(self, name: str, color: str):
+        self.name: str = name
         self.color: str = color
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
 
@@ -71,7 +72,7 @@ class CatanPlayer:
         cost = BUILD_COSTS[build_type]
         # Check affordability first (should already be validated)
         if not self.can_afford(build_type):
-            raise ValueError(f"Player {self.color} cannot afford to build {build_type}")
+            raise ValueError(f"Player {self.name} cannot afford to build {build_type}")
 
         for resource, amount in cost.items():
             self.resources[resource] -= amount
