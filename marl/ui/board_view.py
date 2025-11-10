@@ -106,7 +106,11 @@ class EdgeItem(QGraphicsLineItem):
 
 
 class HexItem(QGraphicsPolygonItem):
-    def __init__(self, center: QPointF, radius: float, fill: QColor = QColor(224, 179, 101), texture_path: str | None = None):
+    def __init__(self,
+                 center: QPointF,
+                 radius: float,
+                 fill: QColor = QColor(224, 179, 101),
+                 texture_path: str | None = None):
         super().__init__()
         self.center = center
         self.radius = radius
@@ -119,23 +123,21 @@ class HexItem(QGraphicsPolygonItem):
         # Default flat color
         brush = QBrush(fill)
 
-        # If texture provided, load and use as brush
         if texture_path:
             texture_path = os.path.abspath(os.path.join(os.path.dirname(__file__), texture_path))
             pixmap = QPixmap(texture_path)
             print(f"Loading {texture_path} Exists={os.path.exists(texture_path)} Null={pixmap.isNull()}")
 
             if not pixmap.isNull():
-                # scale the texture roughly to hex size
                 size = int(radius * 2.2)
                 pixmap = pixmap.scaled(size, size,
                                        Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                        Qt.TransformationMode.SmoothTransformation)
                 brush = QBrush(pixmap)
             else:
-                print(f"⚠️ Failed to load texture: {texture_path}")
+                raise ValueError(f"⚠️ Failed to load texture: {texture_path}")
 
-        self.setBrush(brush)
+            self.setBrush(brush)
 
     @staticmethod
     def _create_hex_polygon(center: QPointF, radius: float):

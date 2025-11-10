@@ -17,15 +17,7 @@ class PlayerInfoPanel(QWidget):
         self.refresh()
 
     def refresh(self):
-        # Clear old content
-        for i in reversed(range(self.layout.count())):
-            w = self.layout.itemAt(i).widget()
-            if w:
-                w.deleteLater()
-
-        player_count = len(self.game.players)
-        if player_count == 0:
-            return
+        self._clear_old_content()
 
         for player in self.game.players:
             block = QFrame()
@@ -70,3 +62,9 @@ class PlayerInfoPanel(QWidget):
             return "<span style='font-size:16px; font-weight:bold;'>✅</span>"
         else:
             return "<span style='font-size:16px; font-weight:bold;'>🚫</span>"
+
+    def _clear_old_content(self):
+        for i in reversed(range(self.layout.count())):
+            w = self.layout.itemAt(i).widget()
+            if w:
+                w.deleteLater()
