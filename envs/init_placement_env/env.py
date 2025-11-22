@@ -18,7 +18,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
                             CatanValidationMixin,
                             gym.Env):
 
-    def __init__(self, base_env_obs=None, train=True):
+    def __init__(self, ep_done_previously=0, base_env_obs=None, train=True):
         gym.Env.__init__(self)
         CatanResetMixin.__init__(self)
         self._base_obs = base_env_obs
@@ -29,6 +29,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
         self._turn_index = 0
         self._placement_stage = "settlement"
+        self._ep_done_previously = ep_done_previously
         self.__settlement_placement_mask = np.ones((N_NODES,), dtype=np.int8)
         self.__road_placement_mask = np.zeros((N_EDGES, N_PLAYERS), dtype=np.int8)
         self._last_settlement_node_index = 0
@@ -174,13 +175,14 @@ class CatanInitPlacementEnv(CatanResetMixin,
         else:
             self._turn_index = 0
             self.__episode_counter += 1
-            print(f'{self.__episode_counter} / {N_EPISODES}')
+            ep_number = (self._ep_done_previously + self.__episode_counter)
+            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
         self._placement_stage = "settlement"
         self.__road_placement_mask[:, player] = 0
 
     def _increment_step_counter(self):
         self.__step_counter += 1
-        if self.__step_counter >= STEPS_PER_EPISODE:
+        if self.__step_counter >= INIT_PLACEMENT_ENV_STEPS_PER_EPISODE:
             self.__step_counter = 0
 
     def _update_settlement_placement_mask(self, node_id):
