@@ -5,13 +5,16 @@ import torch
 
 from sb3_contrib.common.wrappers import ActionMasker
 from sb3_contrib.ppo_mask import MaskablePPO, MultiInputPolicy
+from stable_baselines3.common.callbacks import CallbackList
 
-from model.callback import AdaptiveLRAndSaveBestCallback
+
+from model.adaptive_lr_callback import AdaptiveLRAndSaveBestCallback
+from model.checkpoint_callback import CleanCheckpointCallback
 from envs.init_placement_env.env import CatanInitPlacementEnv
-from params.catan_constants import (N_EPISODES,
-                                    STEPS_PER_EPISODE,
-                                    EVAL_FREQ,
-                                    PATIENCE)
+from params.catan_constants import (INIT_PLACEMENT_ENV_N_TIMESTEPS,
+                                    INIT_PLACEMENT_ENV_EVAL_FREQ,
+                                    INIT_PLACEMENT_ENV_CHECKPOINT_SAVE_FREQ,
+                                    INIT_PLACEMENT_ENV_PATIENCE)
 
 
 def mask_fn(_env: gym.Env) -> np.ndarray:
@@ -37,16 +40,21 @@ eval_env = CatanInitPlacementEnv()
 eval_env.reset()
 eval_env = ActionMasker(eval_env, mask_fn)
 
-# Create callback
+# Create callbacks
 adaptive_lr_callback = AdaptiveLRAndSaveBestCallback(
     eval_env=eval_env,
-    check_freq=EVAL_FREQ,
-    patience=PATIENCE,
+    check_freq=INIT_PLACEMENT_ENV_EVAL_FREQ,
+    patience=INIT_PLACEMENT_ENV_PATIENCE,
     factor=0.5,
     min_lr=1e-6,
     save_path="trained_models/best/",
-    n_eval_episodes=5,
+    n_eval_episodes=10,
     verbose=1
+)
+checkpoint_callback = CleanCheckpointCallback(
+    save_freq=INIT_PLACEMENT_ENV_CHECKPOINT_SAVE_FREQ,
+    save_path="trained_models/checkpoints/",
+    prefix="init_placement_env_1.12"
 )
 
 model = MaskablePPO(
@@ -66,9 +74,9 @@ model = MaskablePPO(
 )
 
 model.learn(
-    total_timesteps=N_EPISODES * STEPS_PER_EPISODE,
+    total_timesteps=INIT_PLACEMENT_ENV_N_TIMESTEPS,
     tb_log_name="ppo_mask_run_{}".format(timestamp),
-    callback=adaptive_lr_callback,
+    callback=CallbackList([adaptive_lr_callback, checkpoint_callback]),
     log_interval=10
 )
 

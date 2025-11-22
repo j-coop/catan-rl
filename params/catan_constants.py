@@ -128,7 +128,7 @@ PORT_NODE_PAIRS = [
 ]
 
 
-#############################  Training parameters  ###############################
+##################  Init-placement agent training parameters  ##################
 NUM_ROLLS = 100
 
 # Expected number of resources gained in NUM_ROLLS rolls
@@ -148,12 +148,12 @@ COVERAGE_SCORE_WEIGHT = 0.7
 
 # Number of steps in each episode
 # (4 players place 2 settlements and 2 roads in total)
-STEPS_PER_EPISODE = 16
+INIT_PLACEMENT_ENV_STEPS_PER_EPISODE = 16
 
-# Agent training
-N_EPISODES = 340000
-EVAL_FREQ = 2000 * STEPS_PER_EPISODE
-PATIENCE = 14
+INIT_PLACEMENT_ENV_N_TIMESTEPS = 400000 * INIT_PLACEMENT_ENV_STEPS_PER_EPISODE
+INIT_PLACEMENT_ENV_EVAL_FREQ = 2000 * INIT_PLACEMENT_ENV_STEPS_PER_EPISODE
+INIT_PLACEMENT_ENV_CHECKPOINT_SAVE_FREQ = 25000 * INIT_PLACEMENT_ENV_STEPS_PER_EPISODE
+INIT_PLACEMENT_ENV_PATIENCE = 14
 
 # Magic statistical average reward for settlements (from baseline_reward.py)
 BASELINE_REWARD = 0.42962962962966283
