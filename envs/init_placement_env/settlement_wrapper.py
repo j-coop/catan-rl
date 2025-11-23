@@ -2,7 +2,7 @@ import gymnasium as gym
 import random
 
 from params.catan_constants import (N_NODES,
-                                    N_EPISODES)
+                                    INIT_PLACEMENT_ENV_N_EPISODES)
 from params.edges_list import EDGES_LIST
 from .env import CatanInitPlacementEnv
 
@@ -42,5 +42,6 @@ class CatanSettlementPlacementEnv(gym.Env):
         done = True if self.core._check_all_moves_done() else False
         if done:
             self.core._episode_counter += 1
-            print(f'{self.core._episode_counter} / {N_EPISODES}')
+            ep_number = self.core._ep_done_previously + self.core._episode_counter
+            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
         return self.core._obs, reward, done, False, {}
