@@ -5,6 +5,7 @@ from sb3_contrib.common.wrappers import ActionMasker
 from sb3_contrib.ppo_mask import MaskablePPO, MultiInputPolicy
 
 from envs.init_placement_env.env import CatanInitPlacementEnv
+from envs.init_placement_env.settlement_wrapper import CatanSettlementPlacementEnv
 from params.catan_constants import INIT_PLACEMENT_ENV_N_TIMESTEPS
 from .common import *
 
@@ -15,11 +16,11 @@ if __name__ == "__main__":
     # -------------------------------
     env = CatanInitPlacementEnv()
     env.reset()
-    env = ActionMasker(env, mask_fn)
+    env = ActionMasker(CatanSettlementPlacementEnv(env), mask_fn)
 
     eval_env = CatanInitPlacementEnv()
     eval_env.reset()
-    eval_env = ActionMasker(eval_env, mask_fn)
+    eval_env = ActionMasker(CatanSettlementPlacementEnv(eval_env), mask_fn)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tensorboard_log_dir = f"logs/tb/{timestamp}"

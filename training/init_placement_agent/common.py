@@ -41,7 +41,7 @@ def get_clean_checkpoint_callback(prefix, ep_done=0):
 def run_training(model, timesteps, prefix, eval_env, ep_done=0):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     callback = CallbackList([get_adaptive_lr_callback(eval_env),
-                             get_clean_checkpoint_callback(prefix)])
+                             get_clean_checkpoint_callback(prefix, ep_done)])
     model.learn(
         total_timesteps=timesteps,
         tb_log_name=f"ppo_mask_run_{timestamp}",
