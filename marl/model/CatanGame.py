@@ -19,7 +19,8 @@ class CatanGame:
     """
     def __init__(self,
                  player_colors: List[str], 
-                 player_names: List[str]):
+                 player_names: List[str],
+                 random_init_placement: bool = True):
         self.players = [
             CatanPlayer(name, color)
             for name, color in zip(player_names, player_colors)
@@ -45,6 +46,9 @@ class CatanGame:
         # Special actions control
         self._year_of_plenty_choices = []
         self._roads_remaining_from_card = None
+
+        if (random_init_placement):
+            self.generate_random_init_board_state()
 
     @property
     def current_player(self) -> CatanPlayer:
@@ -97,7 +101,7 @@ class CatanGame:
         return size
 
     def get_player(self, agent):
-        return next((p for p in self.players if p.color == agent), CatanPlayer(""))
+        return next((p for p in self.players if p.color == agent), CatanPlayer("", ""))
 
     def check_victory(self, agent: str):
         player = self.get_player(agent)
@@ -109,11 +113,12 @@ class CatanGame:
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)
 
-    def build_settlement(self, agent, node_index):
+    def build_settlement(self, agent, node_index, init_placement=False):
         self.board.nodes[node_index] = agent
         player = self.get_player(agent)
         player.settlements.append(node_index)
-        player.pay_for_build("settlement")
+        if not init_placement:
+            player.pay_for_build("settlement")
         player.points += 1
         self.check_victory(agent)
 
@@ -126,11 +131,12 @@ class CatanGame:
         # Remove settlement
         player.settlements.remove(node_index)
 
-    def build_road(self, agent, edge_index):
+    def build_road(self, agent, edge_index, init_placement=False):
         player = self.get_player(agent)
         self.board.edges[edge_index] = agent
         player.roads.append(edge_index)
-        player.pay_for_build("road")
+        if not init_placement:
+            player.pay_for_build("road")
         # Check for longest road
         player_longest_road = self.get_longest_road_length(agent)
         if player_longest_road > self.longest_road_length:
@@ -153,7 +159,7 @@ class CatanGame:
     def play_dev_card(self, agent, card_type):
         player = self.get_player(agent)
         if player.dev_cards[card_type] <= 0:
-            raise ValueError(f"{player.color} does not have a {card_type} card to play.")
+            raise ValueError(f"{player.name} does not have a {card_type} card to play.")
 
         player.dev_cards[card_type] -= 1
 
@@ -264,7 +270,7 @@ class CatanGame:
 
         # Validate resource availability
         if player.resources[give_resource] < ratio:
-            raise ValueError(f"{player.color} does not have enough {give_resource} to trade with bank.")
+            raise ValueError(f"{player.name} does not have enough {give_resource} to trade with bank.")
 
         # Validate bank has the requested resource
         if self.bank.resources[receive_resource] <= 0:
@@ -306,7 +312,7 @@ class CatanGame:
         # --- MONOPOLY ---
         elif self.phase == CatanPhase.MONOPOLY:
             for other_player in self.players:
-                if other_player.color == player.color:
+                if other_player.name == player.name:
                     continue
                 stolen = other_player.resources[resource]
                 if stolen > 0:
@@ -373,6 +379,43 @@ class CatanGame:
 
     def has_player_the_longest_road(self, player):
         return self.longest_road_owner == player
-    
+
     def has_player_the_largest_army(self, player):
         return self.largest_army_owner == player
+
+    def generate_random_init_board_state(self):
+
+        def place_settlement(player):
+            valid_spots = self.board.get_valid_settlement_spots(player, True)
+            valid_spot = random.choice(valid_spots)
+            self.build_settlement(player.name, valid_spot, True)
+            return valid_spot
+
+        def place_road(player, valid_roads):
+            valid_road = random.choice(valid_roads)
+            self.build_road(player.name, valid_road, True)
+
+        for move_id in range(4):
+            player = self.players[move_id]
+            node = place_settlement(player)
+            valid_roads = self.board.get_valid_road_spots(player)
+            place_road(player, valid_roads)
+
+        for move_id in range(4):
+            player = self.players[move_id]
+            node = place_settlement(player)
+            adj_tiles_ids = NODES_TO_TILES.get(node)
+            for tile_id in adj_tiles_ids:
+                tile = self.board.tiles[tile_id]
+                res_name = tile[0]
+                res_amount = tile[1]
+                if res_amount is not None:
+                    player.resources[res_name] += 1
+
+            roads = self.board.get_valid_road_spots(player)
+            valid_roads = []
+            for road in roads:
+                road_nodes = EDGES_LIST[road]
+                if road_nodes[0] == node or road_nodes[1] == node:
+                    valid_roads.append(road)
+            place_road(player, valid_roads)

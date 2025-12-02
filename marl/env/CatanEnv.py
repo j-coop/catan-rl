@@ -92,7 +92,7 @@ class CatanEnv(AECEnv):
         if self.is_end_turn_action(action):
             # Advance to next player (no dice roll yet)
             self.game.end_turn(agent)
-            self.agent_selection = self.game.current_player.color
+            self.agent_selection = self.game.current_player.name
 
             # Mark that a dice roll should happen
             self.pending_dice_roll = True
@@ -303,8 +303,8 @@ class CatanEnv(AECEnv):
         dev_counts = np.array(player.dev_cards, dtype=np.float32) / 5.0
 
         victory_points = np.array([player.victory_points / MAX_VICTORY_POINTS])
-        has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == player.color
-        has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == player.color
+        has_longest_road = self.game.longest_road_owner.name is not None and self.game.longest_road_owner.name == player.name
+        has_largest_army = self.game.largest_army_owner.name is not None and self.game.largest_army_owner.name == player.name
         longest_road = np.array([float(has_longest_road)])
         largest_army = np.array([float(has_largest_army)])
 
