@@ -21,7 +21,6 @@ class CatanStepMixin:
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
                     self._base_obs["nodes_owners"][tile_id][i][player_id] = 1
-                    self._base_obs["nodes_settlements"][tile_id][i] = 1
 
     def __build_road(self, edge_id, player_id):
         edge_coords = EDGES_LIST[edge_id]
@@ -34,10 +33,11 @@ class CatanStepMixin:
     def _make_settlement_action(self, player, node_id):
         self.__build_settlement(node_id, player)
         self._update_settlement_placement_mask(node_id)
+        self._update_road_placement_mask(node_id, player)
+        self._last_settlement_node_index = node_id
 
     def _make_road_action(self, player, road_action):
-        edge_id = np.argmax(road_action)
-        self.__build_road(edge_id, player)
+        self.__build_road(road_action, player)
 
     def __get_other_adjacent_nodes(self, node, known_node):
         possible_nodes = NODES_TO_NODES[node].copy()
@@ -47,11 +47,11 @@ class CatanStepMixin:
     """
     Road reward function
     """
-    def _evaluate_road_heuristic(self, road_action, node_index):
-        road_index = np.argmax(road_action)
+    def _evaluate_road_heuristic(self, road_index):
         road_nodes = EDGES_LIST[road_index]
-        target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
-        possible_nodes = self.__get_other_adjacent_nodes(target_node, node_index)
+        node_built = self._last_settlement_node_index
+        target_node = road_nodes[0] if road_nodes[1] == node_built else road_nodes[1]
+        possible_nodes = self.__get_other_adjacent_nodes(target_node, node_built)
 
         nodes_value = self.__evaluate_future_node_values(possible_nodes)
         return nodes_value
@@ -89,7 +89,6 @@ class CatanStepMixin:
     def _evaluate_expected_resource_gain(self, node_id):
 
         def get_adjacent_tiles(node_id):
-            node_id = int(node_id)
             return NODES_TO_TILES.get(node_id, [])
 
         def get_adjacent_resources(adjacent_tiles):

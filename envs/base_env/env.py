@@ -22,8 +22,6 @@ class CatanBaseEnv(gym.Env):
             "tokens": gym.spaces.MultiBinary([N_TILES, 
                                               N_TOKEN_VALUES]),
             "has_robber": gym.spaces.MultiBinary([N_TILES]),
-            "nodes_settlements": gym.spaces.MultiBinary([N_TILES, 6]),
-            "nodes_cities": gym.spaces.MultiBinary([N_TILES, 6]),
             "nodes_owners": gym.spaces.MultiBinary([N_TILES,
                                                     6,
                                                     N_PLAYERS]),
@@ -42,17 +40,14 @@ class CatanBaseEnv(gym.Env):
             tokens = self.__generate_tokens(desert_tile_id)
             robber_index = desert_tile_id
 
-            self.state = {
-                "resources": resources,
-                "tokens": tokens,
-                "has_robber": np.eye(N_TILES)[robber_index],
-
-                "nodes_settlements": np.zeros((N_TILES, 6), dtype=np.int8),
-                "nodes_cities": np.zeros((N_TILES, 6), dtype=np.int8),
-                "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
-                "nodes_ports": self.__generate_ports(),
-                "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8)
-            }
+        self.state = {
+            "resources": resources,
+            "tokens": tokens,
+            "has_robber": np.eye(N_TILES)[robber_index],
+            "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
+            "nodes_ports": self.__generate_ports(),
+            "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8)
+        }
 
         # Save generated env to json
         if self.save_env:

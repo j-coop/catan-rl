@@ -38,8 +38,6 @@ class CatanMapPlotter:
     def __init__(self, base_obs):
         self.__resources = base_obs['resources']
         self.__tokens = base_obs['tokens']
-        self.__nodes_settlements = base_obs['nodes_settlements']
-        self.__nodes_cities = base_obs['nodes_cities']
         self.__nodes_owners = base_obs['nodes_owners']
         self.__nodes_ports = base_obs['nodes_ports']
         self.__edges = base_obs['edges_owners']
@@ -102,21 +100,10 @@ class CatanMapPlotter:
                     node = TILES_TO_NODES[tile_id][node_id]
                     owners_vec = self.__nodes_owners[tile_id][node_id]
                     player_id = np.argmax(owners_vec)
-                    if self.__is_settlement(tile_id, node_id):
-                        self.__plot_settlement(node, player_id)
-                    elif self.__is_city(tile_id, node_id):
-                        self.__plot_city(node, player_id)
-                    else:
-                        raise ValueError("Unknown building type") 
-   
+                    self.__plot_settlement(node, player_id)
+
     def __is_node_occupied(self, tile_id, node_id):
         return np.any(self.__nodes_owners[tile_id][node_id])
-    
-    def __is_settlement(self, tile_id, node_id):
-        return self.__nodes_settlements[tile_id][node_id] == 1
-    
-    def __is_city(self, tile_id, node_id):
-        return self.__nodes_cities[tile_id][node_id] == 1
 
     def __plot_settlement(self, node_id, player_id):
         for tile_id, (q, r) in enumerate(LAND_POSITIONS):
@@ -125,15 +112,6 @@ class CatanMapPlotter:
                                                               node_id,
                                                               q, r)
                 self.__plot_settlement_marker(x_node, y_node, player_id)
-                break
-
-    def __plot_city(self, node_id, player_id):
-        for tile_id, (q, r) in enumerate(LAND_POSITIONS):
-            if node_id in TILES_TO_NODES[tile_id]:
-                x_node, y_node = self.__calculate_coordinates(tile_id,
-                                                              node_id,
-                                                              q, r)
-                self.__plot_city_marker(x_node, y_node, player_id)
                 break
 
     def __calculate_coordinates(self, tile_id, node_id, q, r):

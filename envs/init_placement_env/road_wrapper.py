@@ -1,34 +1,40 @@
-import gymnasium as gym
 import numpy as np
 
-from params.catan_constants import N_EDGES
+from params.catan_constants import (N_NODES,
+                                    INIT_PLACEMENT_ENV_N_EPISODES)
 from .env import CatanInitPlacementEnv
 
 
-class CatanRoadPlacementEnv(gym.Env):
+class CatanRoadPlacementEnv(CatanInitPlacementEnv):
 
-    def __init__(self, core_env: CatanInitPlacementEnv):
-        super().__init__()
-        self.core = core_env
-        self.action_space = gym.spaces.Discrete(N_EDGES)
-        self.observation_space = self.core.observation_space
+    def __init__(self,
+                 ep_done_previously=0,
+                 base_env_obs=None,
+                 train=True):
+        super().__init__(ep_done_previously, base_env_obs, train)
 
     def get_action_masks(self):
-        player = self.core._turn_order[self.core._turn_index]
-        return self.core._road_placement_mask[:, player].copy()
-
-    def reset(self, seed=None, options=None):
-        # Don’t reset the shared environment
-        return self.core._obs, {}
+        s_mask = np.zeros((N_NODES,), dtype=bool)
+        player = self._turn_order[self._turn_index]
+        r_mask = self._road_placement_mask[:, player].astype(bool)
+        return np.concatenate([s_mask, r_mask])
 
     def step(self, action):
         assert self.action_space.contains(action), "Invalid action format"
-        action = np.eye(N_EDGES)[action]
+        action = int(action) - N_NODES
+        turn = self._turn_index
+        player = self._turn_order[turn]
 
-        player = self.core._turn_order[self.core._turn_index]
-        self.core._make_road_action(player, action)
-        done = self.core._check_all_moves_done(action)
-
-        reward = self.core._calculate_road_action_reward(action)
-        self.core._after_road(done, player)
-        return self.core._obs, reward, done, False, {}
+        self._make_road_action(player, action)
+        reward = self._calculate_road_action_reward(action)
+        self._after_road(player)
+        done = self._check_all_moves_done()
+        if done:
+            self._episode_counter += 1
+            ep_number = self._ep_done_previously + self._episode_counter
+            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
+        if self._train and not done:
+            node_id = self._get_random_settlement_action()
+            next_player = self._turn_order[self._turn_index]
+            self._make_settlement_action(next_player, node_id)
+        return self._obs, reward, done, False, {'base_obs': self._base_obs}

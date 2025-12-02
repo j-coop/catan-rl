@@ -1,28 +1,27 @@
-import gymnasium as gym
 import random
+import numpy as np
 
-from params.catan_constants import (N_NODES,
+from params.catan_constants import (N_EDGES,
+                                    N_NODES,
                                     INIT_PLACEMENT_ENV_N_EPISODES)
 from params.edges_list import EDGES_LIST
 from .env import CatanInitPlacementEnv
 
 
-class CatanSettlementPlacementEnv(gym.Env):
+class CatanSettlementPlacementEnv(CatanInitPlacementEnv):
 
-    def __init__(self, core_env: CatanInitPlacementEnv):
-        super().__init__()
-        self.core = core_env
-        self.action_space = gym.spaces.Discrete(N_NODES)
-        self.observation_space = self.core.observation_space
+    def __init__(self,
+                 ep_done_previously=0,
+                 base_env_obs=None,
+                 train=True):
+        super().__init__(ep_done_previously, base_env_obs, train)
 
     def get_action_masks(self):
-        return self.core._settlement_placement_mask.copy()
+        s_mask = self._settlement_placement_mask.astype(bool)
+        r_mask = np.zeros((N_EDGES,), dtype=bool)
+        return np.concatenate([s_mask, r_mask])
 
-    def reset(self, seed=None, options=None):
-        obs, _ = self.core.reset(seed=seed)
-        return obs, {}
-    
-    def get_random_road_action(self, node):
+    def _get_random_road_action(self, node):
         # Filter all edges that include the node
         matching = [edge for edge in EDGES_LIST if node in edge]
         if not matching:
@@ -30,18 +29,20 @@ class CatanSettlementPlacementEnv(gym.Env):
         return random.choice(matching)
 
     def step(self, action):
-        assert self.action_space.contains(action), "Invalid action format"
+        assert action < N_NODES, f"Got road action {action}, masking failed"
+        action = int(action)
+        turn = self._turn_index
+        player = self._turn_order[turn]
+        self._make_settlement_action(player, action)
 
-        turn = self.core._turn_index
-        player = self.core._turn_order[turn]
-        self.core._make_settlement_action(player, action)
-
-        reward = self.core._calculate_settlement_action_reward(action)
-        self.core._after_settlement(reward)
-        self.core._make_road_action(player, self.get_random_road_action(action))
-        done = True if self.core._check_all_moves_done() else False
+        reward = self._calculate_settlement_action_reward(action)
+        self._after_settlement(reward)
+        if self._train:
+            self._make_road_action(player,
+                                   self._get_random_road_action(action))
+        done = True if self._check_all_moves_done() else False
         if done:
-            self.core._episode_counter += 1
-            ep_number = self.core._ep_done_previously + self.core._episode_counter
+            self._episode_counter += 1
+            ep_number = self._ep_done_previously + self._episode_counter
             print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
-        return self.core._obs, reward, done, False, {}
+        return self._obs, reward, done, False, {'base_obs': self._base_obs}
