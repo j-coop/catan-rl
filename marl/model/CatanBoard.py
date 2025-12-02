@@ -35,7 +35,7 @@ class CatanBoard:
     Stores tiles, nodes, edges, and robber position.
     """
     def __init__(self):
-        self.tiles: List[Optional[Tuple[str, Optional[int]]]] = [None] * 19  # resource types
+        self.tiles: List[Tuple[str, Optional[int]]] = [None] * 19  # resource types
         self.nodes: List[Optional[str]] = [None] * N_NODES  # player who owns settlement/city
         self.edges: List[Optional[str]] = [None] * N_EDGES  # player who owns road
         self.ports: List[Optional[str]] = [None] * N_NODES  # type of port on each node
@@ -93,10 +93,10 @@ class CatanBoard:
             self.ports[n2] = port_type
 
     def place_settlement(self, node: int, player: CatanPlayer):
-        self.nodes[node] = player.color
+        self.nodes[node] = player.name
 
     def place_road(self, edge: int, player: CatanPlayer):
-        self.edges[edge] = player.color
+        self.edges[edge] = player.name
 
     def get_board_observation(self) -> np.ndarray:
         # encoding: 0 if empty, 1-4 for player index ownership
@@ -104,7 +104,9 @@ class CatanBoard:
         edge_obs = np.array([0 if e is None else 1 for e in self.edges], dtype=np.float32)
         return np.concatenate([node_obs, edge_obs, [self.robber_position / len(self.tiles)]])
 
-    def get_valid_settlement_spots(self, player: CatanPlayer) -> List[int]:
+    def get_valid_settlement_spots(self,
+                                   player: CatanPlayer,
+                                   init_placement=False) -> List[int]:
         """
         Returns all node indices where the player can legally build a settlement.
         - Node must be empty
@@ -123,9 +125,10 @@ class CatanBoard:
                 continue
 
             # Must connect to one of player’s roads
-            connected_edges = [edge_idx for edge_idx, (a, b) in enumerate(EDGES_LIST) if node_idx in (a, b)]
-            if not any(self.edges[e] == player.color for e in connected_edges):
-                continue
+            if not init_placement:
+                connected_edges = [edge_idx for edge_idx, (a, b) in enumerate(EDGES_LIST) if node_idx in (a, b)]
+                if not any(self.edges[e] == player.name for e in connected_edges):
+                    continue
 
             valid_nodes.append(node_idx)
 
@@ -145,13 +148,11 @@ class CatanBoard:
                 continue
 
             # Must connect to player’s structure (settlement/city) or road
-            node_connection = self.nodes[a] == player.color or self.nodes[b] == player.color
-
+            node_connection = self.nodes[a] == player.name or self.nodes[b] == player.name
             road_connection = any(
-                self.edges[e] == player.color
+                self.edges[e] == player.name
                 for e in self._get_connected_edges(a) + self._get_connected_edges(b)
             )
-
             if node_connection or road_connection:
                 valid_edges.append(edge_idx)
 
