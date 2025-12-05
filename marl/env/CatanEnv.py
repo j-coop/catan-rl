@@ -7,7 +7,7 @@ from pettingzoo import AECEnv
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_RESOURCE_COUNT, MAX_VICTORY_POINTS,
-                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS)
+                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS, GAMMA)
 from marl.model.CatanGame import CatanGame
 
 
@@ -77,6 +77,9 @@ class CatanEnv(AECEnv):
                 return
         raise ValueError(f"Invalid action index: {action}")
 
+    def compute_potential(self, agent):
+        return 0
+
     """
     One step corresponds to one action (finer control, better action to reward association)
     Only choosing 'end turn' action ends game logic turn
@@ -84,6 +87,8 @@ class CatanEnv(AECEnv):
     def step(self, action):
         agent = self.agent_selection
         player = self.game.current_player
+
+        potential_before = self.compute_potential(agent)
 
         # Apply the action in the game logic
         self.apply_action(agent, action)
@@ -100,8 +105,10 @@ class CatanEnv(AECEnv):
             # Continue with same agent
             self.agent_selection = agent
 
+        potential_after = self.compute_potential(agent)
+
         # Compute rewards
-        reward = self.compute_reward(agent)
+        reward = self.compute_reward(potential_before, potential_after)
         self.rewards[agent] = reward
 
         # Handle dice roll if necessary
@@ -220,8 +227,8 @@ class CatanEnv(AECEnv):
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1
 
-    def compute_reward(self, agent) -> int:
-        return 0
+    def compute_reward(self, potential_before, potential_after, gamma=GAMMA) -> int:
+        return gamma * potential_after - potential_before
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""

@@ -127,6 +127,8 @@ PORT_NODE_PAIRS = [
     (51, 52),
 ]
 
+GAMMA = 0.99
+
 
 ##################  Init-placement agent training parameters  ##################
 NUM_ROLLS = 100
