@@ -22,7 +22,7 @@ class CatanGame:
                  player_names: List[str],
                  random_init_placement: bool = True):
         self.players = [
-            CatanPlayer(name, color)
+            CatanPlayer(name=name, color=color)
             for name, color in zip(player_names, player_colors)
         ]
         self.board: CatanBoard = CatanBoard()
@@ -101,7 +101,7 @@ class CatanGame:
         return size
 
     def get_player(self, agent):
-        return next((p for p in self.players if p.color == agent), CatanPlayer("", ""))
+        return next((p for p in self.players if p.name == agent), CatanPlayer("", ""))
 
     def check_victory(self, agent: str):
         player = self.get_player(agent)
@@ -194,7 +194,7 @@ class CatanGame:
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
-    def move_robber(self, agent_color: str, tile_index: int):
+    def move_robber(self, agent_name: str, tile_index: int):
         """
         Move robber to tile_index. Then select a victim among players
         adjacent to that tile using heuristic: choose player with most total resources (if any).
@@ -208,7 +208,7 @@ class CatanGame:
         adjacent_players = set()
         for node in adjacent_nodes:
             owner = self.board.nodes[node]
-            if owner is not None and owner != agent_color:
+            if owner is not None and owner != agent_name:
                 adjacent_players.add(owner)
 
         if not adjacent_players:
@@ -217,8 +217,8 @@ class CatanGame:
         # Heuristic: choose player with most total resource cards
         victims = []
         max_resources = -1
-        for victim_color in adjacent_players:
-            victim_player = self.get_player(victim_color)
+        for victim_name in adjacent_players:
+            victim_player = self.get_player(victim_name)
             if victim_player is None:
                 continue
             total = sum(victim_player.resources.values())
@@ -240,7 +240,7 @@ class CatanGame:
 
         stolen_resource = random.choice(available)
         victim.resources[stolen_resource] -= 1
-        thief = self.get_player(agent_color)
+        thief = self.get_player(agent_name)
         if thief:
             thief.resources[stolen_resource] += 1
 
@@ -333,7 +333,7 @@ class CatanGame:
         if self.turn >= 3:
             self.turn = 0
 
-    def get_longest_road_length(self, player_color: str) -> int:
+    def get_longest_road_length(self, player_name: str) -> int:
         """
         Returns the length of the longest continuous road chain for a player.
         """
@@ -342,7 +342,7 @@ class CatanGame:
         player_edges = [
             (i, e)
             for i, e in enumerate(EDGES_LIST)
-            if self.board.edges[i] == player_color
+            if self.board.edges[i] == player_name
         ]
 
         if not player_edges:
@@ -361,7 +361,7 @@ class CatanGame:
 
                 # Check if another player's settlement blocks path
                 blocking_owner = self.board.nodes[neighbor]
-                if blocking_owner is not None and blocking_owner != player_color:
+                if blocking_owner is not None and blocking_owner != player_name:
                     continue
 
                 new_visited = visited_edges | {edge_idx}
