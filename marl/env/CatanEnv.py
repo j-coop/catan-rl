@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 from gymnasium import spaces
-from ray.rllib.env import MultiAgentEnv
+from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanPlayer import CatanPlayer
@@ -11,7 +11,7 @@ from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_
 from marl.model.CatanGame import CatanGame
 
 
-class CatanEnv(MultiAgentEnv):
+class CatanEnv(AECEnv):
 
     metadata = {"name": "catan_v0"}
 
@@ -53,13 +53,6 @@ class CatanEnv(MultiAgentEnv):
             })
             for agent in self.agents
         }
-
-        # Ray-specific attributes
-        self.agent_selection = self.agents[0]  # current agent
-        self.rewards = {agent: 0.0 for agent in self.agents}
-        self.terminations = {agent: False for agent in self.agents}
-        self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
 
         # First roll is handled manually
         self.pending_dice_roll = False
@@ -132,6 +125,10 @@ class CatanEnv(MultiAgentEnv):
         reward = self.compute_reward(agent)
         self.rewards[agent] = reward
 
+        # IMPORTANT for PettingZoo bookkeeping:
+        self._accumulate_rewards()
+        self._cumulative_rewards[agent] += self.rewards[agent]
+
         # Handle dice roll if necessary
         if self.pending_dice_roll:
             self.game.handle_dice_roll()
@@ -145,12 +142,14 @@ class CatanEnv(MultiAgentEnv):
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
 
     def reset(self, seed=None, options=None):
-        # Reset game logic layer
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
         self.agent_selection = self.agents[0]
+        self._agent_iterator = iter(self.agents)
 
+        # REQUIRED for PettingZoo
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.rewards = {agent: 0.0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
         self.truncations = {agent: False for agent in self.agents}
