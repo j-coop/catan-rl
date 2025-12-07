@@ -104,9 +104,7 @@ class CatanEnv(AECEnv):
     """
     def step(self, action):
         agent = self.agent_selection
-        player = self.game.current_player
-
-        # Apply the action in the game logic
+        player = self.game.get_player(agent)
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
@@ -136,7 +134,7 @@ class CatanEnv(AECEnv):
 
         # Generate observation for next agent (includes state after player's dice roll)
         obs = self.observe(self.agent_selection)
-        mask = self.actions.get_action_mask()
+        mask = self.actions.get_action_mask(player)
         obs["action_mask"] = mask
 
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
@@ -177,8 +175,8 @@ class CatanEnv(AECEnv):
         # observation vector
         obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
 
-        # action mask
-        mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
+        player = self.game.get_player(agent)
+        mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
 
         return {
             "observation": obs_vec,
