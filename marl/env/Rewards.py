@@ -26,6 +26,7 @@ class Rewards:
 
         vp_component = player.victory_points / 10.0
         prod_component = self.expected_production(player)
+        resource_component = self.resource_component(player)
         safety_component = self.risk_penalty(player)
         diversity_component = self.resource_diversity(player)
         dev_potential = self.dev_card_value(player)
@@ -34,6 +35,7 @@ class Rewards:
         return (
             1.0 * vp_component +
             0.4 * prod_component +
+            0.2 * resource_component +
             0.2 * diversity_component +
             0.3 * dev_potential +
             0.25 * map_potential +
@@ -94,8 +96,16 @@ class Rewards:
 
         return result
 
-    def risk_penalty(self, player):
+    def resource_component(self, player):
         pass
+
+    @staticmethod
+    def risk_penalty(player):
+        total_cards = sum(player.resources.values())
+        if total_cards < 7:
+            return 0.0
+
+        return min((total_cards - 6) * 0.2, 1.0)
 
     def resource_diversity(self, player):
         pass
@@ -105,5 +115,3 @@ class Rewards:
 
     def map_positional_value(self, player):
         pass
-
-    
