@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 from gymnasium import spaces
-from ray.rllib.env import MultiAgentEnv
+from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanPlayer import CatanPlayer
@@ -11,7 +11,7 @@ from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_
 from marl.model.CatanGame import CatanGame
 
 
-class CatanEnv(MultiAgentEnv):
+class CatanEnv(AECEnv):
 
     metadata = {"name": "catan_v0"}
 
@@ -53,13 +53,6 @@ class CatanEnv(MultiAgentEnv):
             })
             for agent in self.agents
         }
-
-        # Ray-specific attributes
-        self.agent_selection = self.agents[0]  # current agent
-        self.rewards = {agent: 0.0 for agent in self.agents}
-        self.terminations = {agent: False for agent in self.agents}
-        self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
 
         # First roll is handled manually
         self.pending_dice_roll = False
@@ -111,9 +104,7 @@ class CatanEnv(MultiAgentEnv):
     """
     def step(self, action):
         agent = self.agent_selection
-        player = self.game.current_player
-
-        # Apply the action in the game logic
+        player = self.game.get_player(agent)
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
@@ -132,6 +123,10 @@ class CatanEnv(MultiAgentEnv):
         reward = self.compute_reward(agent)
         self.rewards[agent] = reward
 
+        # IMPORTANT for PettingZoo bookkeeping:
+        self._accumulate_rewards()
+        self._cumulative_rewards[agent] += self.rewards[agent]
+
         # Handle dice roll if necessary
         if self.pending_dice_roll:
             self.game.handle_dice_roll()
@@ -139,18 +134,20 @@ class CatanEnv(MultiAgentEnv):
 
         # Generate observation for next agent (includes state after player's dice roll)
         obs = self.observe(self.agent_selection)
-        mask = self.actions.get_action_mask()
+        mask = self.actions.get_action_mask(player)
         obs["action_mask"] = mask
 
         return obs, reward, self.terminations[agent], self.truncations[agent], {}
 
     def reset(self, seed=None, options=None):
-        # Reset game logic layer
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
         self.agent_selection = self.agents[0]
+        self._agent_iterator = iter(self.agents)
 
+        # REQUIRED for PettingZoo
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.rewards = {agent: 0.0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
         self.truncations = {agent: False for agent in self.agents}
@@ -178,8 +175,8 @@ class CatanEnv(MultiAgentEnv):
         # observation vector
         obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
 
-        # action mask
-        mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
+        player = self.game.get_player(agent)
+        mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
 
         return {
             "observation": obs_vec,
