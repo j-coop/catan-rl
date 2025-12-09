@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from marl.model.CatanBoard import CatanBoard
+    from marl.model.CatanBank import CatanBank
 
 
 class CatanPlayer:
@@ -100,7 +101,7 @@ class CatanPlayer:
         for res, qty in self.resources.items():
             if qty == 0 or res in shortages:
                 continue
-            ratio = self._get_best_trade_ratio(res)
+            ratio = self._get_trade_ratio(res)
             tradable_resources.append((ratio, res, qty))
 
         # Prioritize resources with the best trade ratio
@@ -108,18 +109,18 @@ class CatanPlayer:
 
         for ratio, res, qty in tradable_resources:
             max_trade_units = qty // ratio
-            for shortage_res in shortages:
-                if shortages[shortage_res] == 0:
+            if max_trade_units == 0:
+                continue
+            for shortage_res, needed in shortages.items():
+                if needed == 0:
                     continue
-                trade_amount = min(max_trade_units, shortages[shortage_res])
+                trade_amount = min(max_trade_units, needed)
                 self.resources[res] -= trade_amount * ratio
                 shortages[shortage_res] -= trade_amount
                 max_trade_units -= trade_amount
-                if max_trade_units <= 0:
-                    break
         return shortages
 
-    def _get_best_trade_ratio(self, resource: str) -> int:
+    def _get_trade_ratio(self, resource: str) -> int:
         """Return the best trade ratio available for a given resource."""
         if self.ports.get(resource, False):
             return 2
@@ -140,7 +141,7 @@ class CatanPlayer:
         else:
             return False
 
-    def can_afford_with_trades(self, build_type: str) -> bool:
+    def can_afford_with_trades(self, build_type: str, bank: CatanBank) -> bool:
         """
         Check if the player can afford a given build (settlement, city, road, dev_card),
         considering posessed resources and trades with bank
@@ -150,6 +151,16 @@ class CatanPlayer:
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
         total_needed = sum(shortages.values())
 
+        print(self.name)
+        print("Cost:", cost)
+        print("Available:", available)
+        print("Shortages:", shortages)
+
+        #  The bank must have enough resources to give the missing ones
+        for res, missing in shortages.items():
+            if missing > 0 and bank.resources.get(res, 0) < missing:
+                return False
+
         tradable = 0
         for res, qty in available.items():
             if res in shortages:
@@ -157,16 +168,9 @@ class CatanPlayer:
             if qty == 0:
                 continue  # no resources to trade
 
-            # Determine trade ratio
-            if self.ports.get(res, False):
-                # specific 2:1 port
-                tradable += qty // 2
-            elif self.ports["3for1"]:
-                # generic 3:1 port
-                tradable += qty // 3
-            else:
-                # bank 4:1
-                tradable += qty // 4
+            ratio = self._get_trade_ratio(res)
+            tradable += qty // ratio
+        print("Is enough resources", tradable >= total_needed)
         return tradable >= total_needed
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:
