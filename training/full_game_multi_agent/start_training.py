@@ -4,15 +4,16 @@ os.environ["RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO"] = "0"
 
 import ray
 import argparse
-from ray.rllib.env import PettingZooEnv
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
+from ray.rllib.env.wrappers.multi_agent_env_compatibility import MultiAgentEnvCompatibility
+
 
 from marl.env.CatanEnv import CatanEnv
 
 
 def env_creator(config=None):
-    return PettingZooEnv(CatanEnv())
+    return MultiAgentEnvCompatibility(CatanEnv())
 
 register_env("catan", env_creator)
 
@@ -36,7 +37,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
         .debugging(log_level="WARN")
     )
 
-    temp_env = PettingZooEnv(CatanEnv())
+    temp_env = CatanEnv()
     policies = {
         "shared_policy": (
             None,

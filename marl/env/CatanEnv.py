@@ -25,6 +25,7 @@ class CatanEnv(AECEnv):
             "Green Player"
         ]
         self.agent_selection = self.agents[0]
+        self.possible_agents = self.agents.copy()
 
         # Game Logic Layer object
         self.game = CatanGame(player_colors=self.colors,
@@ -33,7 +34,8 @@ class CatanEnv(AECEnv):
         # Action space handling object
         self.actions = ActionSpace(self.game)
         self.action_spaces = {
-            agent: spaces.Discrete(self.actions.get_action_space_size()) for agent in self.agents
+            agent: spaces.Discrete(self.actions.get_action_space_size())
+            for agent in self.agents
         }
 
         self.observation_spaces = {
@@ -58,17 +60,22 @@ class CatanEnv(AECEnv):
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
 
+    @property
     def observation_space(self, agent=None):
-        """Return the observation space for a given agent."""
         if agent is None:
             return self.observation_spaces  # returns dict if needed
         return self.observation_spaces[agent]
 
+    @property
     def action_space(self, agent=None):
-        """Return the action space for a given agent."""
         if agent is None:
             return self.action_spaces
         return self.action_spaces[agent]
+    
+    def seed(self, seed=None):
+        """Set the RNG seed for reproducibility."""
+        np.random.seed(seed)
+        return [seed] 
 
     @staticmethod
     def get_observation_space_size() -> int:
@@ -104,7 +111,6 @@ class CatanEnv(AECEnv):
     """
     def step(self, action):
         agent = self.agent_selection
-        player = self.game.get_player(agent)
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
@@ -121,7 +127,8 @@ class CatanEnv(AECEnv):
 
         # Compute rewards
         reward = self.compute_reward(agent)
-        self.rewards[agent] = reward
+        self.rewards = {p.name: 0.0 for p in self.game.players}
+        self.rewards[agent] = self.compute_reward(agent)
 
         # IMPORTANT for PettingZoo bookkeeping:
         self._accumulate_rewards()
@@ -132,14 +139,19 @@ class CatanEnv(AECEnv):
             self.game.handle_dice_roll()
             self.pending_dice_roll = False
 
-        # Generate observation for next agent (includes state after player's dice roll)
-        obs = self.observe(self.agent_selection)
-        mask = self.actions.get_action_mask(player)
-        obs["action_mask"] = mask
+        # Generate observations with all agents
+        obs = {}
+        for p in self.game.players:
+            obs[p.name] = self._build_agent_observation(p)
 
-        return obs, reward, self.terminations[agent], self.truncations[agent], {}
+        return obs, reward, self.terminations, self.truncations, {}
 
-    def reset(self, seed=None, options=None):
+    def _build_agent_observation(self, player):
+        obs = self.observe(player.name)
+        obs["action_mask"] = self.actions.get_action_mask(player)
+        return obs
+
+    def reset(self, *, seed=None, options=None):
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
@@ -158,7 +170,10 @@ class CatanEnv(AECEnv):
         self.game.handle_dice_roll()
 
         # Generate the initial observation for the first agent
-        obs = self.observe(self.agent_selection)
+        obs = {
+            agent: self._build_agent_observation(self.game.get_player(agent))
+            for agent in self.agents
+        }
         return obs
 
     def observe(self, agent):
