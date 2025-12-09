@@ -111,7 +111,7 @@ class ActionSpace:
 
         # --- Building settlements ---
         direct = player.can_afford_directly("settlement")
-        with_trades = player.can_afford_with_trades("settlement")
+        with_trades = player.can_afford_with_trades("settlement", self.game.bank)
         if direct or with_trades:
             valid_nodes = self.game.board.get_valid_settlement_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_settlement")
@@ -120,7 +120,7 @@ class ActionSpace:
 
         # --- Building cities ---
         direct = player.can_afford_directly("city")
-        with_trades = player.can_afford_with_trades("city")
+        with_trades = player.can_afford_with_trades("city", self.game.bank)
         if direct or with_trades:
             # player can only upgrade existing settlements
             spec = next(s for s in self.action_specs if s.name == "build_city")
@@ -129,7 +129,7 @@ class ActionSpace:
 
         # --- Building roads ---
         direct = player.can_afford_directly("road")
-        with_trades = player.can_afford_with_trades("road")
+        with_trades = player.can_afford_with_trades("road", self.game.bank)
         if direct or with_trades:
             valid_edges = self.game.board.get_valid_road_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_road")
@@ -138,7 +138,7 @@ class ActionSpace:
 
         # --- Buying dev card ---
         direct = player.can_afford_directly("dev_card")
-        with_trades = player.can_afford_with_trades("dev_card")
+        with_trades = player.can_afford_with_trades("dev_card", self.game.bank)
         if (direct or with_trades) and self.game.bank.remaining_dev_cards() > 0:
             self._enable(mask, "buy_dev_card")
 
