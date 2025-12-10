@@ -31,15 +31,18 @@ class Rewards:
         vp_component = player.victory_points / 10.0 # strongest signal
         prod_component = self.expected_production(player) # production quantity and entropy
         resource_component = self.resource_component(player) # current resources leverage
-        risk_component = self.risk_penalty(player) #
-        dev_potential = self.dev_card_value(player)
-        map_potential = self.map_positional_value(player)
+        risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
+        dev_potential = self.dev_card_value(player) # dev cards potential
+        map_potential = self.map_positional_value(player) # evaluates open posibilities potential
+
+        # TODO: ports ?
 
         return (
             1.0 * vp_component +
             0.4 * prod_component +
             0.2 * resource_component +
-            0.3 * dev_potential +
+            0.15 * dev_potential +
+            0.15 * port_potential +
             0.25 * map_potential +
             -0.15 * risk_component
         )
@@ -138,11 +141,25 @@ class Rewards:
 
         return 0.6 * card_number_risk + 0.4 * blocked_tile_penalty
 
-    def resource_diversity(self, player):
-        pass
+    @staticmethod
+    def dev_card_value(player):
+        """
+        Returns points value as total for player's dev cards
+        Not normalized not to underestimate very strong hands
+        Points also awarded for played knights (if not strongest army already)
+        Victory point cards handled in vp_component
+        """
+        dev = player.dev_cards
 
-    def dev_card_value(self, player):
-        pass
+        value = (
+            0.4 * dev.get("knight", 0) +
+            0.3 * player.knights_played +
+            0.5 * dev.get("road_building", 0) +
+            0.6 * dev.get("monopoly", 0) +
+            0.4 * dev.get("year_of_plenty", 0)
+        )
+
+        return value
 
     def map_positional_value(self, player):
         pass
