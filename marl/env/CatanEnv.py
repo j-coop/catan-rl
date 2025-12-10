@@ -5,9 +5,10 @@ from gymnasium import spaces
 from pettingzoo import AECEnv
 
 from marl.env.ActionSpace import ActionSpace
+from marl.env.Rewards import Rewards
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_RESOURCE_COUNT, MAX_VICTORY_POINTS,
-                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS)
+                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS, GAMMA)
 from marl.model.CatanGame import CatanGame
 
 
@@ -56,6 +57,8 @@ class CatanEnv(AECEnv):
             for agent in self.agents
         }
 
+        self.reward_object = Rewards(self.game)
+
         # First roll is handled manually
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
@@ -71,11 +74,11 @@ class CatanEnv(AECEnv):
         if agent is None:
             return self.action_spaces
         return self.action_spaces[agent]
-    
+
     def seed(self, seed=None):
         """Set the RNG seed for reproducibility."""
         np.random.seed(seed)
-        return [seed] 
+        return [seed]
 
     @staticmethod
     def get_observation_space_size() -> int:
@@ -111,6 +114,11 @@ class CatanEnv(AECEnv):
     """
     def step(self, action):
         agent = self.agent_selection
+        player = self.game.current_player
+
+        potential_before = self.compute_potential(agent)
+
+        # Apply the action in the game logic
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
@@ -125,10 +133,11 @@ class CatanEnv(AECEnv):
             # Continue with same agent
             self.agent_selection = agent
 
+        potential_after = self.compute_potential(agent)
+
         # Compute rewards
-        reward = self.compute_reward(agent)
-        self.rewards = {p.name: 0.0 for p in self.game.players}
-        self.rewards[agent] = self.compute_reward(agent)
+        reward = self.compute_reward(agent, potential_before, potential_after)
+        self.rewards[agent] = reward
 
         # IMPORTANT for PettingZoo bookkeeping:
         self._accumulate_rewards()
@@ -256,8 +265,15 @@ class CatanEnv(AECEnv):
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1
 
-    def compute_reward(self, agent) -> int:
-        return 0
+    def compute_potential(self, agent):
+        return self.reward_object.compute_potential(agent)
+
+    def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA) -> float:
+        if self.game.game_over and self.game.winner == agent:
+            # Return max out of scale reward for actual win
+            return 1000.0
+        else:
+            return gamma * potential_after - potential_before
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
