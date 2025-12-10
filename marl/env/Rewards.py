@@ -32,7 +32,6 @@ class Rewards:
         prod_component = self.expected_production(player) # production quantity and entropy
         resource_component = self.resource_component(player) # current resources leverage
         risk_component = self.risk_penalty(player) #
-        diversity_component = self.resource_diversity(player)
         dev_potential = self.dev_card_value(player)
         map_potential = self.map_positional_value(player)
 
@@ -40,7 +39,6 @@ class Rewards:
             1.0 * vp_component +
             0.4 * prod_component +
             0.2 * resource_component +
-            0.2 * diversity_component +
             0.3 * dev_potential +
             0.25 * map_potential +
             -0.15 * risk_component
@@ -100,8 +98,26 @@ class Rewards:
 
         return result
 
-    def resource_component(self, player):
-        pass
+    @staticmethod
+    def resource_component(player):
+        """
+        Returns points value as total for player's resources
+        Not normalized not to underestimate very strong hands
+        Gives stronger marks for initial resources (encouraging diversity needed to build)
+        0.3 points for first resource of type, 0.2 for second, 0.1 for next ones
+        """
+        resources = player.resources
+        total_strength = 0.0
+
+        for resource_type, count in resources.items():
+            if count >= 1:
+                total_strength += 0.3  # First resource of type
+            if count >= 2:
+                total_strength += 0.2  # Second resource of type
+            if count >= 3:
+                total_strength += 0.1 * (count - 2)  # Third and beyond
+
+        return total_strength
 
     def risk_penalty(self, player):
         # Risk from losing cards on 7
