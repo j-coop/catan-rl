@@ -108,7 +108,7 @@ class CatanEnv(AECEnv):
         potential_after = self.compute_potential(agent)
 
         # Compute rewards
-        reward = self.compute_reward(potential_before, potential_after)
+        reward = self.compute_reward(agent, potential_before, potential_after)
         self.rewards[agent] = reward
 
         # Handle dice roll if necessary
@@ -227,8 +227,15 @@ class CatanEnv(AECEnv):
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1
 
-    def compute_reward(self, potential_before, potential_after, gamma=GAMMA) -> int:
-        return gamma * potential_after - potential_before
+    def compute_potential(self, agent):
+        return self.reward_object.compute_potential(agent)
+
+    def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA) -> float:
+        if self.game.game_over and self.game.winner == agent:
+            # Return max out of scale reward for actual win
+            return 1000.0
+        else:
+            return gamma * potential_after - potential_before
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
