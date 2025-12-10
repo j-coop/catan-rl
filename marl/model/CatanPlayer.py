@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from marl.model.CatanBoard import CatanBoard
+    from marl.model.CatanBank import CatanBank
 
 
 class CatanPlayer:
@@ -62,70 +63,115 @@ class CatanPlayer:
                 self.resources[resource] += gain
 
     def pay_for_build(self, build_type: str):
-        """
-        Deduct resources from the player for a given build type.
-        build_type (str): One of 'settlement', 'city', 'road', or 'dev_card'.
-        """
         if build_type not in BUILD_COSTS:
             raise ValueError(f"Unknown build type: {build_type}")
 
-        cost = BUILD_COSTS[build_type]
-        # Check affordability first (should already be validated)
-        if not self.can_afford(build_type):
-            raise ValueError(f"Player {self.name} cannot afford to build {build_type}")
+        cost = Counter(BUILD_COSTS[build_type])
+        shortages = self._deduct_direct_resources(cost)
 
-        for resource, amount in cost.items():
-            self.resources[resource] -= amount
+        if not self._all_shortages_covered(shortages):
+            shortages = self._cover_shortages_with_trades(shortages)
 
-    def can_afford(self, build_type: str) -> bool:
+        if not self._all_shortages_covered(shortages):
+            raise ValueError(f"Player {self.name} cannot afford to build {build_type}, even with trades")
+
+    def _deduct_direct_resources(self, cost: Counter) -> Counter:
+        """Deduct resources the player already has for a given cost.
+        Returns a Counter with remaining resources still needed."""
+        remaining = Counter()
+        for res, qty in cost.items():
+            available_qty = self.resources.get(res, 0)
+            if available_qty >= qty:
+                self.resources[res] -= qty
+                remaining[res] = 0
+            else:
+                self.resources[res] = 0
+                remaining[res] = qty - available_qty
+        return remaining
+
+    def _all_shortages_covered(self, shortages: Counter) -> bool:
+        """Check if all values in shortages are 0"""
+        return all(v == 0 for v in shortages.values())
+
+    def _cover_shortages_with_trades(self, shortages: Counter) -> Counter:
+        """Perform optimal trades to cover shortages using only bank/ports.
+        Returns the updated shortages counter."""
+        tradable_resources = []
+
+        for res, qty in self.resources.items():
+            if qty == 0 or res in shortages:
+                continue
+            ratio = self._get_trade_ratio(res)
+            tradable_resources.append((ratio, res, qty))
+
+        # Prioritize resources with the best trade ratio
+        tradable_resources.sort(key=lambda x: x[0])
+
+        for ratio, res, qty in tradable_resources:
+            max_trade_units = qty // ratio
+            if max_trade_units == 0:
+                continue
+            for shortage_res, needed in shortages.items():
+                if needed == 0:
+                    continue
+                trade_amount = min(max_trade_units, needed)
+                self.resources[res] -= trade_amount * ratio
+                shortages[shortage_res] -= trade_amount
+                max_trade_units -= trade_amount
+        return shortages
+
+    def _get_trade_ratio(self, resource: str) -> int:
+        """Return the best trade ratio available for a given resource."""
+        if self.ports.get(resource, False):
+            return 2
+        elif self.ports.get("3for1", False):
+            return 3
+        else:
+            return 4
+
+    def can_afford_directly(self, build_type: str) -> bool:
         """
         Check if the player can afford a given build (settlement, city, road, dev_card),
-        considering resources + trades (bank 4:1, ports 3:1 or 2:1).
+        considering only posessed resources
         """
         cost = Counter(BUILD_COSTS[build_type])
         available = Counter(self.resources)
-
-        # Direct check
         if all(available[res] >= qty for res, qty in cost.items()):
             return True
+        else:
+            return False
 
-        # Compute shortages
+    def can_afford_with_trades(self, build_type: str, bank: CatanBank) -> bool:
+        """
+        Check if the player can afford a given build (settlement, city, road, dev_card),
+        considering posessed resources and trades with bank
+        """
+        cost = Counter(BUILD_COSTS[build_type])
+        available = Counter(self.resources)
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
         total_needed = sum(shortages.values())
 
-        # Check if trades can cover shortages
+        print(self.name)
+        print("Cost:", cost)
+        print("Available:", available)
+        print("Shortages:", shortages)
+
+        #  The bank must have enough resources to give the missing ones
+        for res, missing in shortages.items():
+            if missing > 0 and bank.resources.get(res, 0) < missing:
+                return False
+
         tradable = 0
         for res, qty in available.items():
             if res in shortages:
                 continue  # don’t trade away resources you already need
-            if qty <= 0:
-                continue
+            if qty == 0:
+                continue  # no resources to trade
 
-            # Determine trade ratio
-            if self.ports.get(res, False):
-                # specific 2:1 port
-                tradable += qty // 2
-            elif self.ports["3for1"]:
-                # generic 3:1 port
-                tradable += qty // 3
-            else:
-                # bank 4:1
-                tradable += qty // 4
-
+            ratio = self._get_trade_ratio(res)
+            tradable += qty // ratio
+        print("Is enough resources", tradable >= total_needed)
         return tradable >= total_needed
-
-
-    def can_afford_settlement(self) -> bool:
-        return self.can_afford("settlement")
-
-    def can_afford_city(self) -> bool:
-        return self.can_afford("city")
-
-    def can_afford_road(self) -> bool:
-        return self.can_afford("road")
-
-    def can_afford_dev_card(self) -> bool:
-        return self.can_afford("dev_card")
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:
         # Implement adjacency, distance rule, and resource checks

@@ -16,33 +16,44 @@ class CatanEnv(AECEnv):
 
     metadata = {"name": "catan_v0"}
 
-    def __init__(self):
+    def __init__(self, env_config=None):
         super().__init__()
-        self.agents = ['blue', 'red', 'white', 'black']
-        self.possible_agents = self.agents[:]
+        self.colors=[""] * 4
+        self.agents = [
+            "Blue Player",
+            "Purple Player",
+            "Yellow Player",
+            "Green Player"
+        ]
         self.agent_selection = self.agents[0]
+        self.possible_agents = self.agents.copy()
 
         # Game Logic Layer object
-        self.game = CatanGame(self.agents)
+        self.game = CatanGame(player_colors=self.colors,
+                              player_names=self.agents)
 
         # Action space handling object
         self.actions = ActionSpace(self.game)
-
         self.action_spaces = {
-            agent: spaces.Discrete(self.actions.get_action_space_size()) for agent in self.agents
+            agent: spaces.Discrete(self.actions.get_action_space_size())
+            for agent in self.agents
         }
 
         self.observation_spaces = {
-            agent: spaces.Dict(
-                {
-                    "action_mask": spaces.Box(
-                        low=0, high=1, shape=(self.action_spaces[agent].shape[0],), dtype=np.int8
-                    ),
-                    "observation": spaces.Box(
-                        low=0, high=1, shape=(self.get_observation_space_size(),), dtype=np.float32
-                    ),
-                }
-            )
+            agent: spaces.Dict({
+                "observation": spaces.Box(
+                    low=0,
+                    high=1,
+                    shape=(self.get_observation_space_size(),),
+                    dtype=np.float32
+                ),
+                "action_mask": spaces.Box(
+                    low=0,
+                    high=1,
+                    shape=(self.actions.get_action_space_size(),),
+                    dtype=np.int8
+                ),
+            })
             for agent in self.agents
         }
 
@@ -51,6 +62,23 @@ class CatanEnv(AECEnv):
         # First roll is handled manually
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
+
+    @property
+    def observation_space(self, agent=None):
+        if agent is None:
+            return self.observation_spaces  # returns dict if needed
+        return self.observation_spaces[agent]
+
+    @property
+    def action_space(self, agent=None):
+        if agent is None:
+            return self.action_spaces
+        return self.action_spaces[agent]
+
+    def seed(self, seed=None):
+        """Set the RNG seed for reproducibility."""
+        np.random.seed(seed)
+        return [seed]
 
     @staticmethod
     def get_observation_space_size() -> int:
@@ -111,29 +139,36 @@ class CatanEnv(AECEnv):
         reward = self.compute_reward(agent, potential_before, potential_after)
         self.rewards[agent] = reward
 
+        # IMPORTANT for PettingZoo bookkeeping:
+        self._accumulate_rewards()
+        self._cumulative_rewards[agent] += self.rewards[agent]
+
         # Handle dice roll if necessary
         if self.pending_dice_roll:
             self.game.handle_dice_roll()
             self.pending_dice_roll = False
 
-        # Generate observation for next agent (includes state after player's dice roll)
-        obs = self.observe(self.agent_selection)
+        # Generate observations with all agents
+        obs = {}
+        for p in self.game.players:
+            obs[p.name] = self._build_agent_observation(p)
 
-        # Masking actions depending on game state and phase - dynamically updated inside ActionSpace
-        mask = self.actions.get_action_mask()
-        obs["action_mask"] = mask
+        return obs, reward, self.terminations, self.truncations, {}
 
-        return obs, reward, self.terminations[agent], self.truncations[agent], {}
+    def _build_agent_observation(self, player):
+        obs = self.observe(player.name)
+        obs["action_mask"] = self.actions.get_action_mask(player)
+        return obs
 
-    def reset(self, seed=None, options=None):
-        # Reset PettingZoo base state
-        super().reset(seed=seed)
-
-        # Reset game logic layer
-        self.game = CatanGame(self.agents)
+    def reset(self, *, seed=None, options=None):
+        self.game = CatanGame(player_colors=self.colors,
+                              player_names=self.agents)
 
         self.agent_selection = self.agents[0]
+        self._agent_iterator = iter(self.agents)
 
+        # REQUIRED for PettingZoo
+        self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.rewards = {agent: 0.0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
         self.truncations = {agent: False for agent in self.agents}
@@ -144,7 +179,10 @@ class CatanEnv(AECEnv):
         self.game.handle_dice_roll()
 
         # Generate the initial observation for the first agent
-        obs = self.observe(self.agent_selection)
+        obs = {
+            agent: self._build_agent_observation(self.game.get_player(agent))
+            for agent in self.agents
+        }
         return obs
 
     def observe(self, agent):
@@ -161,8 +199,8 @@ class CatanEnv(AECEnv):
         # observation vector
         obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
 
-        # action mask
-        mask = np.array(self.actions.get_action_mask(), dtype=np.int8)
+        player = self.game.get_player(agent)
+        mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
 
         return {
             "observation": obs_vec,
@@ -306,19 +344,19 @@ class CatanEnv(AECEnv):
             port_onehot = np.zeros(len(PORT_TYPES))
             if board.ports[i] in PORT_TYPES:
                 port_onehot[PORT_TYPES.index(board.ports[i])] = 1.0
+            node_feats.append(np.concatenate([owner_onehot, building, port_onehot]))
 
-            node_feats.append(np.concatenate([owner_onehot[:-1], building, port_onehot]))
         node_feats = np.concatenate(node_feats)
 
         return np.concatenate([tile_feats, road_feats, node_feats])
 
     def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
-        res_counts = np.array(player.resources, dtype=np.float32) / MAX_RESOURCE_COUNT
-        dev_counts = np.array(player.dev_cards, dtype=np.float32) / 5.0
+        res_counts = np.array(list(player.resources.values()), dtype=np.float32) / MAX_RESOURCE_COUNT
+        dev_counts = np.array(list(player.dev_cards.values()), dtype=np.float32) / 5.0
 
         victory_points = np.array([player.victory_points / MAX_VICTORY_POINTS])
-        has_longest_road = self.game.longest_road_owner.name is not None and self.game.longest_road_owner.name == player.name
-        has_largest_army = self.game.largest_army_owner.name is not None and self.game.largest_army_owner.name == player.name
+        has_longest_road = self.game.longest_road_owner is not None and self.game.longest_road_owner.name == player.name
+        has_largest_army = self.game.largest_army_owner is not None and self.game.largest_army_owner.name == player.name
         longest_road = np.array([float(has_longest_road)])
         largest_army = np.array([float(has_largest_army)])
 
@@ -352,8 +390,8 @@ class CatanEnv(AECEnv):
         features = []
 
         for p in others:
-            has_longest_road = self.game.longest_road_owner.color is not None and self.game.longest_road_owner.color == p.color
-            has_largest_army = self.game.largest_army_owner.color is not None and self.game.largest_army_owner.color == p.color
+            has_longest_road = self.game.longest_road_owner is not None and self.game.longest_road_owner.name == p.name
+            has_largest_army = self.game.largest_army_owner is not None and self.game.largest_army_owner.name == p.name
 
             port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
             owned_nodes = list(p.settlements) + list(p.cities)
@@ -376,5 +414,4 @@ class CatanEnv(AECEnv):
                 port_flags
             ])
             features.append(feats)
-
         return np.concatenate(features)

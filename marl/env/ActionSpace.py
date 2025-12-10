@@ -71,14 +71,13 @@ class ActionSpace:
             start, end = spec.range
             mask[start:end] = [True] * (end - start)
 
-    def get_action_mask(self) -> list[bool]:
+    def get_action_mask(self, player: CatanPlayer) -> list[bool]:
         """
         Returns a boolean mask over the action space,
         enabling only valid actions for the current phase.
         """
         mask = [False] * self.action_space_size
         phase = self.game.phase
-        player = self.game.current_player
 
         # Phase-based logic
         if phase == CatanPhase.NORMAL:
@@ -111,28 +110,36 @@ class ActionSpace:
         """
 
         # --- Building settlements ---
-        if player.can_afford("settlement"):
+        direct = player.can_afford_directly("settlement")
+        with_trades = player.can_afford_with_trades("settlement", self.game.bank)
+        if direct or with_trades:
             valid_nodes = self.game.board.get_valid_settlement_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_settlement")
             for node in valid_nodes:
                 mask[spec.range[0] + node] = True
 
         # --- Building cities ---
-        if player.can_afford("city"):
+        direct = player.can_afford_directly("city")
+        with_trades = player.can_afford_with_trades("city", self.game.bank)
+        if direct or with_trades:
             # player can only upgrade existing settlements
             spec = next(s for s in self.action_specs if s.name == "build_city")
             for node in player.settlements:
                 mask[spec.range[0] + node] = True
 
         # --- Building roads ---
-        if player.can_afford("road"):
+        direct = player.can_afford_directly("road")
+        with_trades = player.can_afford_with_trades("road", self.game.bank)
+        if direct or with_trades:
             valid_edges = self.game.board.get_valid_road_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_road")
             for edge in valid_edges:
                 mask[spec.range[0] + edge] = True
 
         # --- Buying dev card ---
-        if player.can_afford("dev_card") and not self.game.bank.remaining_dev_cards() > 0:
+        direct = player.can_afford_directly("dev_card")
+        with_trades = player.can_afford_with_trades("dev_card", self.game.bank)
+        if (direct or with_trades) and self.game.bank.remaining_dev_cards() > 0:
             self._enable(mask, "buy_dev_card")
 
         # --- Playing dev cards ---
@@ -150,4 +157,3 @@ class ActionSpace:
 
         # --- Always allow end turn ---
         self._enable(mask, "end_turn")
-
