@@ -28,14 +28,24 @@ class Rewards:
     def compute_potential(self, agent):
         player = self.game.players[agent]
 
+        prod_by_resource = {r: 0.0 for r in self.resource_bias.keys()}
+
+        # Accumulate production from settlements and cities
+        for node in player.settlements:
+            for r, p in self.production_at_node(node).items():
+                prod_by_resource[r] += p
+
+        for node in player.cities:
+            for r, p in self.production_at_node(node).items():
+                prod_by_resource[r] += 2.0 * p
+
         vp_component = player.victory_points / 10.0 # strongest signal
-        prod_component = self.expected_production(player) # production quantity and entropy
+        prod_component = self.expected_production(prod_by_resource) # production quantity and entropy
         resource_component = self.resource_component(player) # current resources leverage
         risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
         dev_potential = self.dev_card_value(player) # dev cards potential
         map_potential = self.map_positional_value(player) # evaluates open posibilities potential
-
-        # TODO: ports ?
+        port_potential = self.port_component(prod_by_resource) # awards for trade possibilities
 
         return (
             1.0 * vp_component +
@@ -47,23 +57,12 @@ class Rewards:
             -0.15 * risk_component
         )
 
-    def expected_production(self, player):
+    def expected_production(self, prod_by_resource):
         """
         Computes production potential:
           - Quantity: weighted expected production per resource
           - Entropy: diversity of production (balanced economy)
         """
-
-        prod_by_resource = {r: 0.0 for r in self.resource_bias.keys()}
-
-        # Accumulate production from settlements and cities
-        for node in player.settlements:
-            for r, p in self.production_at_node(node).items():
-                prod_by_resource[r] += p
-
-        for node in player.cities:
-            for r, p in self.production_at_node(node).items():
-                prod_by_resource[r] += 2.0 * p
 
         # Quantity with bias
         quantity = sum(
@@ -163,3 +162,23 @@ class Rewards:
 
     def map_positional_value(self, player):
         pass
+
+    @staticmethod
+    def port_component(player, prod_by_resource):
+        """
+        Reward for controlled ports
+        Value of a port in context of player's resource production
+        """
+        port_value = 0.0
+
+        for port_type, is_controlled in player.ports.items():
+            if is_controlled:
+                # If the port type is a specific resource, check if the player produces that resource
+                if port_type in prod_by_resource:
+                    red_token_equivalent = prod_by_resource[port_type] / DICE_PROBABILITIES.get(6, 5/36)
+                    port_value += 0.25 * red_token_equivalent
+                else:
+                    # Reward for generic 3for1 port
+                    port_value += 0.3
+
+        return port_value
