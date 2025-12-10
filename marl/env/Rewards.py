@@ -44,17 +44,17 @@ class Rewards:
         resource_component = self.resource_component(player) # current resources leverage
         risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
         dev_potential = self.dev_card_value(player) # dev cards potential
-        map_potential = self.map_positional_value(player) # evaluates open posibilities potential
-        port_potential = self.port_component(prod_by_resource) # awards for trade possibilities
+        port_potential = self.port_component(player, prod_by_resource) # awards for trade possibilities
+        road_component = self.road_component(player) # small road number reward
 
         return (
-            1.0 * vp_component +
-            0.4 * prod_component +
-            0.2 * resource_component +
-            0.15 * dev_potential +
-            0.15 * port_potential +
-            0.25 * map_potential +
-            -0.15 * risk_component
+            5.0 * vp_component +
+            1.0 * prod_component +
+            0.3 * resource_component +
+            0.2 * dev_potential +
+            0.2 * port_potential +
+            0.2 * road_component +
+            -0.2 * risk_component
         )
 
     def expected_production(self, prod_by_resource):
@@ -71,7 +71,7 @@ class Rewards:
         )
 
         # Normalize for maximum expected possible production
-        quantity_norm = max(quantity / 15.0, 1.0)  # TODO: TO BE SET
+        quantity_norm = max(quantity, 1)
 
         # Entropy (production diversity)
         total = sum(prod_by_resource.values())
@@ -160,9 +160,6 @@ class Rewards:
 
         return value
 
-    def map_positional_value(self, player):
-        pass
-
     @staticmethod
     def port_component(player, prod_by_resource):
         """
@@ -182,3 +179,13 @@ class Rewards:
                     port_value += 0.3
 
         return port_value
+
+    @staticmethod
+    def road_component(player):
+        """
+        Gives small reward for player's total number of roads
+        They are useful but usually not rewarded by victory points, cards or resources
+        Building road cannot decrease potential or it will be avoided
+        Capped at 10 roads
+        """
+        return max(len(player.roads) * 0.1, 1.0)
