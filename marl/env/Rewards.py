@@ -1,8 +1,11 @@
+import math
+
 from marl.model.CatanGame import CatanGame
 import numpy as np
 
 from params.catan_constants import DICE_PROBABILITIES
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
 
 def token_probability(token):
@@ -13,6 +16,7 @@ class Rewards:
     def __init__(self, game: CatanGame):
         self.game = game
 
+        # Slight bias towards resources needed for initial growth
         self.resource_bias = {
             "wood": 1.1,
             "brick": 1.1,
@@ -24,10 +28,10 @@ class Rewards:
     def compute_potential(self, agent):
         player = self.game.players[agent]
 
-        vp_component = player.victory_points / 10.0
-        prod_component = self.expected_production(player)
-        resource_component = self.resource_component(player)
-        safety_component = self.risk_penalty(player)
+        vp_component = player.victory_points / 10.0 # strongest signal
+        prod_component = self.expected_production(player) # production quantity and entropy
+        resource_component = self.resource_component(player) # current resources leverage
+        risk_component = self.risk_penalty(player) #
         diversity_component = self.resource_diversity(player)
         dev_potential = self.dev_card_value(player)
         map_potential = self.map_positional_value(player)
@@ -39,7 +43,7 @@ class Rewards:
             0.2 * diversity_component +
             0.3 * dev_potential +
             0.25 * map_potential +
-            -0.15 * safety_component
+            -0.15 * risk_component
         )
 
     def expected_production(self, player):
@@ -67,7 +71,7 @@ class Rewards:
         )
 
         # Normalize for maximum expected possible production
-        quantity_norm = quantity / 15.0  # TO BE SET
+        quantity_norm = max(quantity / 15.0, 1.0)  # TODO: TO BE SET
 
         # Entropy (production diversity)
         total = sum(prod_by_resource.values())
@@ -78,7 +82,7 @@ class Rewards:
         else:
             entropy = 0.0
 
-        return quantity_norm + 0.4 * entropy
+        return 0.6 * quantity_norm + 0.4 * entropy
 
     def production_at_node(self, node_index):
         """
@@ -99,13 +103,24 @@ class Rewards:
     def resource_component(self, player):
         pass
 
-    @staticmethod
-    def risk_penalty(player):
+    def risk_penalty(self, player):
+        # Risk from losing cards on 7
+        card_number_risk = 0
         total_cards = sum(player.resources.values())
-        if total_cards < 7:
-            return 0.0
+        if total_cards >= 7:
+            card_number_risk = min((total_cards - 6) * 0.2, 1.0)
 
-        return min((total_cards - 6) * 0.2, 1.0)
+        # Penalty from having a tile blocked by knight
+        blocked_tile_penalty = 0
+        knight_tile_index = self.game.board.robber_position
+        node_indices = TILES_TO_NODES[knight_tile_index]
+        for node in node_indices:
+            if node in player.settlements or node in player.cities:
+                tile_token = self.game.board.tiles[node][1]
+                if tile_token is not None and tile_token != 7:
+                    blocked_tile_penalty = 1.0 / int(math.fabs(7 - tile_token))
+
+        return 0.6 * card_number_risk + 0.4 * blocked_tile_penalty
 
     def resource_diversity(self, player):
         pass
