@@ -6,6 +6,7 @@ import ray
 import argparse
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
+from ray.rllib.env import PettingZooEnv
 from ray.rllib.env.wrappers.multi_agent_env_compatibility import MultiAgentEnvCompatibility
 
 
@@ -13,7 +14,7 @@ from marl.env.CatanEnv import CatanEnv
 
 
 def env_creator(config=None):
-    return MultiAgentEnvCompatibility(CatanEnv())
+    return PettingZooEnv(CatanEnv())
 
 register_env("catan", env_creator)
 

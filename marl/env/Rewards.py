@@ -26,8 +26,7 @@ class Rewards:
         }
 
     def compute_potential(self, agent):
-        player = self.game.players[agent]
-
+        player = self.game.get_player(agent)
         prod_by_resource = {r: 0.0 for r in self.resource_bias.keys()}
 
         # Accumulate production from settlements and cities
@@ -54,7 +53,6 @@ class Rewards:
         port_weighted = 0.2 * port_potential
         road_weighted = 0.2 * road_component
         risk_weighted = -0.2 * risk_component
-
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
         print(
@@ -67,6 +65,7 @@ class Rewards:
             f"Road: {road_weighted:.1f} | "
             f"Risk: {risk_weighted:.1f}"
         )
+        return total_potential
 
     def expected_production(self, prod_by_resource):
         """
