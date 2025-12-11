@@ -147,7 +147,7 @@ class Rewards:
         if tile_token is not None and tile_token != 7:
             for node in node_indices:
                 if node in player.settlements or node in player.cities:
-                    blocked_tile_penalty = 1.0 / int(math.fabs(7 - tile_token))
+                    blocked_tile_penalty += 1.0 / int(math.fabs(7 - tile_token))
 
         return 0.6 * card_number_risk + 0.4 * blocked_tile_penalty
 
