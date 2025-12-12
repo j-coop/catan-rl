@@ -108,7 +108,7 @@ class CatanEnv(AECEnv):
         if self.is_end_turn_action(action):
             print("IN")
             # Advance to next player (no dice roll yet)
-            self.game.end_turn(agent)
+            self.game.end_turn()
             self.agent_selection = self.game.current_player.name
 
             # Mark that a dice roll should happen
@@ -247,9 +247,9 @@ class CatanEnv(AECEnv):
         resource = RESOURCE_TYPES[resource_index]
         self.game.take_resource(agent, resource)
 
-    def end_turn(self, agent: str, _: int):
+    def end_turn(self):
         """End the player's turn."""
-        self.game.end_turn(agent)
+        self.game.end_turn()
 
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1
