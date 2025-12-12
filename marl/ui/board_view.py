@@ -3,10 +3,10 @@ import os
 
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem, QGraphicsEllipseItem,
-    QGraphicsLineItem, QGraphicsTextItem, QWidget, QApplication, QVBoxLayout, QGraphicsPixmapItem
+    QGraphicsLineItem, QGraphicsTextItem, QWidget, QApplication, QVBoxLayout
 )
-from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter, QPixmap, QPainterPath
-from PyQt6.QtCore import QPointF, Qt, QRectF
+from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter, QPixmap
+from PyQt6.QtCore import QPointF, Qt
 
 from marl.model.CatanGame import CatanGame
 
@@ -32,6 +32,15 @@ class NodeItem(QGraphicsEllipseItem):
 
     def mousePressEvent(self, event):
         view = self.scene().views()[0]
+
+        # If board is waiting for a node → deliver it and exit selection mode
+        if view.awaiting_node_callback:
+            callback = view.awaiting_node_callback
+            view.awaiting_node_callback = None
+            callback(self.index)
+            event.accept()
+            return
+
         if getattr(view, "selected_item", None) is self:
             self.set_selected(False)
             view.selected_item = None
@@ -74,6 +83,18 @@ class EdgeItem(QGraphicsLineItem):
 
     def mousePressEvent(self, event):
         view = self.scene().views()[0]
+
+        # If board is waiting for an edge → deliver index
+        if view.awaiting_edge_callback:
+            callback = view.awaiting_edge_callback
+            view.awaiting_edge_callback = None
+
+            # find edge index
+            edge_index = view.edges.index(self)
+            callback(edge_index)
+            event.accept()
+            return
+
         if getattr(view, "selected_item", None) is self:
             self.set_selected(False)
             view.selected_item = None
@@ -162,6 +183,8 @@ class BoardView(QGraphicsView):
         self.setScene(self.scene)
         self.hex_radius = hex_radius
         self.selected_item = None
+        self.awaiting_node_callback = None
+        self.awaiting_edge_callback = None
         self.nodes = []
         self.edges = []
 
@@ -226,6 +249,23 @@ class BoardView(QGraphicsView):
 
         self.nodes = sorted_nodes
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
+
+    def expect_node_selection(self, callback):
+        """BoardView will call callback(node_index) after user clicks a node."""
+        self.awaiting_node_callback = callback
+        self.awaiting_edge_callback = None
+        if self.selected_item:
+            self.selected_item.set_selected(False)
+            self.selected_item = None
+
+    def expect_edge_selection(self, callback):
+        """BoardView will call callback(edge_index) after user clicks an edge."""
+        self.awaiting_edge_callback = callback
+        self.awaiting_node_callback = None
+        if self.selected_item:
+            self.selected_item.set_selected(False)
+            self.selected_item = None
+
 
 
 # Demo run
