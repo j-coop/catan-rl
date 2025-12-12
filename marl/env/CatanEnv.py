@@ -32,12 +32,7 @@ class CatanEnv(AECEnv):
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
-        # Action space handling object
         self.actions = ActionSpace(self.game)
-        self.action_spaces = {
-            agent: spaces.Discrete(self.actions.get_action_space_size())
-            for agent in self.agents
-        }
 
         self.observation_spaces = {
             agent: spaces.Dict({
@@ -46,14 +41,12 @@ class CatanEnv(AECEnv):
                     high=1,
                     shape=(self.get_observation_space_size(),),
                     dtype=np.float32
-                ),
-                "action_mask": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.actions.get_action_space_size(),),
-                    dtype=np.int8
-                ),
-            })
+                )})
+            for agent in self.agents
+        }
+
+        self.action_spaces = {
+            agent: spaces.Discrete(self.actions.get_action_space_size())
             for agent in self.agents
         }
 
@@ -63,17 +56,19 @@ class CatanEnv(AECEnv):
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
 
-    @property
     def observation_space(self, agent=None):
         if agent is None:
             return self.observation_spaces  # returns dict if needed
         return self.observation_spaces[agent]
 
-    @property
     def action_space(self, agent=None):
         if agent is None:
             return self.action_spaces
         return self.action_spaces[agent]
+
+    @property
+    def get_sub_environments(self):
+        return self.unwrapped
 
     def seed(self, seed=None):
         """Set the RNG seed for reproducibility."""
@@ -85,15 +80,6 @@ class CatanEnv(AECEnv):
         """Return the flattened size of the observation vector."""
         # Global board (1214) + self (23) + others (42) = 1279
         return 1279
-
-    def get_spec_for_action(self, agent: str, action: int):
-        for spec in self.actions.action_specs:
-            start, end = spec.range
-            if start <= action < end:
-                local_index = action - start
-                # spec.handler(agent, local_index)
-                return spec
-        raise ValueError(f"Invalid action index: {action}")
 
     """
     Handles executing action with given index in action space for given agent
@@ -114,15 +100,13 @@ class CatanEnv(AECEnv):
     """
     def step(self, action):
         agent = self.agent_selection
-        player = self.game.current_player
-
         potential_before = self.compute_potential(agent)
-
-        # Apply the action in the game logic
+        print("Hey")
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
+            print("IN")
             # Advance to next player (no dice roll yet)
             self.game.end_turn(agent)
             self.agent_selection = self.game.current_player.name
@@ -134,8 +118,6 @@ class CatanEnv(AECEnv):
             self.agent_selection = agent
 
         potential_after = self.compute_potential(agent)
-
-        # Compute rewards
         reward = self.compute_reward(agent, potential_before, potential_after)
         self.rewards[agent] = reward
 
@@ -151,16 +133,15 @@ class CatanEnv(AECEnv):
         # Generate observations with all agents
         obs = {}
         for p in self.game.players:
-            obs[p.name] = self._build_agent_observation(p)
+            obs[p.name] = self.observe(p)
+        truncateds = {k: False for k in self.terminations.keys()}
 
-        return obs, reward, self.terminations, self.truncations, {}
-
-    def _build_agent_observation(self, player):
-        obs = self.observe(player.name)
-        obs["action_mask"] = self.actions.get_action_mask(player)
-        return obs
+        return obs, reward, self.terminations, truncateds, {}
 
     def reset(self, *, seed=None, options=None):
+        if seed is not None:
+            self.seed(seed)
+
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
@@ -179,11 +160,16 @@ class CatanEnv(AECEnv):
         self.game.handle_dice_roll()
 
         # Generate the initial observation for the first agent
-        obs = {
-            agent: self._build_agent_observation(self.game.get_player(agent))
-            for agent in self.agents
-        }
-        return obs
+        # obs = {
+        #     agent: self._build_agent_observation(self.game.get_player(agent))
+        #     for agent in self.agents
+        # }
+        # infos = {k: {} for k in obs.keys()}
+        # return obs, infos
+        return (
+            {self.agent_selection: self.observe(self.agent_selection)},
+            {},
+        )
 
     def observe(self, agent):
         """
@@ -211,6 +197,9 @@ class CatanEnv(AECEnv):
         pass
 
     def state(self):
+        pass
+
+    def close(self):
         pass
 
     # =========== ACTION HANDLERS ===========
@@ -273,7 +262,7 @@ class CatanEnv(AECEnv):
             # Return max out of scale reward for actual win
             return 1000.0
         else:
-            return gamma * potential_after - potential_before
+            return (gamma * potential_after) - potential_before
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
