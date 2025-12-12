@@ -38,7 +38,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
         .debugging(log_level="WARN")
     )
 
-    temp_env = CatanEnv()
+    temp_env = PettingZooEnv(CatanEnv())
     policies = {
         "shared_policy": (
             None,

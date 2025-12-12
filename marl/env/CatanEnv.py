@@ -66,6 +66,7 @@ class CatanEnv(AECEnv):
             return self.action_spaces
         return self.action_spaces[agent]
 
+    @property
     def get_sub_environments(self):
         return self.unwrapped
 
@@ -100,12 +101,12 @@ class CatanEnv(AECEnv):
     def step(self, action):
         agent = self.agent_selection
         potential_before = self.compute_potential(agent)
-
-        # Apply the action in the game logic
+        print("Hey")
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
+            print("IN")
             # Advance to next player (no dice roll yet)
             self.game.end_turn(agent)
             self.agent_selection = self.game.current_player.name
@@ -117,12 +118,6 @@ class CatanEnv(AECEnv):
             self.agent_selection = agent
 
         potential_after = self.compute_potential(agent)
-
-        # Compute rewards
-        print("Agent:", agent
-              , "Action:", action
-              , "Potential before:", potential_before
-              , "Potential after:", potential_after)
         reward = self.compute_reward(agent, potential_before, potential_after)
         self.rewards[agent] = reward
 
@@ -138,7 +133,7 @@ class CatanEnv(AECEnv):
         # Generate observations with all agents
         obs = {}
         for p in self.game.players:
-            obs[p.name] = self._build_agent_observation(p)
+            obs[p.name] = self.observe(p)
         truncateds = {k: False for k in self.terminations.keys()}
 
         return obs, reward, self.terminations, truncateds, {}
@@ -204,6 +199,9 @@ class CatanEnv(AECEnv):
     def state(self):
         pass
 
+    def close(self):
+        pass
+
     # =========== ACTION HANDLERS ===========
     # Delegating action handling to CatanGame
     def build_settlement(self, agent: str, node_index: int):
@@ -264,8 +262,6 @@ class CatanEnv(AECEnv):
             # Return max out of scale reward for actual win
             return 1000.0
         else:
-            print("Potential before:", potential_before)
-            print("Potential after:", potential_after)
             return (gamma * potential_after) - potential_before
 
     def get_observation(self, agent: str) -> np.ndarray:

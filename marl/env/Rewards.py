@@ -121,7 +121,7 @@ class Rewards:
         resources = player.resources
         total_strength = 0.0
 
-        for resource_type, count in resources.items():
+        for _, count in resources.items():
             if count >= 1:
                 total_strength += 0.3  # First resource of type
             if count >= 2:
@@ -147,7 +147,6 @@ class Rewards:
             for node in node_indices:
                 if node in player.settlements or node in player.cities:
                     blocked_tile_penalty += 1.0 / int(math.fabs(7 - tile_token))
-
         return 0.6 * card_number_risk + 0.4 * blocked_tile_penalty
 
     @staticmethod

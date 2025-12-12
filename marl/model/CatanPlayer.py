@@ -151,11 +151,6 @@ class CatanPlayer:
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
         total_needed = sum(shortages.values())
 
-        print(self.name)
-        print("Cost:", cost)
-        print("Available:", available)
-        print("Shortages:", shortages)
-
         #  The bank must have enough resources to give the missing ones
         for res, missing in shortages.items():
             if missing > 0 and bank.resources.get(res, 0) < missing:

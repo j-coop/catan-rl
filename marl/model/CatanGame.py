@@ -259,7 +259,7 @@ class CatanGame:
         Trades resources with the bank using the best available ratio for the player.
         """
         player = self.get_player(agent)
-        ratio = self.player._get_trade_ratio(give_resource)
+        ratio = player._get_trade_ratio(give_resource)
         if player.resources[give_resource] < ratio:
             raise ValueError(f"{player.name} does not have enough {give_resource} to trade with bank.")
 
