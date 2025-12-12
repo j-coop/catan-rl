@@ -20,7 +20,8 @@ class CatanGame:
     def __init__(self,
                  player_colors: List[str], 
                  player_names: List[str],
-                 random_init_placement: bool = True):
+                 ai_players: Optional[List[bool]] = None,
+                 training: bool = False):
         self.players = [
             CatanPlayer(name=name, color=color)
             for name, color in zip(player_names, player_colors)
@@ -47,8 +48,11 @@ class CatanGame:
         self._year_of_plenty_choices = []
         self._roads_remaining_from_card = None
 
-        if (random_init_placement):
+        if not training:
             self.generate_random_init_board_state()
+            self.ai_players = [0] * len(self.players)
+        else:
+            self.ai_players = ai_players
 
     @property
     def current_player(self) -> CatanPlayer:
@@ -318,10 +322,10 @@ class CatanGame:
         player = self.get_player(agent)
         player.resources[resource] += 1
 
-    def end_turn(self, agent):
-        # Set current player to next player
+    def end_turn(self):
+        print(f"Ending turn for {self.current_player.name}")
         self.turn += 1
-        if self.turn >= 3:
+        if self.turn == 4:
             self.turn = 0
 
     def get_longest_road_length(self, player_name: str) -> int:
