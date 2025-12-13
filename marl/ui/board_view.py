@@ -9,6 +9,10 @@ from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter, QPixma
 from PyQt6.QtCore import QPointF, Qt
 
 from marl.model.CatanGame import CatanGame
+from params.catan_constants import N_EDGES, N_NODES
+from params.tiles2edges_adjacency_map import TILES_TO_EDGES
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
+from params.edges_list import EDGES_LIST
 
 
 class NodeItem(QGraphicsEllipseItem):
@@ -219,35 +223,50 @@ class BoardView(QGraphicsView):
         translate_y = -min_y + margin
 
         # create hexes, nodes, edges
-        node_map = {}
-        node_index_counter = 0
+        node_items = []
+        node_creation_map = [False] * N_NODES
+        edge_items = []
+        edge_creation_map = [False] * N_EDGES
+        hex_centers = sorted(
+            hex_centers,
+            key=lambda p: (round(p.y(), 6), round(p.x(), 6))
+        )
         for i, center in enumerate(hex_centers):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
             hex_item = HexItem(center, r, texture_path=f'./assets/{self.game.board.tiles[i][0]}.jpg')
             self.scene.addItem(hex_item)
             corners = HexItem._create_hex_polygon(center, r)
-            # add nodes with deduplication
-            node_items = []
-            for c in corners:
-                node, new_node = self.find_or_create_node(node_map, c, node_index_counter)
-                if new_node:
-                    node_index_counter += 1
-                node_items.append(node)
-            for i in range(6):
-                line = EdgeItem(corners[i], corners[(i + 1) % 6])
-                self.scene.addItem(line)
-                self.edges.append(line)
+            sorted_corners = self._sort_corners(corners)
+            print(f"Hex {i} corners: {sorted_corners}")
 
-        # number nodes top-left → bottom-right
-        sorted_nodes = sorted(node_map.values(), key=lambda n: (n.scenePos().y(), n.scenePos().x()))
-        for idx, node in enumerate(sorted_nodes):
-            node.index = idx
-            node.text_item.setPlainText(str(idx))
+            indices = TILES_TO_NODES[i]
+            for j in range(6):
+                corner = sorted_corners[j]
+                index = indices[j]
+                if not node_creation_map[index]:
+                    node = self.create_node(corner, index)
+                    node_items.append(node)
+                    node_creation_map[index] = True
 
-        self.nodes = sorted_nodes
+            hex_edges = TILES_TO_EDGES[i]
+            for j in range(6):
+                edge_idx = EDGES_LIST.index(hex_edges[i])
+                if not edge_creation_map[edge_idx]:
+                    print(f"Creating edge {edge_idx}")
+                    edge_creation_map[edge_idx] = True
+                    line = EdgeItem(corners[i], corners[(i + 1) % 6])
+                    self.scene.addItem(line)
+                    self.edges.append(line)
+
+        self.nodes = node_items
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
-    def find_or_create_node(self, node_map, c, index_counter):
+    def create_node(self, corner, index):
+        node = NodeItem(corner, index)
+        self.scene.addItem(node)
+        return node
+
+    def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0
         for key, node in node_map.items():
             if (abs(key[0] - c.x()) < EPS and abs(key[1] - c.y()) < EPS):
@@ -257,6 +276,16 @@ class BoardView(QGraphicsView):
         node_map[(c.x(), c.y())] = node
         self.scene.addItem(node)
         return node, True
+
+    def _sort_corners(self, corners):
+        s = sorted(
+            corners,
+            key=lambda p: (round(p.y(), 2), round(p.x(), 2))
+        )
+        s[0], s[1] = s[1], s[0]
+        s[3], s[4] = s[4], s[3]
+        s[4], s[5] = s[5], s[4]
+        return s
 
     def expect_node_selection(self, callback):
         """BoardView will call callback(node_index) after user clicks a node."""
