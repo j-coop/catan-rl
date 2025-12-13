@@ -2,11 +2,14 @@ import math
 import os
 
 from PyQt6.QtWidgets import (
-    QGraphicsView, QGraphicsScene, QGraphicsPolygonItem, QGraphicsEllipseItem,
-    QGraphicsLineItem, QGraphicsTextItem, QWidget, QApplication, QVBoxLayout
+    QGraphicsView, QGraphicsScene, QGraphicsPolygonItem,
+    QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem
 )
-from PyQt6.QtGui import QBrush, QPen, QColor, QPolygonF, QFont, QPainter, QPixmap
-from PyQt6.QtCore import QPointF, Qt
+from PyQt6.QtGui import (
+    QBrush, QPen, QColor, QPolygonF, 
+    QPixmap, QPainter, QPainterPath
+)
+from PyQt6.QtCore import QPointF, Qt, QRectF
 
 from marl.model.CatanGame import CatanGame
 from params.catan_constants import N_EDGES, N_NODES
@@ -15,29 +18,75 @@ from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
 
 
-class NodeItem(QGraphicsEllipseItem):
+class NodeItem(QGraphicsItem):
     RADIUS = 8.0
 
-    def __init__(self, pos: QPointF, index: int = -1):
-        r = NodeItem.RADIUS
-        super().__init__(pos.x() - r, pos.y() - r, r * 2, r * 2)
-        self.setBrush(QBrush(QColor(255, 255, 255)))
-        self.setPen(QPen(Qt.GlobalColor.black, 1))
+    def __init__(self,
+                 pos: QPointF,
+                 index: int,
+                 owner_color: str | None = None,):
+        super().__init__()
+        self.setPos(pos)
         self.setZValue(2)
+
         self.index = index
         self.selected = False
-
-        self.text_item = QGraphicsTextItem(str(index), self)
-        self.text_item.setFont(QFont("Arial", 7))
-        self.text_item.setDefaultTextColor(Qt.GlobalColor.black)
-        self.text_item.setPos(-r / 2, -r / 2)
+        self.hovered = False
+        self.owner_color = owner_color
 
         self.setAcceptHoverEvents(True)
+
+    def boundingRect(self) -> QRectF:
+        r = self.RADIUS
+        return QRectF(-r, -r, 2 * r, 2 * r)
+
+    def shape(self) -> QPainterPath:
+        path = QPainterPath()
+        path.addEllipse(self.boundingRect())
+        return path
+
+    def paint(self, painter: QPainter, option, widget=None):
+        if self.owner_color is not None:
+            self._draw_settlement(painter)
+        else:
+            self._draw_empty_node(painter)
+
+    def _draw_empty_node(self, painter: QPainter):
+        if self.hovered:
+            brush = QBrush(QColor(255, 200, 0))
+            pen = QPen(QColor(200, 120, 0), 2)
+        else:
+            brush = QBrush(QColor(255, 255, 255))
+            pen = QPen(Qt.GlobalColor.black, 1)
+
+        painter.setBrush(brush)
+        painter.setPen(pen)
+        painter.drawEllipse(self.boundingRect())
+
+    def _draw_settlement(self, painter: QPainter):
+        fill = QColor(self.owner_color)
+        if self.hovered and not self.selected:
+            fill = fill.darker(130)
+        outline = QColor(0, 0, 0)
+
+        painter.setBrush(QBrush(fill))
+        painter.setPen(QPen(outline, 1.5))
+
+        r = self.RADIUS
+        scale = 3.0
+
+        path = QPainterPath()
+        path.moveTo(-r * 0.5 * scale,  r * 0.4 * scale)
+        path.lineTo(-r * 0.5 * scale, -r * 0.1 * scale)
+        path.lineTo(0, -r * 0.6 * scale)
+        path.lineTo( r * 0.5 * scale, -r * 0.1 * scale)
+        path.lineTo( r * 0.5 * scale,  r * 0.4 * scale)
+        path.closeSubpath()
+        painter.drawPath(path)
 
     def mousePressEvent(self, event):
         view = self.scene().views()[0]
 
-        # If board is waiting for a node → deliver it and exit selection mode
         if view.awaiting_node_callback:
             callback = view.awaiting_node_callback
             view.awaiting_node_callback = None
@@ -53,26 +102,20 @@ class NodeItem(QGraphicsEllipseItem):
                 view.selected_item.set_selected(False)
             view.selected_item = self
             self.set_selected(True)
+
         event.accept()
 
     def hoverEnterEvent(self, event):
-        if not self.selected:
-            self.setPen(QPen(QColor(200, 120, 0), 2))
+        self.hovered = True
+        self.update()
 
     def hoverLeaveEvent(self, event):
-        self.update_style()
+        self.hovered = False
+        self.update()
 
     def set_selected(self, selected: bool):
         self.selected = selected
-        self.update_style()
-
-    def update_style(self):
-        if self.selected:
-            self.setBrush(QBrush(QColor(255, 200, 0)))
-            self.setPen(QPen(QColor(200, 120, 0), 2))
-        else:
-            self.setBrush(QBrush(QColor(255, 255, 255)))
-            self.setPen(QPen(Qt.GlobalColor.black, 1))
+        self.update()
 
 
 class EdgeItem(QGraphicsLineItem):
@@ -260,7 +303,12 @@ class BoardView(QGraphicsView):
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
     def create_node(self, corner, index):
-        node = NodeItem(corner, index)
+        owner = self.game.board.nodes[index]
+        if owner is None:
+            node = NodeItem(corner, index)
+        else:
+            color = self.game.get_player(owner).color
+            node = NodeItem(corner, index, owner_color=color)
         self.scene.addItem(node)
         return node
 
