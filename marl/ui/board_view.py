@@ -74,9 +74,10 @@ class NodeItem(QGraphicsEllipseItem):
 class EdgeItem(QGraphicsLineItem):
     WIDTH = 6.0
 
-    def __init__(self, p1: QPointF, p2: QPointF):
+    def __init__(self, p1: QPointF, p2: QPointF, index: int = -1):
         super().__init__(p1.x(), p1.y(), p2.x(), p2.y())
         self.selected = False
+        self.index = index
         self.setZValue(1)
         self.setAcceptHoverEvents(True)
         self.setPen(QPen(QColor(120, 120, 120), EdgeItem.WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
@@ -88,10 +89,7 @@ class EdgeItem(QGraphicsLineItem):
         if view.awaiting_edge_callback:
             callback = view.awaiting_edge_callback
             view.awaiting_edge_callback = None
-
-            # find edge index
-            edge_index = view.edges.index(self)
-            callback(edge_index)
+            callback(self.index)
             event.accept()
             return
 
@@ -204,7 +202,7 @@ class BoardView(QGraphicsView):
         hex_centers = []
 
         # calculate hex centers
-        for row_idx, tiles in enumerate(self.ROW_COUNTS):
+        for _, tiles in enumerate(self.ROW_COUNTS):
             row_width = (tiles - 1) * h_spacing + hex_w
             start_x = (board_width - row_width) / 2.0 + r
             for i in range(tiles):
@@ -222,6 +220,7 @@ class BoardView(QGraphicsView):
 
         # create hexes, nodes, edges
         node_map = {}
+        node_index_counter = 0
         for i, center in enumerate(hex_centers):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
             hex_item = HexItem(center, r, texture_path=f'./assets/{self.game.board.tiles[i][0]}.jpg')
@@ -230,12 +229,10 @@ class BoardView(QGraphicsView):
             # add nodes with deduplication
             node_items = []
             for c in corners:
-                key = (round(c.x(), 2), round(c.y(), 2))
-                if key not in node_map:
-                    node_map[key] = NodeItem(c)
-                    self.scene.addItem(node_map[key])
-                node_items.append(node_map[key])
-            # add edges (inch-perfect)
+                node, new_node = self.find_or_create_node(node_map, c, node_index_counter)
+                if new_node:
+                    node_index_counter += 1
+                node_items.append(node)
             for i in range(6):
                 line = EdgeItem(corners[i], corners[(i + 1) % 6])
                 self.scene.addItem(line)
@@ -249,6 +246,17 @@ class BoardView(QGraphicsView):
 
         self.nodes = sorted_nodes
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
+
+    def find_or_create_node(self, node_map, c, index_counter):
+        EPS = 2.0
+        for key, node in node_map.items():
+            if (abs(key[0] - c.x()) < EPS and abs(key[1] - c.y()) < EPS):
+                return node, False
+        # no match → create
+        node = NodeItem(c, index_counter)
+        node_map[(c.x(), c.y())] = node
+        self.scene.addItem(node)
+        return node, True
 
     def expect_node_selection(self, callback):
         """BoardView will call callback(node_index) after user clicks a node."""
