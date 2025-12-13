@@ -151,7 +151,7 @@ class CatanGame:
                 self.check_victory(agent)
                 previous_holder = self.longest_road_owner
                 previous_holder.points -= 2
-            self.longest_road_owner = player
+                self.longest_road_owner = player
 
     def buy_dev_card(self, agent):
         player = self.get_player(agent)
