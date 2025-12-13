@@ -223,9 +223,7 @@ class BoardView(QGraphicsView):
         translate_y = -min_y + margin
 
         # create hexes, nodes, edges
-        node_items = []
         node_creation_map = [False] * N_NODES
-        edge_items = []
         edge_creation_map = [False] * N_EDGES
         hex_centers = sorted(
             hex_centers,
@@ -237,7 +235,6 @@ class BoardView(QGraphicsView):
             self.scene.addItem(hex_item)
             corners = HexItem._create_hex_polygon(center, r)
             sorted_corners = self._sort_corners(corners)
-            print(f"Hex {i} corners: {sorted_corners}")
 
             indices = TILES_TO_NODES[i]
             for j in range(6):
@@ -245,20 +242,21 @@ class BoardView(QGraphicsView):
                 index = indices[j]
                 if not node_creation_map[index]:
                     node = self.create_node(corner, index)
-                    node_items.append(node)
+                    self.nodes.append(node)
+                    self.scene.addItem(node)
                     node_creation_map[index] = True
 
             hex_edges = TILES_TO_EDGES[i]
             for j in range(6):
-                edge_idx = EDGES_LIST.index(hex_edges[i])
+                edge_idx = EDGES_LIST.index(hex_edges[j])
                 if not edge_creation_map[edge_idx]:
-                    print(f"Creating edge {edge_idx}")
                     edge_creation_map[edge_idx] = True
-                    line = EdgeItem(corners[i], corners[(i + 1) % 6])
-                    self.scene.addItem(line)
-                    self.edges.append(line)
+                    edge = EdgeItem(sorted_corners[j],
+                                    sorted_corners[(j + 1) % 6],
+                                    edge_idx)
+                    self.scene.addItem(edge)
+                    self.edges.append(edge)
 
-        self.nodes = node_items
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
     def create_node(self, corner, index):
