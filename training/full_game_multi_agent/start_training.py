@@ -28,6 +28,11 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
             env="catan",
             env_config={}
         )
+        # IMPORTANT - Forces old api stack architecture correct for env
+        .api_stack(
+            enable_rl_module_and_learner=False,
+            enable_env_runner_and_connector_v2=False,
+        )
         .framework("torch")
         .training(
             gamma=0.97,
@@ -35,7 +40,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
             train_batch_size=4000,
             num_sgd_iter=10,
         )
-        .debugging(log_level="WARN")
+        .debugging(log_level="ERROR")
     )
 
     temp_env = PettingZooEnv(CatanEnv())
