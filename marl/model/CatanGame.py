@@ -48,6 +48,8 @@ class CatanGame:
         self._year_of_plenty_choices = []
         self._roads_remaining_from_card = None
 
+        print("GAME OBJECT INITIALIZED")
+
         if not training:
             self.generate_random_init_board_state()
             self.ai_players = [0] * len(self.players)

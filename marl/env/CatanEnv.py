@@ -18,7 +18,7 @@ class CatanEnv(AECEnv):
 
     def __init__(self, env_config=None):
         super().__init__()
-        self.colors=[""] * 4
+        self.colors = [""] * 4
         self.agents = [
             "Blue Player",
             "Purple Player",
@@ -34,16 +34,31 @@ class CatanEnv(AECEnv):
 
         self.actions = ActionSpace(self.game)
 
-        self.observation_spaces = {
-            agent: spaces.Dict({
-                "observation": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.get_observation_space_size(),),
-                    dtype=np.float32
-                )})
-            for agent in self.agents
-        }
+        # self.observation_spaces = {
+        #     agent: spaces.Dict({
+        #         "observation": spaces.Box(
+        #             low=0,
+        #             high=1,
+        #             shape=(self.get_observation_space_size(),),
+        #             dtype=np.float32
+        #         )})
+        #     for agent in self.agents
+        # }
+
+        self._observation_space = spaces.Dict({
+            "observation": spaces.Box(
+                low=0.0,
+                high=1.0,
+                shape=(self.get_observation_space_size(),),
+                dtype=np.float32,
+            ),
+            "action_mask": spaces.Box(
+                low=0,
+                high=1,
+                shape=(self.actions.get_action_space_size(),),
+                dtype=np.int8,
+            ),
+        })
 
         self.action_spaces = {
             agent: spaces.Discrete(self.actions.get_action_space_size())
@@ -57,9 +72,10 @@ class CatanEnv(AECEnv):
         self.game.handle_dice_roll()
 
     def observation_space(self, agent=None):
-        if agent is None:
-            return self.observation_spaces  # returns dict if needed
-        return self.observation_spaces[agent]
+        # if agent is None:
+        #     return self.observation_spaces  # returns dict if needed
+        # return self.observation_spaces[agent]
+        return self._observation_space
 
     def action_space(self, agent=None):
         if agent is None:
@@ -89,6 +105,7 @@ class CatanEnv(AECEnv):
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
+                print(f"Action type: {spec.name}")
                 local_index = action - start
                 spec.handler(agent, local_index)
                 return
@@ -99,7 +116,15 @@ class CatanEnv(AECEnv):
     Only choosing 'end turn' action ends game logic turn
     """
     def step(self, action):
+        print(f"Chosen action: {action}")
         agent = self.agent_selection
+        player = self.game.get_player(agent)
+
+        # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
+        mask = self.actions.get_action_mask(player)
+        if mask[action] == 0:
+            action = self.actions.get_action_space_size() - 1  # end turn instead of illegal
+
         potential_before = self.compute_potential(agent)
         print("Hey")
         self.apply_action(agent, action)
@@ -131,9 +156,9 @@ class CatanEnv(AECEnv):
             self.pending_dice_roll = False
 
         # Generate observations with all agents
-        obs = {}
-        for p in self.game.players:
-            obs[p.name] = self.observe(p)
+        obs = self.observe(self.agent_selection)
+        # for p in self.game.players:
+        #     obs[p.name] = self.observe(p)
         truncateds = {k: False for k in self.terminations.keys()}
 
         return obs, reward, self.terminations, truncateds, {}
@@ -167,7 +192,7 @@ class CatanEnv(AECEnv):
         # infos = {k: {} for k in obs.keys()}
         # return obs, infos
         return (
-            {self.agent_selection: self.observe(self.agent_selection)},
+            self.observe(self.agent_selection),
             {},
         )
 
@@ -187,6 +212,7 @@ class CatanEnv(AECEnv):
 
         player = self.game.get_player(agent)
         mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
+        print(f"MASK: {mask}")
 
         return {
             "observation": obs_vec,

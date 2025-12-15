@@ -165,7 +165,7 @@ class CatanPlayer:
 
             ratio = self._get_trade_ratio(res)
             tradable += qty // ratio
-        print("Is enough resources", tradable >= total_needed)
+        print("Is enough resources", tradable >= total_needed, build_type, self.resources)
         return tradable >= total_needed
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:
