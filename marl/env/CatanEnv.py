@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 from gymnasium import spaces
 from pettingzoo import AECEnv
+from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
 from marl.env.ActionSpace import ActionSpace
 from marl.env.Rewards import Rewards
@@ -12,13 +13,13 @@ from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_
 from marl.model.CatanGame import CatanGame
 
 
-class CatanEnv(AECEnv):
+class CatanEnv(MultiAgentEnv):
 
     metadata = {"name": "catan_v0"}
 
     def __init__(self, env_config=None):
         super().__init__()
-        self.colors=[""] * 4
+        self.colors = [""] * 4
         self.agents = [
             "Blue Player",
             "Purple Player",
@@ -35,13 +36,12 @@ class CatanEnv(AECEnv):
         self.actions = ActionSpace(self.game)
 
         self.observation_spaces = {
-            agent: spaces.Dict({
-                "observation": spaces.Box(
-                    low=0,
-                    high=1,
-                    shape=(self.get_observation_space_size(),),
-                    dtype=np.float32
-                )})
+            agent: spaces.Box(
+                        low=0,
+                        high=1,
+                        shape=(self.get_observation_space_size(),),
+                        dtype=np.float32
+                    )
             for agent in self.agents
         }
 
@@ -56,15 +56,16 @@ class CatanEnv(AECEnv):
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
 
-    def observation_space(self, agent=None):
-        if agent is None:
-            return self.observation_spaces  # returns dict if needed
-        return self.observation_spaces[agent]
-
-    def action_space(self, agent=None):
-        if agent is None:
-            return self.action_spaces
-        return self.action_spaces[agent]
+    # def observation_space(self, agent=None):
+    #     print(agent)
+    #     if agent is None:
+    #         return self.observation_spaces  # returns dict if needed
+    #     return self.observation_spaces
+    #
+    # def action_space(self, agent=None):
+    #     if agent is None:
+    #         return self.action_spaces
+    #     return self.action_spaces
 
     @property
     def get_sub_environments(self):
@@ -89,6 +90,7 @@ class CatanEnv(AECEnv):
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
+                print(f"Action type: {spec.name}")
                 local_index = action - start
                 spec.handler(agent, local_index)
                 return
@@ -98,8 +100,20 @@ class CatanEnv(AECEnv):
     One step corresponds to one action (finer control, better action to reward association)
     Only choosing 'end turn' action ends game logic turn
     """
-    def step(self, action):
+    def step(self, action_dict):
+
         agent = self.agent_selection
+        player = self.game.get_player(agent)
+        action = action_dict[agent]
+        print(f"Chosen action: {action}")
+
+        # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
+        mask = self.actions.get_action_mask(player)
+        print(mask)
+        if mask[action] == 0:
+            print("Chosen action illegal - end turn")
+            action = self.actions.get_action_space_size() - 1  # end turn instead of illegal
+
         potential_before = self.compute_potential(agent)
         print("Hey")
         self.apply_action(agent, action)
@@ -122,7 +136,7 @@ class CatanEnv(AECEnv):
         self.rewards[agent] = reward
 
         # IMPORTANT for PettingZoo bookkeeping:
-        self._accumulate_rewards()
+        # self._accumulate_rewards()
         self._cumulative_rewards[agent] += self.rewards[agent]
 
         # Handle dice roll if necessary
@@ -130,13 +144,23 @@ class CatanEnv(AECEnv):
             self.game.handle_dice_roll()
             self.pending_dice_roll = False
 
-        # Generate observations with all agents
-        obs = {}
-        for p in self.game.players:
-            obs[p.name] = self.observe(p)
-        truncateds = {k: False for k in self.terminations.keys()}
+        # Observations
+        obs = {self.agent_selection: self.observe(self.agent_selection)}
 
-        return obs, reward, self.terminations, truncateds, {}
+        # RLlib expects a dict of rewards for all agents
+        rewards = {p.name: self.rewards.get(p.name, 0.0) for p in self.game.players}
+
+        # RLlib expects terminateds, truncateds dict with "__all__"
+        terminateds = {p.name: self.terminations.get(p.name, False) for p in self.game.players}
+        terminateds["__all__"] = all(terminateds.values())
+
+        truncateds = {p.name: self.truncations.get(p.name, False) for p in self.game.players}
+        truncateds["__all__"] = all(truncateds.values())
+
+        # Info dict per agent
+        infos = {self.agent_selection: self.infos.get(self.agent_selection, {})}
+
+        return obs, rewards, terminateds, truncateds, infos
 
     def reset(self, *, seed=None, options=None):
         if seed is not None:
@@ -166,10 +190,12 @@ class CatanEnv(AECEnv):
         # }
         # infos = {k: {} for k in obs.keys()}
         # return obs, infos
-        return (
-            {self.agent_selection: self.observe(self.agent_selection)},
-            {},
-        )
+        # return (
+        #     {self.agent_selection: self.observe(self.agent_selection)},
+        #     {},
+        # )
+        obs = {self.agent_selection: self.observe(self.agent_selection)}
+        return obs, {}
 
     def observe(self, agent):
         """
@@ -185,13 +211,15 @@ class CatanEnv(AECEnv):
         # observation vector
         obs_vec = np.array(self.get_observation(agent), dtype=np.float32)
 
-        player = self.game.get_player(agent)
-        mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
+        # player = self.game.get_player(agent)
+        # mask = np.array(self.actions.get_action_mask(player), dtype=np.int8)
+        # print(f"MASK: {mask}")
 
-        return {
-            "observation": obs_vec,
-            "action_mask": mask
-        }
+        # return {
+        #     "observation": obs_vec,
+        #     "action_mask": mask
+        # }
+        return obs_vec
 
     def render(self):
         pass

@@ -1,4 +1,3 @@
-
 import os
 os.environ["RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO"] = "0"
 
@@ -6,29 +5,41 @@ import ray
 import argparse
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
-from ray.rllib.env import PettingZooEnv
-from ray.rllib.env.wrappers.multi_agent_env_compatibility import MultiAgentEnvCompatibility
-
 
 from marl.env.CatanEnv import CatanEnv
 
 
+# ---------------------------------------------------------------------
+# Environment registration
+# ---------------------------------------------------------------------
+
 def env_creator(config=None):
-    return PettingZooEnv(CatanEnv())
+    return CatanEnv()
 
 register_env("catan", env_creator)
 
 
+# ---------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------
+
 def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
 
     ray.init(ignore_reinit_error=True)
+
+    # Create temp env to grab spaces
+    temp_env = CatanEnv()
+    obs_space = temp_env.observation_space
+    act_space = temp_env.action_space
+    temp_env.close()
+
     config = (
         PPOConfig()
         .environment(
             env="catan",
             env_config={}
         )
-        # IMPORTANT - Forces old api stack architecture correct for env
+        # Old, stable API stack (correct for custom MA envs)
         .api_stack(
             enable_rl_module_and_learner=False,
             enable_env_runner_and_connector_v2=False,
@@ -40,30 +51,29 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
             train_batch_size=4000,
             num_sgd_iter=10,
         )
+        .multi_agent(
+            policies={
+                "shared_policy": (
+                    None,          # default PPO policy
+                    obs_space,
+                    act_space,
+                    {},
+                )
+            },
+            policy_mapping_fn=lambda agent_id, *args, **kwargs: "shared_policy",
+        )
         .debugging(log_level="ERROR")
     )
 
-    temp_env = PettingZooEnv(CatanEnv())
-    policies = {
-        "shared_policy": (
-            None,
-            temp_env.observation_space,
-            temp_env.action_space,
-            {}
-        )
-    }
-    temp_env.close()
-
-    config = config.multi_agent(
-        policies=policies,
-        policy_mapping_fn=lambda aid, *args, **kw: "shared_policy"
-    )
     algo = config.build()
 
     for i in range(num_iterations):
         result = algo.train()
-        print(f"iter={i} reward_mean={result['episode_reward_mean']}"
-              " timesteps_total={result['timesteps_total']}")
+        print(
+            f"iter={i} "
+            f"reward_mean={result['episode_reward_mean']} "
+            f"timesteps_total={result['timesteps_total']}"
+        )
 
         if i % checkpoint_freq == 0:
             checkpoint = algo.save()
@@ -76,9 +86,17 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
     ray.shutdown()
 
 
+# ---------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--iters", type=int, default=2000)
     parser.add_argument("--timesteps", type=int, default=1_000_000)
     args = parser.parse_args()
-    main(num_iterations=args.iters, stop_timesteps=args.timesteps)
+
+    main(
+        num_iterations=args.iters,
+        stop_timesteps=args.timesteps,
+    )

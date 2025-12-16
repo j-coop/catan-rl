@@ -48,6 +48,8 @@ class CatanGame:
         self._year_of_plenty_choices = []
         self._roads_remaining_from_card = None
 
+        print("GAME OBJECT INITIALIZED")
+
         if not training:
             self.generate_random_init_board_state()
             self.ai_players = [0] * len(self.players)
@@ -322,7 +324,7 @@ class CatanGame:
         player = self.get_player(agent)
         player.resources[resource] += 1
 
-    def end_turn(self):
+    def end_turn(self, agent=None, index=None):
         print(f"Ending turn for {self.current_player.name}")
         self.turn += 1
         if self.turn == 4:
