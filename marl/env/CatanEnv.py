@@ -109,7 +109,9 @@ class CatanEnv(MultiAgentEnv):
 
         # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
         mask = self.actions.get_action_mask(player)
+        print(mask)
         if mask[action] == 0:
+            print("Chosen action illegal - end turn")
             action = self.actions.get_action_space_size() - 1  # end turn instead of illegal
 
         potential_before = self.compute_potential(agent)
@@ -134,7 +136,7 @@ class CatanEnv(MultiAgentEnv):
         self.rewards[agent] = reward
 
         # IMPORTANT for PettingZoo bookkeeping:
-        self._accumulate_rewards()
+        # self._accumulate_rewards()
         self._cumulative_rewards[agent] += self.rewards[agent]
 
         # Handle dice roll if necessary
@@ -148,14 +150,17 @@ class CatanEnv(MultiAgentEnv):
         # RLlib expects a dict of rewards for all agents
         rewards = {p.name: self.rewards.get(p.name, 0.0) for p in self.game.players}
 
-        # RLlib expects done dict with "__all__"
-        dones = {p.name: self.terminations.get(p.name, False) for p in self.game.players}
-        dones["__all__"] = all(dones.values())
+        # RLlib expects terminateds, truncateds dict with "__all__"
+        terminateds = {p.name: self.terminations.get(p.name, False) for p in self.game.players}
+        terminateds["__all__"] = all(terminateds.values())
+
+        truncateds = {p.name: self.truncations.get(p.name, False) for p in self.game.players}
+        truncateds["__all__"] = all(truncateds.values())
 
         # Info dict per agent
-        infos = {p.name: self.infos.get(p.name, {}) for p in self.game.players}
+        infos = {self.agent_selection: self.infos.get(self.agent_selection, {})}
 
-        return obs, rewards, dones, infos
+        return obs, rewards, terminateds, truncateds, infos
 
     def reset(self, *, seed=None, options=None):
         if seed is not None:

@@ -324,7 +324,7 @@ class CatanGame:
         player = self.get_player(agent)
         player.resources[resource] += 1
 
-    def end_turn(self):
+    def end_turn(self, agent=None, index=None):
         print(f"Ending turn for {self.current_player.name}")
         self.turn += 1
         if self.turn == 4:
