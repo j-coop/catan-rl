@@ -2,7 +2,7 @@ from marl.model.CatanGame import CatanGame
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
 from marl.util.ActionSpec import ActionSpec
-from params.catan_constants import N_NODES, N_EDGES, DEV_CARD_TYPES
+from params.catan_constants import N_NODES, N_EDGES, DEV_CARD_TYPES, BANK_TRADE_PAIRS
 
 
 class ActionSpace:
@@ -29,7 +29,7 @@ class ActionSpace:
         # 20 for trading with bank (each resource for each resource)
         # 5 for choosing resource (year of plenty, monopoly)
         # 1 for end turn
-        size += 1 + 5 + 19 + 20 + 1
+        size += 1 + 5 + 19 + 20 + 5 + 1
         return size
 
     def init_action_specs(self):
@@ -152,7 +152,8 @@ class ActionSpace:
         # --- Trading with bank ---
         trade_pairs = player.get_valid_bank_trades()
         spec = next(s for s in self.action_specs if s.name == "trade_bank")
-        for idx in trade_pairs:
+        for trade_pair in trade_pairs:
+            idx = BANK_TRADE_PAIRS.index(trade_pair)
             mask[spec.range[0] + idx] = True
 
         # --- Always allow end turn ---

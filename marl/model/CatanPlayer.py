@@ -68,11 +68,14 @@ class CatanPlayer:
 
         cost = Counter(BUILD_COSTS[build_type])
         shortages = self._deduct_direct_resources(cost)
+        print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
             shortages = self._cover_shortages_with_trades(shortages)
+            print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
+            print(f"shortages: {shortages}")
             raise ValueError(f"Player {self.name} cannot afford to build {build_type}, even with trades")
 
     def _deduct_direct_resources(self, cost: Counter) -> Counter:
@@ -146,6 +149,7 @@ class CatanPlayer:
         Check if the player can afford a given build (settlement, city, road, dev_card),
         considering posessed resources and trades with bank
         """
+        print(f"can_afford_with_trades: {build_type}, resources: {self.resources}")
         cost = Counter(BUILD_COSTS[build_type])
         available = Counter(self.resources)
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
