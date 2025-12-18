@@ -74,3 +74,16 @@ class PlayerInfoPanel(QWidget):
             w = self.layout.itemAt(i).widget()
             if w:
                 w.deleteLater()
+
+    def _update_resources(self):
+        """Update only the resources labels without rebuilding the entire panel."""
+        for i in range(self.layout.count()):
+            block = self.layout.itemAt(i).widget()
+            if not block:
+                continue
+            v_layout = block.layout()
+            # resources_label is always the 5th widget in the vertical layout
+            resources_label = v_layout.itemAt(4).widget()
+            if resources_label:
+                player = self.game.players[i]
+                resources_label.setText(self._get_resources_desc(player))

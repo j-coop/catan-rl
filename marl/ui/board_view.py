@@ -20,11 +20,11 @@ from params.edges_list import EDGES_LIST
 
 class NodeItem(QGraphicsItem):
     RADIUS = 8.0
+    EMPTY = 0
+    SETTLEMENT = 1
+    CITY = 2
 
-    def __init__(self,
-                 pos: QPointF,
-                 index: int,
-                 owner_color: str | None = None):
+    def __init__(self, pos: QPointF, index: int, owner_color: str | None = None):
         super().__init__()
         self.setPos(pos)
         self.setZValue(2)
@@ -33,7 +33,9 @@ class NodeItem(QGraphicsItem):
         self.selected = False
         self.hovered = False
         self.owner_color = owner_color
-
+        self.building_type = (
+            NodeItem.SETTLEMENT if owner_color is not None else NodeItem.EMPTY
+        )
         self.setAcceptHoverEvents(True)
 
     def boundingRect(self) -> QRectF:
@@ -46,10 +48,12 @@ class NodeItem(QGraphicsItem):
         return path
 
     def paint(self, painter: QPainter, option, widget=None):
-        if self.owner_color is not None:
-            self._draw_settlement(painter)
-        else:
+        if self.building_type == NodeItem.EMPTY:
             self._draw_empty_node(painter)
+        elif self.building_type == NodeItem.SETTLEMENT:
+            self._draw_settlement(painter)
+        elif self.building_type == NodeItem.CITY:
+            self._draw_city(painter)
 
     def _draw_empty_node(self, painter: QPainter):
         if self.hovered:
@@ -73,7 +77,7 @@ class NodeItem(QGraphicsItem):
         painter.setPen(QPen(outline, 1.5))
 
         r = self.RADIUS
-        scale = 3.0
+        scale = 3.5
 
         path = QPainterPath()
         path.moveTo(-r * 0.5 * scale,  r * 0.4 * scale)
@@ -82,6 +86,32 @@ class NodeItem(QGraphicsItem):
         path.lineTo( r * 0.5 * scale, -r * 0.1 * scale)
         path.lineTo( r * 0.5 * scale,  r * 0.4 * scale)
         path.closeSubpath()
+        painter.drawPath(path)
+
+    def _draw_city(self, painter: QPainter):
+        fill = QColor(self.owner_color)
+        if self.hovered and not self.selected:
+            fill = fill.darker(130)
+
+        r = self.RADIUS
+        scale = 4.0
+
+        path = QPainterPath()
+        path.moveTo(-r * 0.5 * scale,  r * 0.4 * scale)
+        path.lineTo(-r * 0.5 * scale, -r * 0.1 * scale)
+        path.lineTo(0, -r * 0.6 * scale)
+        path.lineTo( r * 0.5 * scale, -r * 0.1 * scale)
+        path.lineTo( r * 0.5 * scale,  r * 0.4 * scale)
+        path.closeSubpath()
+
+        # ---- thick black border (outline pass) ----
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(QColor(0, 0, 0), 8))
+        painter.drawPath(path)
+
+        # ---- fill + thin edge (fill pass) ----
+        painter.setBrush(QBrush(fill))
+        painter.setPen(QPen(QColor(0, 0, 0), 1.2))
         painter.drawPath(path)
 
     def mousePressEvent(self, event):
@@ -115,6 +145,15 @@ class NodeItem(QGraphicsItem):
 
     def set_selected(self, selected: bool):
         self.selected = selected
+        self.update()
+
+    def set_settlement(self, color: str):
+        self.owner_color = color
+        self.building_type = NodeItem.SETTLEMENT
+        self.update()
+
+    def set_city(self):
+        self.building_type = NodeItem.CITY
         self.update()
 
 
@@ -383,9 +422,32 @@ class BoardView(QGraphicsView):
             self.selected_item.set_selected(False)
             self.selected_item = None
 
+    def build_settlement_ui(self, index: int):
+        for node in self.nodes:
+            if node.index == index:
+                owner = self.game.board.nodes[index]
+                color = self.game.get_player(owner).color
+                node.set_settlement(color)
+                return
+
+    def upgrade_city_ui(self, index: int):
+        for node in self.nodes:
+            if node.index == index:
+                node.set_city()
+                return
+
+    def build_road_ui(self, index: int):
+        for edge in self.edges:
+            if edge.index == index:
+                owner = self.game.board.edges[index]
+                color = self.game.get_player(owner).color
+
+                edge.owner_color = QColor(color)
+                edge.selected = False
+                edge.update_style()
+                return
 
 
-# Demo run
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)

@@ -4,40 +4,49 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 
 from marl.model.CatanGame import CatanGame
 from marl.ui.board_view import BoardView
+from marl.ui.PlayerInfoPanel import PlayerInfoPanel
+
 
 class ActionHandler:
 
     def on_build_settlement(self):
         player = self.game.current_player.name
         board: BoardView = self.parent().findChild(BoardView)
+        info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(node_index):
             self.game.build_settlement(player, node_index)
-
-        board.expect_node_selection(callback)
-
-    def on_build_city(self):
-        player = self.game.current_player.name
-        board: BoardView = self.parent().findChild(BoardView)
-
-        def callback(node_index):
-            self.game.build_city(player, node_index)
-
+            board.build_settlement_ui(node_index)
+            info_panel._update_resources()
         board.expect_node_selection(callback)
 
     def on_build_road(self):
         player = self.game.current_player.name
         board: BoardView = self.parent().findChild(BoardView)
+        info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(edge_index):
             self.game.build_road(player, edge_index)
-            # refresh UI if needed
-
+            board.build_road_ui(edge_index)
+            info_panel._update_resources()
         board.expect_edge_selection(callback)
+
+    def on_build_city(self):
+        player = self.game.current_player.name
+        board: BoardView = self.parent().findChild(BoardView)
+        info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
+
+        def callback(node_index):
+            self.game.build_city(player, node_index)
+            board.upgrade_city_ui(node_index)
+            info_panel._update_resources()
+        board.expect_node_selection(callback)
 
     def on_buy_dev_card(self):
         player = self.game.current_player.name
+        info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
         self.game.buy_dev_card(player)
+        info_panel._update_resources()
 
     def on_play_dev_card(self):
         player = self.game.current_player.name
