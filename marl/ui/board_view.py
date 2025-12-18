@@ -147,6 +147,15 @@ class NodeItem(QGraphicsItem):
         self.selected = selected
         self.update()
 
+    def set_settlement(self, color: str):
+        self.owner_color = color
+        self.building_type = NodeItem.SETTLEMENT
+        self.update()
+
+    def set_city(self):
+        self.building_type = NodeItem.CITY
+        self.update()
+
 
 class EdgeItem(QGraphicsLineItem):
     WIDTH = 8.0
@@ -413,9 +422,32 @@ class BoardView(QGraphicsView):
             self.selected_item.set_selected(False)
             self.selected_item = None
 
+    def build_settlement_ui(self, index: int):
+        for node in self.nodes:
+            if node.index == index:
+                owner = self.game.board.nodes[index]
+                color = self.game.get_player(owner).color
+                node.set_settlement(color)
+                return
+
+    def upgrade_city_ui(self, index: int):
+        for node in self.nodes:
+            if node.index == index:
+                node.set_city()
+                return
+
+    def build_road_ui(self, index: int):
+        for edge in self.edges:
+            if edge.index == index:
+                owner = self.game.board.edges[index]
+                color = self.game.get_player(owner).color
+
+                edge.owner_color = QColor(color)
+                edge.selected = False
+                edge.update_style()
+                return
 
 
-# Demo run
 if __name__ == "__main__":
     import sys
     app = QApplication(sys.argv)
