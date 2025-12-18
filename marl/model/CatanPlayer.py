@@ -23,7 +23,7 @@ class CatanPlayer:
     def __init__(self, name: str, color: str):
         self.name: str = name
         self.color: str = color
-        self.resources: Dict[str, int] = {res: 7 for res in RESOURCE_TYPES}
+        self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
 
         # Dev cards
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
