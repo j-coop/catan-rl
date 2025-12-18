@@ -24,7 +24,7 @@ class NodeItem(QGraphicsItem):
     def __init__(self,
                  pos: QPointF,
                  index: int,
-                 owner_color: str | None = None,):
+                 owner_color: str | None = None):
         super().__init__()
         self.setPos(pos)
         self.setZValue(2)
@@ -119,20 +119,40 @@ class NodeItem(QGraphicsItem):
 
 
 class EdgeItem(QGraphicsLineItem):
-    WIDTH = 6.0
+    WIDTH = 8.0
+    DEFAULT_COLOR = QColor(120, 120, 120)
+    SELECTED_COLOR = QColor(30, 144, 255)
+    HOVER_DARKEN_FACTOR = 130
 
-    def __init__(self, p1: QPointF, p2: QPointF, index: int = -1):
+    def __init__(self,
+                 p1: QPointF, p2: QPointF,
+                 owner_color: str | None = None,
+                 index: int = -1):
         super().__init__(p1.x(), p1.y(), p2.x(), p2.y())
+
         self.selected = False
+        self.hovered = False
+        self.owner_color = QColor(owner_color) if owner_color else None
         self.index = index
+
         self.setZValue(1)
         self.setAcceptHoverEvents(True)
-        self.setPen(QPen(QColor(120, 120, 120), EdgeItem.WIDTH, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        self.update_style()
+
+    def base_color(self) -> QColor:
+        return self.owner_color or EdgeItem.DEFAULT_COLOR
+
+    def hoverEnterEvent(self, event):
+        self.hovered = True
+        self.update_style()
+
+    def hoverLeaveEvent(self, event):
+        self.hovered = False
+        self.update_style()
 
     def mousePressEvent(self, event):
         view = self.scene().views()[0]
 
-        # If board is waiting for an edge → deliver index
         if view.awaiting_edge_callback:
             callback = view.awaiting_edge_callback
             view.awaiting_edge_callback = None
@@ -150,25 +170,26 @@ class EdgeItem(QGraphicsLineItem):
             self.set_selected(True)
         event.accept()
 
-    def hoverEnterEvent(self, event):
-        if not self.selected:
-            pen = self.pen()
-            self.setPen(QPen(pen.color(), pen.width() + 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-
-    def hoverLeaveEvent(self, event):
-        self.update_style()
-
     def set_selected(self, selected: bool):
         self.selected = selected
         self.update_style()
 
     def update_style(self):
         if self.selected:
-            self.setPen(QPen(QColor(30, 144, 255), EdgeItem.WIDTH + 2,
-                             Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            color = EdgeItem.SELECTED_COLOR
+            width = EdgeItem.WIDTH + 2
         else:
-            self.setPen(QPen(QColor(120, 120, 120), EdgeItem.WIDTH,
-                             Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            color = self.base_color()
+            width = EdgeItem.WIDTH
+            if self.hovered:
+                color = color.darker(EdgeItem.HOVER_DARKEN_FACTOR)
+
+        self.setPen(QPen(
+            color,
+            width,
+            Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap
+        ))
 
 
 class HexItem(QGraphicsPolygonItem):
@@ -294,9 +315,11 @@ class BoardView(QGraphicsView):
                 edge_idx = EDGES_LIST.index(hex_edges[j])
                 if not edge_creation_map[edge_idx]:
                     edge_creation_map[edge_idx] = True
-                    edge = EdgeItem(sorted_corners[j],
-                                    sorted_corners[(j + 1) % 6],
-                                    edge_idx)
+                    edge = self.create_edge(
+                        sorted_corners[j],
+                        sorted_corners[(j + 1) % 6],
+                        edge_idx
+                    )
                     self.scene.addItem(edge)
                     self.edges.append(edge)
 
@@ -311,6 +334,17 @@ class BoardView(QGraphicsView):
             node = NodeItem(corner, index, owner_color=color)
         self.scene.addItem(node)
         return node
+    
+    def create_edge(self, p1: QPointF, p2: QPointF, index: int):
+        owner = self.game.board.edges[index]
+        if owner is None:
+            edge = EdgeItem(p1, p2, index=index)
+        else:
+            color = self.game.get_player(owner).color
+            edge = EdgeItem(p1, p2, owner_color=color, index=index)
+
+        self.scene.addItem(edge)
+        return edge
 
     def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0
