@@ -1,4 +1,3 @@
-from marl.model.CatanGame import CatanGame
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
 from marl.util.ActionSpec import ActionSpec
@@ -6,11 +5,8 @@ from params.catan_constants import N_NODES, N_EDGES, DEV_CARD_TYPES, BANK_TRADE_
 
 
 class ActionSpace:
-    def __init__(self, game: CatanGame):
-
-        self.game = game
-
-        # Mapping of action space to action handlers
+    def __init__(self, env):
+        self.env = env
         self.action_specs: list[ActionSpec] = []
         # Action specs initialization
         self.action_space_size = 0
@@ -35,33 +31,32 @@ class ActionSpace:
     def init_action_specs(self):
         start = 0
 
-        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), self.game.build_settlement))
+        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), self.env.build_settlement))
         start += N_NODES
 
-        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), self.game.build_city))
+        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), self.env.build_city))
         start += N_NODES
 
-        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), self.game.build_road))
+        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), self.env.build_road))
         start += N_EDGES
 
-        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), self.game.buy_dev_card))
+        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), self.env.buy_dev_card))
         start += 1
 
-        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), self.game.play_dev_card))
+        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), self.env.play_dev_card))
         start += 5
 
-        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), self.game.move_robber))
+        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), self.env.move_robber))
         start += 19
 
-        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.game.trade_bank))
+        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.env.trade_bank))
         start += 20
 
-        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), self.game.choose_resource))
+        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), self.env.choose_resource))
         start += 5
 
-        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.game.end_turn))
+        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.env.end_turn))
         start += 1
-
         self.action_space_size = start
 
     # Utility to enable actions dynamically
@@ -77,7 +72,7 @@ class ActionSpace:
         enabling only valid actions for the current phase.
         """
         mask = [False] * self.action_space_size
-        phase = self.game.phase
+        phase = self.env.game.phase
 
         # Phase-based logic
         if phase == CatanPhase.NORMAL:
@@ -98,7 +93,7 @@ class ActionSpace:
         Enable valid road placement actions for the Road Building development card.
         Rules are the same as in normal phase, but only roads are allowed.
         """
-        valid_edges = self.game.board.get_valid_road_spots(player)
+        valid_edges = self.env.game.board.get_valid_road_spots(player)
         spec = next(s for s in self.action_specs if s.name == "build_road")
 
         for edge in valid_edges:
@@ -111,16 +106,16 @@ class ActionSpace:
 
         # --- Building settlements ---
         direct = player.can_afford_directly("settlement")
-        with_trades = player.can_afford_with_trades("settlement", self.game.bank)
+        with_trades = player.can_afford_with_trades("settlement", self.env.game.bank)
         if direct or with_trades:
-            valid_nodes = self.game.board.get_valid_settlement_spots(player)
+            valid_nodes = self.env.game.board.get_valid_settlement_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_settlement")
             for node in valid_nodes:
                 mask[spec.range[0] + node] = True
 
         # --- Building cities ---
         direct = player.can_afford_directly("city")
-        with_trades = player.can_afford_with_trades("city", self.game.bank)
+        with_trades = player.can_afford_with_trades("city", self.env.game.bank)
         if direct or with_trades:
             # player can only upgrade existing settlements
             spec = next(s for s in self.action_specs if s.name == "build_city")
@@ -129,18 +124,18 @@ class ActionSpace:
 
         # --- Building roads ---
         direct = player.can_afford_directly("road")
-        with_trades = player.can_afford_with_trades("road", self.game.bank)
+        with_trades = player.can_afford_with_trades("road", self.env.game.bank)
         if direct or with_trades:
             # print(f"can_afford_road, {player.resources}")
-            valid_edges = self.game.board.get_valid_road_spots(player)
+            valid_edges = self.env.game.board.get_valid_road_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_road")
             for edge in valid_edges:
                 mask[spec.range[0] + edge] = True
 
         # --- Buying dev card ---
         direct = player.can_afford_directly("dev_card")
-        with_trades = player.can_afford_with_trades("dev_card", self.game.bank)
-        if (direct or with_trades) and self.game.bank.remaining_dev_cards() > 0:
+        with_trades = player.can_afford_with_trades("dev_card", self.env.game.bank)
+        if (direct or with_trades) and self.env.game.bank.remaining_dev_cards() > 0:
             self._enable(mask, "buy_dev_card")
 
         # --- Playing dev cards ---

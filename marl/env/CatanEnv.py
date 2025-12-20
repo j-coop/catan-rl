@@ -33,7 +33,7 @@ class CatanEnv(MultiAgentEnv):
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
-        self.actions = ActionSpace(self.game)
+        self.actions = ActionSpace(self)
 
         self.observation_spaces = {
             agent: spaces.Box(
@@ -200,7 +200,7 @@ class CatanEnv(MultiAgentEnv):
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
 
-        self.actions = ActionSpace(self.game)
+        self.actions = ActionSpace(self)
 
         self.agent_selection = self.agents[0]
         self._agent_iterator = iter(self.agents)
@@ -308,7 +308,7 @@ class CatanEnv(MultiAgentEnv):
         resource = RESOURCE_TYPES[resource_index]
         self.game.take_resource(agent, resource)
 
-    def end_turn(self):
+    def end_turn(self, _: str, __: int):
         """End the player's turn."""
         self.game.end_turn()
 
