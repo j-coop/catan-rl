@@ -80,8 +80,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
         result = algo.train()
         print(
             f"iter={i} "
-            f"reward_mean={result['episode_reward_mean']} "
-            f"timesteps_total={result['timesteps_total']}"
+            f"result:{result}"
         )
 
         if i % checkpoint_freq == 0:
