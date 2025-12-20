@@ -92,6 +92,7 @@ class CatanEnv(MultiAgentEnv):
             if start <= action < end:
                 print(f"Action type: {spec.name}")
                 local_index = action - start
+                print(self.game.get_player(agent).resources)
                 spec.handler(agent, local_index)
                 return
         raise ValueError(f"Invalid action index: {action}")
@@ -105,22 +106,52 @@ class CatanEnv(MultiAgentEnv):
         agent = self.agent_selection
         player = self.game.get_player(agent)
         action = action_dict[agent]
+        print("------------------------------------------------------------------------------------")
+        print(f"TURN {self.game.turn} - {self.agent_selection}")
+        print(f"Resources: {player.resources}")
         print(f"Chosen action: {action}")
 
         # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
         mask = self.actions.get_action_mask(player)
-        print(mask)
+        print(f"Resources after mask: {player.resources}")
+        # print(mask)
+        # if mask[action] == 0:
+        #     print("Chosen action illegal - end turn")
+        #     action = self.actions.get_action_space_size() - 1
         if mask[action] == 0:
-            print("Chosen action illegal - end turn")
-            action = self.actions.get_action_space_size() - 1  # end turn instead of illegal
+            print("Chosen action illegal - end step, small penalty and redo same state")
+
+            # Small penalty
+            illegal_penalty = -0.05
+            self.rewards[agent] = illegal_penalty
+            self._cumulative_rewards[agent] += illegal_penalty
+
+            # Observation does NOT advance game
+            obs = {agent: self.observe(agent)}
+
+            rewards = {p.name: 0.0 for p in self.game.players}
+            rewards[agent] = illegal_penalty
+
+            terminateds = {p.name: False for p in self.game.players}
+            terminateds["__all__"] = False
+
+            truncateds = {p.name: False for p in self.game.players}
+            truncateds["__all__"] = False
+
+            infos = {
+                agent: {
+                    "illegal_action": True,
+                    "attempted_action": int(action),
+                }
+            }
+            return obs, rewards, terminateds, truncateds, infos
 
         potential_before = self.compute_potential(agent)
-        print("Hey")
+        print(f"Resources before apply_action: {player.resources}")
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
-            print("IN")
             # Advance to next player (no dice roll yet)
             self.game.end_turn()
             self.agent_selection = self.game.current_player.name
@@ -168,6 +199,8 @@ class CatanEnv(MultiAgentEnv):
 
         self.game = CatanGame(player_colors=self.colors,
                               player_names=self.agents)
+
+        self.actions = ActionSpace(self.game)
 
         self.agent_selection = self.agents[0]
         self._agent_iterator = iter(self.agents)

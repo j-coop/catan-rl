@@ -63,20 +63,23 @@ class CatanPlayer:
                 self.resources[resource] += gain
 
     def pay_for_build(self, build_type: str):
+        print(f"Available resources: {self.resources}")
         if build_type not in BUILD_COSTS:
             raise ValueError(f"Unknown build type: {build_type}")
 
         cost = Counter(BUILD_COSTS[build_type])
+        # print(f"resources: {self.resources}")
+        # print(f"cost: {cost}")
         shortages = self._deduct_direct_resources(cost)
-        print(f"shortages: {shortages}")
+        # print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
             shortages = self._cover_shortages_with_trades(shortages)
-            print(f"shortages: {shortages}")
+            # print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
-            print(f"shortages: {shortages}")
-            raise ValueError(f"Player {self.name} cannot afford to build {build_type}, even with trades")
+            # print(f"shortages: {shortages}")
+            raise ValueError(f"Player {self.name} cannot afford to build {build_type}, even with trades, {self.resources}")
 
     def _deduct_direct_resources(self, cost: Counter) -> Counter:
         """Deduct resources the player already has for a given cost.
@@ -84,12 +87,14 @@ class CatanPlayer:
         remaining = Counter()
         for res, qty in cost.items():
             available_qty = self.resources.get(res, 0)
+            # print(res, qty, available_qty)
             if available_qty >= qty:
                 self.resources[res] -= qty
                 remaining[res] = 0
             else:
                 self.resources[res] = 0
                 remaining[res] = qty - available_qty
+        # print(self.resources)
         return remaining
 
     def _all_shortages_covered(self, shortages: Counter) -> bool:
@@ -149,7 +154,7 @@ class CatanPlayer:
         Check if the player can afford a given build (settlement, city, road, dev_card),
         considering posessed resources and trades with bank
         """
-        print(f"can_afford_with_trades: {build_type}, resources: {self.resources}")
+        # print(f"can_afford_with_trades: {build_type}, resources: {self.resources}")
         cost = Counter(BUILD_COSTS[build_type])
         available = Counter(self.resources)
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
@@ -169,7 +174,7 @@ class CatanPlayer:
 
             ratio = self._get_trade_ratio(res)
             tradable += qty // ratio
-        print("Is enough resources", tradable >= total_needed, build_type, self.resources)
+        # print("Is enough resources", build_type, tradable >= total_needed, self.resources)
         return tradable >= total_needed
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:
@@ -224,5 +229,8 @@ class CatanPlayer:
                 if receive == give:
                     continue
                 valid_trades.append((give, receive))
+
+        # if len(valid_trades) > 0:
+        #     print(f"valid_trades: {valid_trades}, {self.resources}")
 
         return valid_trades

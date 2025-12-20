@@ -1,5 +1,9 @@
 import os
+import logging
 os.environ["RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO"] = "0"
+os.environ["PYTHONWARNINGS"] = "ignore::DeprecationWarning"
+os.environ["RAY_DEDUP_LOGS"] = "1"
+os.environ["RAY_BACKEND_LOG_LEVEL"] = "error"
 
 import ray
 import argparse
@@ -26,6 +30,10 @@ register_env("catan", env_creator)
 def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
 
     ray.init(ignore_reinit_error=True)
+
+    logging.getLogger("ray").setLevel(logging.ERROR)
+    logging.getLogger("ray.rllib").setLevel(logging.ERROR)
+    logging.getLogger("ray.tune").setLevel(logging.ERROR)
 
     # Create temp env to grab spaces
     temp_env = CatanEnv()
@@ -63,6 +71,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
             policy_mapping_fn=lambda agent_id, *args, **kwargs: "shared_policy",
         )
         .debugging(log_level="ERROR")
+        .env_runners(num_env_runners=1)  # one concurrent worker for logs clarity
     )
 
     algo = config.build()
