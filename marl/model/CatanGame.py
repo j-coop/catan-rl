@@ -126,6 +126,7 @@ class CatanGame:
         if not init_placement:
             player.pay_for_build("settlement")
         player.points += 1
+        self.recompute_longest_road()
         self.check_victory(agent)
 
     def build_city(self, agent, node_index):
@@ -134,27 +135,38 @@ class CatanGame:
         player.pay_for_build("city")
         player.points += 1
         self.check_victory(agent)
-        # Remove settlement
         player.settlements.remove(node_index)
+
+    def recompute_longest_road(self):
+        previous_owner = self.longest_road_owner
+
+        # Reset state
+        self.longest_road_owner = None
+        self.longest_road_length = 0
+
+        for player in self.players:
+            length = self.get_longest_road_length(player.name)
+            if length >= LONGEST_ROAD_MIN_LENGTH and length > self.longest_road_length:
+                self.longest_road_length = length
+                self.longest_road_owner = player
+
+        # Handle victory points transfer
+        if previous_owner != self.longest_road_owner:
+            if previous_owner:
+                previous_owner.points -= 2
+            if self.longest_road_owner:
+                self.longest_road_owner.points += 2
 
     def build_road(self, agent, edge_index, init_placement=False):
         player = self.get_player(agent)
-        print(f"Player resources: {player.resources}")
         self.board.edges[edge_index] = agent
         player.roads.append(edge_index)
+
         if not init_placement:
             player.pay_for_build("road")
-        # Check for longest road
-        player_longest_road = self.get_longest_road_length(agent)
-        if player_longest_road > self.longest_road_length:
-            self.longest_road_length = player_longest_road
-            if player_longest_road >= LONGEST_ROAD_MIN_LENGTH:
-                # 2 points for player
-                player.points += 2
-                self.check_victory(agent)
-                if self.longest_road_owner is not None:
-                    self.longest_road_owner.points -= 2
-                self.longest_road_owner = player
+
+        self.recompute_longest_road()
+        self.check_victory(agent)
 
     def buy_dev_card(self, agent):
         player = self.get_player(agent)
