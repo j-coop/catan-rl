@@ -152,8 +152,8 @@ class CatanGame:
                 # 2 points for player
                 player.points += 2
                 self.check_victory(agent)
-                previous_holder = self.longest_road_owner
-                previous_holder.points -= 2
+                if self.longest_road_owner is not None:
+                    self.longest_road_owner.points -= 2
                 self.longest_road_owner = player
 
     def buy_dev_card(self, agent):
@@ -180,8 +180,8 @@ class CatanGame:
                 # 2 points for player
                 player.points += 2
                 self.check_victory(agent)
-                previous_holder = self.largest_army_owner
-                previous_holder.points -= 2
+                if self.largest_army_owner is not None:
+                    self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
             elif card_type == "road_building":
                 # Player will now be able to build two roads

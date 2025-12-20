@@ -17,7 +17,7 @@ class ActionHandler:
         def callback(node_index):
             self.game.build_settlement(player, node_index)
             board.build_settlement_ui(node_index)
-            info_panel._update_resources()
+            info_panel._update_after_game_change()
         board.expect_node_selection(callback)
 
     def on_build_road(self):
@@ -28,7 +28,7 @@ class ActionHandler:
         def callback(edge_index):
             self.game.build_road(player, edge_index)
             board.build_road_ui(edge_index)
-            info_panel._update_resources()
+            info_panel._update_after_game_change()
         board.expect_edge_selection(callback)
 
     def on_build_city(self):
@@ -39,14 +39,14 @@ class ActionHandler:
         def callback(node_index):
             self.game.build_city(player, node_index)
             board.upgrade_city_ui(node_index)
-            info_panel._update_resources()
+            info_panel._update_after_game_change()
         board.expect_node_selection(callback)
 
     def on_buy_dev_card(self):
         player = self.game.current_player.name
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
         self.game.buy_dev_card(player)
-        info_panel._update_resources()
+        info_panel._update_after_game_change()
 
     def on_play_dev_card(self):
         player = self.game.current_player.name
