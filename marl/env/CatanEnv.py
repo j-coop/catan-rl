@@ -105,22 +105,23 @@ class CatanEnv(MultiAgentEnv):
         agent = self.agent_selection
         player = self.game.get_player(agent)
         action = action_dict[agent]
+        print("------------------------------------------------------------------------------------")
+        print(f"TURN {self.game.turn} - {self.agent_selection}")
+        print(f"Resources: {player.resources}")
         print(f"Chosen action: {action}")
 
         # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
         mask = self.actions.get_action_mask(player)
-        print(mask)
+        # print(mask)
         if mask[action] == 0:
             print("Chosen action illegal - end turn")
             action = self.actions.get_action_space_size() - 1  # end turn instead of illegal
 
         potential_before = self.compute_potential(agent)
-        print("Hey")
         self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
-            print("IN")
             # Advance to next player (no dice roll yet)
             self.game.end_turn()
             self.agent_selection = self.game.current_player.name
