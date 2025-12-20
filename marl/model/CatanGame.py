@@ -139,6 +139,7 @@ class CatanGame:
 
     def build_road(self, agent, edge_index, init_placement=False):
         player = self.get_player(agent)
+        print(f"Player resources: {player.resources}")
         self.board.edges[edge_index] = agent
         player.roads.append(edge_index)
         if not init_placement:
@@ -267,7 +268,7 @@ class CatanGame:
         player = self.get_player(agent)
         ratio = player._get_trade_ratio(give_resource)
         if player.resources[give_resource] < ratio:
-            raise ValueError(f"{player.name} does not have enough {give_resource} to trade with bank.")
+            raise ValueError(f"{player.name} does not have enough {give_resource} to trade with bank (ratio={ratio}). {player.resources}")
 
         # Validate bank has the requested resource
         if self.bank.resources[receive_resource] <= 0:
