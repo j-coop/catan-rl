@@ -14,38 +14,8 @@ class PlayerInfoPanel(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.setFixedWidth(210)
+        self.player_rows = {}
         self.refresh()
-
-    def refresh(self):
-        self._clear_old_content()
-
-        for player in self.game.players:
-            block = QFrame()
-            block.setFrameShape(QFrame.Shape.StyledPanel)
-            block.setStyleSheet(f"background-color: {player.color}; border-radius: 8px;")
-            v = QVBoxLayout()
-
-            v.setContentsMargins(8, 0, 8, 0)  # left, top, right, bottom margins
-
-            name_label = QLabel(f"{player.name}")
-            name_label.setStyleSheet("color: white; font-weight: bold;")
-            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            name_label.setFont(QFont("Arial", 12))
-            points_label = QLabel(f"Points: {player.points}")
-            road_label = QLabel(f"Longest road:{self._get_road_desc(player)}")
-            army_label = QLabel(f"Largest army:{self._get_knight_desc(player)}")
-            resources_label = QLabel(f"{self._get_resources_desc(player)}")
-
-            v.addWidget(name_label)
-            v.addWidget(points_label)
-            v.addWidget(road_label)
-            v.addWidget(army_label)
-            v.addWidget(resources_label)
-
-            block.setLayout(v)
-
-            # Give each block a vertical stretch factor
-            self.layout.addWidget(block, 1)  # the "1" here is the stretch factor
 
     def _get_road_desc(self, player):
         if self.game.has_player_the_longest_road(player):
@@ -75,15 +45,59 @@ class PlayerInfoPanel(QWidget):
             if w:
                 w.deleteLater()
 
-    def _update_resources(self):
-        """Update only the resources labels without rebuilding the entire panel."""
-        for i in range(self.layout.count()):
-            block = self.layout.itemAt(i).widget()
-            if not block:
-                continue
-            v_layout = block.layout()
-            # resources_label is always the 5th widget in the vertical layout
-            resources_label = v_layout.itemAt(4).widget()
-            if resources_label:
-                player = self.game.players[i]
-                resources_label.setText(self._get_resources_desc(player))
+    def refresh(self):
+        self._clear_old_content()
+        self.player_rows.clear()
+
+        for player in self.game.players:
+            block = QFrame()
+            block.setFrameShape(QFrame.Shape.StyledPanel)
+            block.setStyleSheet(f"background-color: {player.color}; border-radius: 8px;")
+            v = QVBoxLayout(block)
+            v.setContentsMargins(8, 0, 8, 0)
+
+            name_label = QLabel(player.name)
+            name_label.setStyleSheet("color: white; font-weight: bold;")
+            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            name_label.setFont(QFont("Arial", 12))
+
+            points_label = QLabel()
+            road_label = QLabel()
+            army_label = QLabel()
+            resources_label = QLabel()
+
+            v.addWidget(name_label)
+            v.addWidget(points_label)
+            v.addWidget(road_label)
+            v.addWidget(army_label)
+            v.addWidget(resources_label)
+
+            self.layout.addWidget(block, 1)
+
+            self.player_rows[player.name] = {
+                "points": points_label,
+                "road": road_label,
+                "army": army_label,
+                "resources": resources_label,
+            }
+        self.update_all()
+
+    def update_all(self):
+        for player in self.game.players:
+            row = self.player_rows[player.name]
+
+            row["points"].setText(f"Points: {player.points}")
+            row["road"].setText(
+                f"Longest road: {self._get_road_desc(player)}"
+            )
+            row["army"].setText(
+                f"Largest army: {self._get_knight_desc(player)}"
+            )
+            row["resources"].setText(
+                self._get_resources_desc(player)
+            )
+
+
+    def _update_after_game_change(self):
+        """Call after ANY game action that may affect UI state."""
+        self.update_all()
