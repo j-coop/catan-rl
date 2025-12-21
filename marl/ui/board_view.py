@@ -3,11 +3,12 @@ import os
 
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem,
-    QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem
+    QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup, QGraphicsEllipseItem,
+    QGraphicsTextItem
 )
 from PyQt6.QtGui import (
-    QBrush, QPen, QColor, QPolygonF, 
-    QPixmap, QPainter, QPainterPath
+    QBrush, QPen, QColor, QPolygonF,
+    QPixmap, QPainter, QPainterPath, QFont
 )
 from PyQt6.QtCore import QPointF, Qt, QRectF
 
@@ -334,8 +335,14 @@ class BoardView(QGraphicsView):
         )
         for i, center in enumerate(hex_centers):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
-            hex_item = HexItem(center, r, texture_path=f'./assets/{self.game.board.tiles[i][0]}.jpg')
+            resource, token = self.game.board.tiles[i]
+
+            hex_item = HexItem(center, r, texture_path=f'./assets/{resource}.jpg')
             self.scene.addItem(hex_item)
+            if token is not None:
+                token_item = TokenItem(center, token)
+                self.scene.addItem(token_item)
+
             corners = HexItem._create_hex_polygon(center, r)
             sorted_corners = self._sort_corners(corners)
 
@@ -446,6 +453,43 @@ class BoardView(QGraphicsView):
                 edge.selected = False
                 edge.update_style()
                 return
+
+class TokenItem(QGraphicsItemGroup):
+    def __init__(self, center: QPointF, number: int, radius: float = 18):
+        super().__init__()
+
+        # Circle
+        circle = QGraphicsEllipseItem(
+            center.x() - radius,
+            center.y() - radius,
+            radius * 2,
+            radius * 2
+        )
+        circle.setPen(QPen(Qt.GlobalColor.black, 1))
+        circle.setBrush(QBrush(QColor(245, 235, 200)))  # classic Catan beige
+        circle.setZValue(2)
+
+        # Text
+        text = QGraphicsTextItem(str(number))
+        font = QFont("Arial", 14, QFont.Weight.Bold)
+        text.setFont(font)
+
+        # Red for 6 and 8
+        if number in (6, 8):
+            text.setDefaultTextColor(Qt.GlobalColor.red)
+        else:
+            text.setDefaultTextColor(Qt.GlobalColor.black)
+
+        # Center text
+        text_rect = text.boundingRect()
+        text.setPos(
+            center.x() - text_rect.width() / 2,
+            center.y() - text_rect.height() / 2
+        )
+        text.setZValue(3)
+
+        self.addToGroup(circle)
+        self.addToGroup(text)
 
 
 if __name__ == "__main__":
