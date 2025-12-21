@@ -3,6 +3,8 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 
 from marl.model.CatanGame import CatanGame
+from marl.ui.ChoiceGridDialog import ChoiceGridDialog
+from marl.ui.ChoiceOption import ChoiceOption
 from marl.ui.board_view import BoardView
 from marl.ui.PlayerInfoPanel import PlayerInfoPanel
 
@@ -65,8 +67,45 @@ class ActionHandler:
         self.info_panel.refresh()
         self.board_view.update_roll_display()
 
-class ActionPanel(QWidget,
-                  ActionHandler):
+    def show_dev_card_dialog(self):
+        options = [
+            ChoiceOption(
+                text="🗡 Knight",
+                enabled=True,
+                callback=lambda: self.game.play_knight(),
+            ),
+            ChoiceOption(
+                text="🏆 Victory Point",
+                enabled=True,
+                callback=lambda: self.game.play_victory_point(),
+            ),
+            ChoiceOption(
+                text="🛣 Road Building",
+                enabled=True,
+                callback=lambda: self.game.play_road_building(),
+            ),
+            ChoiceOption(
+                text="📦 Monopoly",
+                enabled=True,
+                callback=lambda: self.game.play_monopoly(),
+            ),
+            ChoiceOption(
+                text="🌾 Year of Plenty",
+                enabled=True,
+                callback=lambda: self.game.play_year_of_plenty(),
+            ),
+        ]
+
+        dlg = ChoiceGridDialog(
+            title="Play Development Card",
+            options=options,
+            columns=2,
+            parent=self,
+        )
+        dlg.exec()
+
+
+class ActionPanel(QWidget, ActionHandler):
     """Right-side control buttons."""
 
     def __init__(self, game: CatanGame, board_view: BoardView, info_panel: PlayerInfoPanel):
@@ -89,7 +128,7 @@ class ActionPanel(QWidget,
             "Upgrade to City": self.on_build_city,
             "Build Road": self.on_build_road,
             "Buy Dev Card": self.on_buy_dev_card,
-            "Play Dev Card": self.on_play_dev_card,
+            "Play Dev Card": self.show_dev_card_dialog,
             "Trade": self.on_trade,
             "End Turn": self.on_end_turn,
         }
