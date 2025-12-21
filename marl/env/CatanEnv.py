@@ -8,8 +8,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv
 from marl.env.ActionSpace import ActionSpace
 from marl.env.Rewards import Rewards
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import (RESOURCE_TYPES, TILE_TYPES, PORT_TYPES, MAX_RESOURCE_COUNT, MAX_VICTORY_POINTS,
-                                    ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER, CITIES_PER_PLAYER, MAX_KNIGHTS, GAMMA)
+from params.catan_constants import *
 from marl.model.CatanGame import CatanGame
 
 
@@ -283,9 +282,7 @@ class CatanEnv(MultiAgentEnv):
 
     def play_dev_card(self, agent: str, card_index: int):
         """Play a development card of the specified type."""
-        # For simplicity, we can map 0–4 to known dev card types.
-        card_types = ["knight", "road_building", "year_of_plenty", "monopoly", "victory_point"]
-        card_type = card_types[card_index]
+        card_type = DEV_CARD_TYPES[card_index]
         self.game.play_dev_card(agent, card_type)
 
     def move_robber(self, agent: str, tile_index: int):
