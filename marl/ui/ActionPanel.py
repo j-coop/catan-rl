@@ -63,15 +63,16 @@ class ActionHandler:
     def on_end_turn(self):
         self.game.end_turn(is_ui_action=True)
         self.info_panel.refresh()
-
+        self.board_view.update_roll_display()
 
 class ActionPanel(QWidget,
                   ActionHandler):
     """Right-side control buttons."""
 
-    def __init__(self, game: CatanGame, info_panel: PlayerInfoPanel):
+    def __init__(self, game: CatanGame, board_view: BoardView, info_panel: PlayerInfoPanel):
         super().__init__()
         self.game = game
+        self.board_view = board_view
         self.info_panel = info_panel
         self.setFixedWidth(220)
         layout = QVBoxLayout(self)

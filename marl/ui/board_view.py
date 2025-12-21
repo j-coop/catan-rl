@@ -295,6 +295,17 @@ class BoardView(QGraphicsView):
         self.edges = []
 
         self._build_board()
+
+        self.roll_text_item = QGraphicsTextItem()
+        self.roll_text_item.setZValue(10)  # above everything
+        self.roll_text_item.setDefaultTextColor(Qt.GlobalColor.black)
+
+        font = QFont("Arial", 20, QFont.Weight.Bold)
+        self.roll_text_item.setFont(font)
+
+        self.scene.addItem(self.roll_text_item)
+        self.update_roll_display()
+
         self.setBackgroundBrush(QBrush(QColor(230, 230, 230)))
         self.setMinimumSize(600, 600)
 
@@ -453,6 +464,39 @@ class BoardView(QGraphicsView):
                 edge.selected = False
                 edge.update_style()
                 return
+
+    def update_roll_display(self):
+        roll = self.game.last_roll if self.game else None
+
+        if roll is None:
+            self.roll_text_item.setVisible(False)
+            return
+
+        # 🎲 Dice emojis + number
+        self.roll_text_item.setHtml(
+            f"""
+            <div style="
+                background-color: rgba(230, 230, 230, 220);
+                border: 2px solid black;
+                border-radius: 8px;
+                padding: 6px 14px;
+            ">
+                🎲 Roll: <b>{roll}</b>
+            </div>
+            """
+        )
+
+        self.roll_text_item.setVisible(True)
+
+        # Position it centered above the board
+        scene_rect = self.scene.sceneRect()
+        text_rect = self.roll_text_item.boundingRect()
+
+        x = scene_rect.center().x() - text_rect.width() / 2
+        y = scene_rect.top() - 75
+
+        self.roll_text_item.setPos(x, y)
+
 
 class TokenItem(QGraphicsItemGroup):
     def __init__(self, center: QPointF, number: int, radius: float = 18):
