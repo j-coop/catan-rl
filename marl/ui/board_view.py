@@ -348,6 +348,12 @@ class BoardView(QGraphicsView):
         translate_x = -min_x + margin
         translate_y = -min_y + margin
 
+        # calculate board center
+        board_center = QPointF(
+            translate_x + board_width / 2,
+            translate_y + (current_y - v_spacing) / 2,
+        )
+
         # create hexes, nodes, edges
         node_creation_map = [False] * N_NODES
         edge_creation_map = [False] * N_EDGES
@@ -372,11 +378,16 @@ class BoardView(QGraphicsView):
             for j in range(6):
                 corner = sorted_corners[j]
                 index = indices[j]
+
                 if not node_creation_map[index]:
                     node = self.create_node(corner, index)
                     self.nodes.append(node)
                     self.scene.addItem(node)
                     node_creation_map[index] = True
+
+                    port_type = self.game.board.ports[index]
+                    if port_type:
+                        self.create_port_label(corner, index, port_type, board_center)
 
             hex_edges = TILES_TO_EDGES[i]
             for j in range(6):
@@ -413,6 +424,42 @@ class BoardView(QGraphicsView):
 
         self.scene.addItem(edge)
         return edge
+
+    def create_port_label(
+        self,
+        node_pos: QPointF,
+        node_index: int,
+        port_type: str,
+        board_center: QPointF,
+    ):
+        # Vector from board center to node
+        dx = node_pos.x() - board_center.x()
+        dy = node_pos.y() - board_center.y()
+
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return
+
+        # Normalize
+        nx = dx / length
+        ny = dy / length
+
+        # Push label outward
+        offset = 30  # tweak visually
+        label_pos = QPointF(
+            node_pos.x() + nx * offset,
+            node_pos.y() + ny * offset,
+        )
+
+        text = self.format_port_text(port_type)
+        port_item = PortItem(text, label_pos)
+        self.scene.addItem(port_item)
+
+    @staticmethod
+    def format_port_text(port_type: str) -> str:
+        if port_type == "generic":
+            return "3:1"
+        return f"2:1 {port_type}"
 
     def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0
@@ -545,6 +592,16 @@ class TokenItem(QGraphicsItemGroup):
 
         self.addToGroup(circle)
         self.addToGroup(text)
+
+
+class PortItem(QGraphicsTextItem):
+    def __init__(self, text: str, pos: QPointF):
+        super().__init__(text)
+        self.setDefaultTextColor(Qt.GlobalColor.black)
+        self.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.setZValue(5)
+        self.setPos(pos)
+
 
 
 if __name__ == "__main__":
