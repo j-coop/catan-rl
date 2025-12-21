@@ -17,27 +17,26 @@ class PlayerInfoPanel(QWidget):
         self.player_rows = {}
         self.refresh()
 
+    def _is_active_player(self, player):
+        return player == self.game.current_player
+
     def _get_road_desc(self, player):
         if self.game.has_player_the_longest_road(player):
             return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
         else:
             return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
-        
+
     def _get_knight_desc(self, player):
         if self.game.has_player_the_largest_army(player):
             return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
         else:
             return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
-        
+
     def _get_resources_desc(self, player):
         icons = ["🪵", "🧱", "🐑", "🌾", "🪨"]
         amounts = list(player.resources.values())
-
-        # Make each entry 3 characters wide for alignment
-        res_parts = [f"{icon}{str(amount)}"
-                     for icon, amount in zip(icons, amounts)]
-        res = " ".join(res_parts)
-        return "<span style='font-size:16px; font-weight:bold;'>" + res + "</span>"
+        res_parts = [f"{icon}{amount}" for icon, amount in zip(icons, amounts)]
+        return "<span style='font-size:16px; font-weight:bold;'>" + " ".join(res_parts) + "</span>"
 
     def _clear_old_content(self):
         for i in reversed(range(self.layout.count())):
@@ -50,16 +49,46 @@ class PlayerInfoPanel(QWidget):
         self.player_rows.clear()
 
         for player in self.game.players:
-            block = QFrame()
-            block.setFrameShape(QFrame.Shape.StyledPanel)
-            block.setStyleSheet(f"background-color: {player.color}; border-radius: 8px;")
-            v = QVBoxLayout(block)
-            v.setContentsMargins(8, 0, 8, 0)
+            is_active = self._is_active_player(player)
 
-            name_label = QLabel(player.name)
-            name_label.setStyleSheet("color: white; font-weight: bold;")
+            block = QFrame()
+            block.setObjectName("playerBlock")
+            block.setFrameShape(QFrame.Shape.NoFrame)
+
+            if is_active:
+                block.setStyleSheet(
+                    f"""
+                    QFrame#playerBlock {{
+                        background-color: {player.color};
+                        border-radius: 8px;
+                        border: 3px solid black;
+                    }}
+                    """
+                )
+            else:
+                block.setStyleSheet(
+                    f"""
+                    QFrame#playerBlock {{
+                        background-color: {player.color};
+                        border-radius: 8px;
+                        border: none;
+                    }}
+                    """
+                )
+
+            v = QVBoxLayout(block)
+            v.setContentsMargins(8, 4, 8, 4)
+
+            dot = "● " if is_active else ""
+            name_label = QLabel(f"{dot}{player.name}")
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            name_label.setFont(QFont("Arial", 12))
+
+            if is_active:
+                name_label.setFont(QFont("Arial", 14, QFont.Weight.Black))
+                name_label.setStyleSheet("color: white; font-style: italic;")
+            else:
+                name_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+                name_label.setStyleSheet("color: white;")
 
             points_label = QLabel()
             road_label = QLabel()
@@ -80,6 +109,7 @@ class PlayerInfoPanel(QWidget):
                 "army": army_label,
                 "resources": resources_label,
             }
+
         self.update_all()
 
     def update_all(self):
@@ -96,7 +126,6 @@ class PlayerInfoPanel(QWidget):
             row["resources"].setText(
                 self._get_resources_desc(player)
             )
-
 
     def _update_after_game_change(self):
         """Call after ANY game action that may affect UI state."""

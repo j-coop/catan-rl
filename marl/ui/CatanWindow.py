@@ -19,7 +19,7 @@ class CatanWindow(QWidget):
 
         self.info_panel = PlayerInfoPanel(game)
         self.board = BoardView(hex_radius=65, game=game)
-        self.action_panel = ActionPanel(game)
+        self.action_panel = ActionPanel(game, self.info_panel)
 
         layout.addWidget(self.info_panel)
         layout.addWidget(self.board, 1)

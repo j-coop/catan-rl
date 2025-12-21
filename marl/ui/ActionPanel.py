@@ -62,15 +62,17 @@ class ActionHandler:
 
     def on_end_turn(self):
         self.game.end_turn()
+        self.info_panel.refresh()
 
 
 class ActionPanel(QWidget,
                   ActionHandler):
     """Right-side control buttons."""
 
-    def __init__(self, game: CatanGame):
+    def __init__(self, game: CatanGame, info_panel: PlayerInfoPanel):
         super().__init__()
         self.game = game
+        self.info_panel = info_panel
         self.setFixedWidth(220)
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
