@@ -104,6 +104,44 @@ class ActionHandler:
         )
         dlg.exec()
 
+    def show_bank_trade_dialog(self):
+        resources = ["🪵", "🧱", "🐑", "🌾", "🪨"]
+        resources_names = ["wood", "brick", "sheep", "wheat", "ore"]
+        options = []
+
+        for give in resources:
+            for receive in resources:
+                if give == receive:
+                    continue
+
+                enabled = True
+
+                def make_trade_callback(g, r):
+                    def handler():
+                        self.game.trade_with_bank(self.game.current_player.name, g, r)
+                        self.info_panel.refresh()
+
+                    return handler
+
+                options.append(
+                    ChoiceOption(
+                        text=f"{give} → {receive}",
+                        enabled=enabled,
+                        callback=make_trade_callback(
+                            resources_names[resources.index(give)],
+                            resources_names[resources.index(receive)],
+                        )
+                    )
+                )
+
+        dlg = ChoiceGridDialog(
+            title="Trade with Bank (4:1)",
+            options=options,
+            columns=4,
+            parent=self,
+        )
+        dlg.exec()
+
 
 class ActionPanel(QWidget, ActionHandler):
     """Right-side control buttons."""
@@ -129,7 +167,7 @@ class ActionPanel(QWidget, ActionHandler):
             "Build Road": self.on_build_road,
             "Buy Dev Card": self.on_buy_dev_card,
             "Play Dev Card": self.show_dev_card_dialog,
-            "Trade": self.on_trade,
+            "Trade": self.show_bank_trade_dialog,
             "End Turn": self.on_end_turn,
         }
 
