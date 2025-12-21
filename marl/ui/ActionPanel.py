@@ -61,7 +61,7 @@ class ActionHandler:
             self.game.trade_bank(player, trade_index)
 
     def on_end_turn(self):
-        self.game.end_turn()
+        self.game.end_turn(is_ui_action=True)
         self.info_panel.refresh()
 
 

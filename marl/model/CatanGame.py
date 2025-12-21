@@ -48,6 +48,9 @@ class CatanGame:
         self._year_of_plenty_choices = []
         self._roads_remaining_from_card = None
 
+        # For UI
+        self.last_roll = None
+
         print("GAME OBJECT INITIALIZED")
 
         if not training:
@@ -68,6 +71,7 @@ class CatanGame:
 
     def handle_dice_roll(self):
         roll = self.get_dice_roll()
+        self.last_roll = roll
         for player in self.players:
             player.take_resources(roll, self.board)
 
@@ -337,11 +341,15 @@ class CatanGame:
         player = self.get_player(agent)
         player.resources[resource] += 1
 
-    def end_turn(self, agent=None, index=None):
+    def end_turn(self, agent=None, index=None, is_ui_action=False):
         print(f"Ending turn for {self.current_player.name}")
         self.turn += 1
         if self.turn == 4:
             self.turn = 0
+
+        # If comes from UI - apply turn actions from step
+        if is_ui_action:
+            self.handle_dice_roll()
 
     def get_longest_road_length(self, player_name: str) -> int:
         """
