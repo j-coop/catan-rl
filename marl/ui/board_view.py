@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import (
     QBrush, QPen, QColor, QPolygonF,
-    QPixmap, QPainter, QPainterPath, QFont
+    QPixmap, QPainter, QPainterPath, QFont, QTransform
 )
 from PyQt6.QtCore import QPointF, Qt, QRectF
 
@@ -256,11 +256,22 @@ class HexItem(QGraphicsPolygonItem):
             print(f"Loading {texture_path} Exists={os.path.exists(texture_path)} Null={pixmap.isNull()}")
 
             if not pixmap.isNull():
-                size = int(radius * 2.2)
-                pixmap = pixmap.scaled(size, size,
-                                       Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                                       Qt.TransformationMode.SmoothTransformation)
+                size = int(radius * math.sqrt(3))
+                pixmap = pixmap.scaled(
+                    size, size,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+
                 brush = QBrush(pixmap)
+
+                # Lock texture to hex center
+                transform = QTransform()
+                transform.translate(
+                    center.x() - pixmap.width() / 2,
+                    center.y() - pixmap.height() / 2
+                )
+                brush.setTransform(transform)
             else:
                 raise ValueError(f"⚠️ Failed to load texture: {texture_path}")
 
