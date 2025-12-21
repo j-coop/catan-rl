@@ -127,6 +127,8 @@ class CatanGame:
         self.board.nodes[node_index] = agent
         player = self.get_player(agent)
         player.settlements.append(node_index)
+        if self.board.ports[node_index] is not None:
+            player.ports[self.board.ports[node_index]] = True
         if not init_placement:
             player.pay_for_build("settlement")
         player.points += 1

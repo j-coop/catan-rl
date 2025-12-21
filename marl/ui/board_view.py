@@ -10,10 +10,10 @@ from PyQt6.QtGui import (
     QBrush, QPen, QColor, QPolygonF,
     QPixmap, QPainter, QPainterPath, QFont, QTransform
 )
-from PyQt6.QtCore import QPointF, Qt, QRectF
+from PyQt6.QtCore import QPointF, Qt, QRectF, QLineF
 
 from marl.model.CatanGame import CatanGame
-from params.catan_constants import N_EDGES, N_NODES
+from params.catan_constants import N_EDGES, N_NODES, PORT_NODE_PAIRS, RESOURCE_TYPES
 from params.tiles2edges_adjacency_map import TILES_TO_EDGES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
@@ -378,16 +378,11 @@ class BoardView(QGraphicsView):
             for j in range(6):
                 corner = sorted_corners[j]
                 index = indices[j]
-
                 if not node_creation_map[index]:
                     node = self.create_node(corner, index)
                     self.nodes.append(node)
                     self.scene.addItem(node)
                     node_creation_map[index] = True
-
-                    port_type = self.game.board.ports[index]
-                    if port_type:
-                        self.create_port_label(corner, index, port_type, board_center)
 
             hex_edges = TILES_TO_EDGES[i]
             for j in range(6):
@@ -401,6 +396,8 @@ class BoardView(QGraphicsView):
                     )
                     self.scene.addItem(edge)
                     self.edges.append(edge)
+
+        self.render_ports(board_center)
 
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
@@ -425,41 +422,77 @@ class BoardView(QGraphicsView):
         self.scene.addItem(edge)
         return edge
 
-    def create_port_label(
+    def get_node_position(self, index: int) -> QPointF:
+        for node in self.nodes:
+            if node.index == index:
+                return node.pos()
+        raise ValueError(f"Node {index} not found")
+
+    def render_ports(self, board_center: QPointF):
+        for node_a, node_b in PORT_NODE_PAIRS:
+            port_type = self.game.board.ports[node_a]
+            if not port_type:
+                continue
+
+            pos_a = self.get_node_position(node_a)
+            pos_b = self.get_node_position(node_b)
+
+            self.render_single_port(pos_a, pos_b, port_type, board_center)
+
+    def render_single_port(
         self,
-        node_pos: QPointF,
-        node_index: int,
+        p1: QPointF,
+        p2: QPointF,
         port_type: str,
         board_center: QPointF,
     ):
-        # Vector from board center to node
-        dx = node_pos.x() - board_center.x()
-        dy = node_pos.y() - board_center.y()
+        # Edge midpoint
+        mid = QPointF(
+            (p1.x() + p2.x()) / 2,
+            (p1.y() + p2.y()) / 2,
+        )
 
+        # Outward direction
+        dx = mid.x() - board_center.x()
+        dy = mid.y() - board_center.y()
         length = math.hypot(dx, dy)
         if length == 0:
             return
 
-        # Normalize
-        nx = dx / length
-        ny = dy / length
+        nx, ny = dx / length, dy / length
 
-        # Push label outward
-        offset = 30  # tweak visually
+        # Port edge highlight
+        port_edge = QGraphicsLineItem(QLineF(p1, p2))
+        port_edge.setPen(QPen(QColor(26, 210, 217), 12))  # thicker than normal edges
+        self.scene.addItem(port_edge)
+
+        # Port label
+        offset = 40
         label_pos = QPointF(
-            node_pos.x() + nx * offset,
-            node_pos.y() + ny * offset,
+            mid.x() + nx * offset,
+            mid.y() + ny * offset,
         )
 
-        text = self.format_port_text(port_type)
-        port_item = PortItem(text, label_pos)
-        self.scene.addItem(port_item)
+        label = QGraphicsTextItem(self.format_port_text(port_type))
+        label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        label.setDefaultTextColor(Qt.GlobalColor.black)
+        label.setZValue(5)
+
+        # Center text
+        rect = label.boundingRect()
+        label.setPos(
+            label_pos.x() - rect.width() / 2,
+            label_pos.y() - rect.height() / 2,
+        )
+
+        self.scene.addItem(label)
 
     @staticmethod
     def format_port_text(port_type: str) -> str:
-        if port_type == "generic":
+        if port_type == "3for1":
             return "3:1"
-        return f"2:1 {port_type}"
+        resources = ["🪵", "🧱", "🐑", "🌾", "🪨"]
+        return f"2:1 {resources[RESOURCE_TYPES.index(port_type)]}"
 
     def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0

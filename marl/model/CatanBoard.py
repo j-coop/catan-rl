@@ -85,7 +85,7 @@ class CatanBoard:
         rand = random.Random(seed)
 
         # Standard Catan ports: 9 ports (5 resource-specific + 4 generic 3:1)
-        port_types = ["wood", "brick", "wheat", "sheep", "ore"] + ["generic"] * 4
+        port_types = ["wood", "brick", "wheat", "sheep", "ore"] + ["3for1"] * 4
         rand.shuffle(port_types)
 
         # Assign port types to these node pairs
