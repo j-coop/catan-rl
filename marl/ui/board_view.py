@@ -4,7 +4,7 @@ import os
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem,
     QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup, QGraphicsEllipseItem,
-    QGraphicsTextItem
+    QGraphicsTextItem, QGraphicsPixmapItem
 )
 from PyQt6.QtGui import (
     QBrush, QPen, QColor, QPolygonF,
@@ -305,7 +305,11 @@ class BoardView(QGraphicsView):
         self.nodes = []
         self.edges = []
 
+        self.robber_item: QGraphicsPixmapItem | None = None
+        self.hex_items: list[HexItem] = []
+
         self._build_board()
+        self.update_robber()
 
         self.roll_text_item = QGraphicsTextItem()
         self.roll_text_item.setZValue(10)  # above everything
@@ -367,6 +371,7 @@ class BoardView(QGraphicsView):
 
             hex_item = HexItem(center, r, texture_path=f'./assets/{resource}.jpg')
             self.scene.addItem(hex_item)
+            self.hex_items.append(hex_item)
             if token is not None:
                 token_item = TokenItem(center, token)
                 self.scene.addItem(token_item)
@@ -493,6 +498,41 @@ class BoardView(QGraphicsView):
             return "3:1"
         resources = ["🪵", "🧱", "🐑", "🌾", "🪨"]
         return f"2:1 {resources[RESOURCE_TYPES.index(port_type)]}"
+
+    def update_robber(self):
+        """
+        To be called whenever game.board.robber_position changes
+        """
+        if not self.game or self.game.board.robber_position is None:
+            if self.robber_item:
+                self.robber_item.setVisible(False)
+            return
+
+        hex_index = self.game.board.robber_position
+        hex_item = self.hex_items[hex_index]
+
+        # Load robber pixmap
+        pixmap = QPixmap("./assets/robber.png")  # transparent PNG
+        size = int(self.hex_radius * 1.2)
+        pixmap = pixmap.scaled(
+            size,
+            size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if not self.robber_item:
+            self.robber_item = QGraphicsPixmapItem(pixmap)
+            self.robber_item.setZValue(5)  # above token but below other UI
+            self.scene.addItem(self.robber_item)
+        else:
+            self.robber_item.setPixmap(pixmap)
+            self.robber_item.setVisible(True)
+
+        # Center on hex
+        hex_center = hex_item.center
+        self.robber_item.setPos(hex_center.x() - pixmap.width() / 2,
+                                hex_center.y() - pixmap.height() / 2)
 
     def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0
