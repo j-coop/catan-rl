@@ -3,16 +3,17 @@ import os
 
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem,
-    QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem
+    QGraphicsLineItem, QWidget, QApplication, QVBoxLayout, QGraphicsItem, QGraphicsItemGroup, QGraphicsEllipseItem,
+    QGraphicsTextItem, QGraphicsPixmapItem
 )
 from PyQt6.QtGui import (
-    QBrush, QPen, QColor, QPolygonF, 
-    QPixmap, QPainter, QPainterPath
+    QBrush, QPen, QColor, QPolygonF,
+    QPixmap, QPainter, QPainterPath, QFont, QTransform
 )
-from PyQt6.QtCore import QPointF, Qt, QRectF
+from PyQt6.QtCore import QPointF, Qt, QRectF, QLineF
 
 from marl.model.CatanGame import CatanGame
-from params.catan_constants import N_EDGES, N_NODES
+from params.catan_constants import N_EDGES, N_NODES, PORT_NODE_PAIRS, RESOURCE_TYPES
 from params.tiles2edges_adjacency_map import TILES_TO_EDGES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
@@ -255,11 +256,22 @@ class HexItem(QGraphicsPolygonItem):
             print(f"Loading {texture_path} Exists={os.path.exists(texture_path)} Null={pixmap.isNull()}")
 
             if not pixmap.isNull():
-                size = int(radius * 2.2)
-                pixmap = pixmap.scaled(size, size,
-                                       Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                                       Qt.TransformationMode.SmoothTransformation)
+                size = int(radius * math.sqrt(3))
+                pixmap = pixmap.scaled(
+                    size, size,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+
                 brush = QBrush(pixmap)
+
+                # Lock texture to hex center
+                transform = QTransform()
+                transform.translate(
+                    center.x() - pixmap.width() / 2,
+                    center.y() - pixmap.height() / 2
+                )
+                brush.setTransform(transform)
             else:
                 raise ValueError(f"⚠️ Failed to load texture: {texture_path}")
 
@@ -293,7 +305,22 @@ class BoardView(QGraphicsView):
         self.nodes = []
         self.edges = []
 
+        self.robber_item: QGraphicsPixmapItem | None = None
+        self.hex_items: list[HexItem] = []
+
         self._build_board()
+        self.update_robber()
+
+        self.roll_text_item = QGraphicsTextItem()
+        self.roll_text_item.setZValue(10)  # above everything
+        self.roll_text_item.setDefaultTextColor(Qt.GlobalColor.black)
+
+        font = QFont("Arial", 20, QFont.Weight.Bold)
+        self.roll_text_item.setFont(font)
+
+        self.scene.addItem(self.roll_text_item)
+        self.update_roll_display()
+
         self.setBackgroundBrush(QBrush(QColor(230, 230, 230)))
         self.setMinimumSize(600, 600)
 
@@ -325,6 +352,12 @@ class BoardView(QGraphicsView):
         translate_x = -min_x + margin
         translate_y = -min_y + margin
 
+        # calculate board center
+        board_center = QPointF(
+            translate_x + board_width / 2,
+            translate_y + (current_y - v_spacing) / 2,
+        )
+
         # create hexes, nodes, edges
         node_creation_map = [False] * N_NODES
         edge_creation_map = [False] * N_EDGES
@@ -334,8 +367,15 @@ class BoardView(QGraphicsView):
         )
         for i, center in enumerate(hex_centers):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
-            hex_item = HexItem(center, r, texture_path=f'./assets/{self.game.board.tiles[i][0]}.jpg')
+            resource, token = self.game.board.tiles[i]
+
+            hex_item = HexItem(center, r, texture_path=f'./assets/{resource}.jpg')
             self.scene.addItem(hex_item)
+            self.hex_items.append(hex_item)
+            if token is not None:
+                token_item = TokenItem(center, token)
+                self.scene.addItem(token_item)
+
             corners = HexItem._create_hex_polygon(center, r)
             sorted_corners = self._sort_corners(corners)
 
@@ -362,6 +402,8 @@ class BoardView(QGraphicsView):
                     self.scene.addItem(edge)
                     self.edges.append(edge)
 
+        self.render_ports(board_center)
+
         self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
     def create_node(self, corner, index):
@@ -384,6 +426,113 @@ class BoardView(QGraphicsView):
 
         self.scene.addItem(edge)
         return edge
+
+    def get_node_position(self, index: int) -> QPointF:
+        for node in self.nodes:
+            if node.index == index:
+                return node.pos()
+        raise ValueError(f"Node {index} not found")
+
+    def render_ports(self, board_center: QPointF):
+        for node_a, node_b in PORT_NODE_PAIRS:
+            port_type = self.game.board.ports[node_a]
+            if not port_type:
+                continue
+
+            pos_a = self.get_node_position(node_a)
+            pos_b = self.get_node_position(node_b)
+
+            self.render_single_port(pos_a, pos_b, port_type, board_center)
+
+    def render_single_port(
+        self,
+        p1: QPointF,
+        p2: QPointF,
+        port_type: str,
+        board_center: QPointF,
+    ):
+        # Edge midpoint
+        mid = QPointF(
+            (p1.x() + p2.x()) / 2,
+            (p1.y() + p2.y()) / 2,
+        )
+
+        # Outward direction
+        dx = mid.x() - board_center.x()
+        dy = mid.y() - board_center.y()
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return
+
+        nx, ny = dx / length, dy / length
+
+        # Port edge highlight
+        port_edge = QGraphicsLineItem(QLineF(p1, p2))
+        port_edge.setPen(QPen(QColor(26, 210, 217), 12))  # thicker than normal edges
+        self.scene.addItem(port_edge)
+
+        # Port label
+        offset = 40
+        label_pos = QPointF(
+            mid.x() + nx * offset,
+            mid.y() + ny * offset,
+        )
+
+        label = QGraphicsTextItem(self.format_port_text(port_type))
+        label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        label.setDefaultTextColor(Qt.GlobalColor.black)
+        label.setZValue(5)
+
+        # Center text
+        rect = label.boundingRect()
+        label.setPos(
+            label_pos.x() - rect.width() / 2,
+            label_pos.y() - rect.height() / 2,
+        )
+
+        self.scene.addItem(label)
+
+    @staticmethod
+    def format_port_text(port_type: str) -> str:
+        if port_type == "3for1":
+            return "3:1"
+        resources = ["🪵", "🧱", "🐑", "🌾", "🪨"]
+        return f"2:1 {resources[RESOURCE_TYPES.index(port_type)]}"
+
+    def update_robber(self):
+        """
+        To be called whenever game.board.robber_position changes
+        """
+        if not self.game or self.game.board.robber_position is None:
+            if self.robber_item:
+                self.robber_item.setVisible(False)
+            return
+
+        hex_index = self.game.board.robber_position
+        hex_item = self.hex_items[hex_index]
+
+        # Load robber pixmap
+        pixmap = QPixmap("./assets/robber.png")  # transparent PNG
+        size = int(self.hex_radius * 1.2)
+        pixmap = pixmap.scaled(
+            size,
+            size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        if not self.robber_item:
+            self.robber_item = QGraphicsPixmapItem(pixmap)
+            self.robber_item.setZValue(5)  # above token but below other UI
+            self.scene.addItem(self.robber_item)
+        else:
+            self.robber_item.setPixmap(pixmap)
+            self.robber_item.setVisible(True)
+
+        # Center on hex
+        hex_center = hex_item.center
+        self.robber_item.setPos(hex_center.x() - pixmap.width() / 2,
+                                hex_center.y() - pixmap.height() / 2)
 
     def find_or_create_edge(self, node_map, c, index_counter):
         EPS = 2.0
@@ -446,6 +595,86 @@ class BoardView(QGraphicsView):
                 edge.selected = False
                 edge.update_style()
                 return
+
+    def update_roll_display(self):
+        roll = self.game.last_roll if self.game else None
+
+        if roll is None:
+            self.roll_text_item.setVisible(False)
+            return
+
+        # 🎲 Dice emojis + number
+        self.roll_text_item.setHtml(
+            f"""
+            <div style="
+                background-color: rgba(230, 230, 230, 220);
+                border: 2px solid black;
+                border-radius: 8px;
+                padding: 6px 14px;
+            ">
+                🎲 Roll: <b>{roll}</b>
+            </div>
+            """
+        )
+
+        self.roll_text_item.setVisible(True)
+
+        # Position it centered above the board
+        scene_rect = self.scene.sceneRect()
+        text_rect = self.roll_text_item.boundingRect()
+
+        x = scene_rect.center().x() - text_rect.width() / 2
+        y = scene_rect.top() - 75
+
+        self.roll_text_item.setPos(x, y)
+
+
+class TokenItem(QGraphicsItemGroup):
+    def __init__(self, center: QPointF, number: int, radius: float = 18):
+        super().__init__()
+
+        # Circle
+        circle = QGraphicsEllipseItem(
+            center.x() - radius,
+            center.y() - radius,
+            radius * 2,
+            radius * 2
+        )
+        circle.setPen(QPen(Qt.GlobalColor.black, 1))
+        circle.setBrush(QBrush(QColor(245, 235, 200)))  # classic Catan beige
+        circle.setZValue(2)
+
+        # Text
+        text = QGraphicsTextItem(str(number))
+        font = QFont("Arial", 14, QFont.Weight.Bold)
+        text.setFont(font)
+
+        # Red for 6 and 8
+        if number in (6, 8):
+            text.setDefaultTextColor(Qt.GlobalColor.red)
+        else:
+            text.setDefaultTextColor(Qt.GlobalColor.black)
+
+        # Center text
+        text_rect = text.boundingRect()
+        text.setPos(
+            center.x() - text_rect.width() / 2,
+            center.y() - text_rect.height() / 2
+        )
+        text.setZValue(3)
+
+        self.addToGroup(circle)
+        self.addToGroup(text)
+
+
+class PortItem(QGraphicsTextItem):
+    def __init__(self, text: str, pos: QPointF):
+        super().__init__(text)
+        self.setDefaultTextColor(Qt.GlobalColor.black)
+        self.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.setZValue(5)
+        self.setPos(pos)
+
 
 
 if __name__ == "__main__":
