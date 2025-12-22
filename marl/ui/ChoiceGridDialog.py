@@ -35,6 +35,17 @@ class ChoiceGridDialog(QDialog):
             btn.setEnabled(option.enabled)
             btn.setMinimumHeight(40)
 
+            btn.setStyleSheet("""
+                QPushButton:disabled {
+                    background-color: #cccccc;
+                    color: #888888;
+                    border: 2px solid #999999;
+                }
+                QPushButton {
+                    font-weight: bold;
+                }
+            """)
+
             row = i // columns
             col = i % columns
 

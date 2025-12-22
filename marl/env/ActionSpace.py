@@ -1,5 +1,6 @@
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
+from marl.ui.EnvMock import EnvMock
 from marl.util.ActionSpec import ActionSpec
 from params.catan_constants import N_NODES, N_EDGES, DEV_CARD_TYPES, BANK_TRADE_PAIRS
 
@@ -31,31 +32,40 @@ class ActionSpace:
     def init_action_specs(self):
         start = 0
 
-        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), self.env.build_settlement))
+        # Determine whether to use real callbacks
+        use_callbacks = not isinstance(self.env, EnvMock)
+
+        def cb(attr_name):
+            if use_callbacks:
+                return getattr(self.env, attr_name)
+            else:
+                return lambda *args, **kwargs: None  # dummy for UI
+
+        self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), cb("build_settlement")))
         start += N_NODES
 
-        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), self.env.build_city))
+        self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), cb("build_city")))
         start += N_NODES
 
-        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), self.env.build_road))
+        self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), cb("build_road")))
         start += N_EDGES
 
-        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), self.env.buy_dev_card))
+        self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), cb("buy_dev_card")))
         start += 1
 
-        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), self.env.play_dev_card))
+        self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), cb("play_dev_card")))
         start += 5
 
-        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), self.env.move_robber))
+        self.action_specs.append(ActionSpec("move_robber", (start, start + 19), cb("move_robber")))
         start += 19
 
-        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), self.env.trade_bank))
+        self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), cb("trade_bank")))
         start += 20
 
-        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), self.env.choose_resource))
+        self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), cb("choose_resource")))
         start += 5
 
-        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), self.env.end_turn))
+        self.action_specs.append(ActionSpec("end_turn", (start, start + 1), cb("end_turn")))
         start += 1
         self.action_space_size = start
 
@@ -154,3 +164,35 @@ class ActionSpace:
 
         # --- Always allow end turn ---
         self._enable(mask, "end_turn")
+
+    # --- FOR UI ---
+    def get_spec(self, name: str) -> ActionSpec:
+        return next(s for s in self.action_specs if s.name == name)
+
+    def is_action_enabled(
+        self,
+        player: CatanPlayer,
+        name: str,
+        index: int | None = None,
+        mask: list[bool] = None,
+    ) -> bool:
+        """
+        If index is None:
+            - returns True if ANY action in this range is enabled
+        If index is provided:
+            - returns True if that specific sub-action is enabled
+        """
+        if mask is None:
+            mask = self.get_action_mask(player)
+        spec = self.get_spec(name)
+        start, end = spec.range
+
+        if index is None:
+            return any(mask[start:end])
+
+        if not (0 <= index < (end - start)):
+            raise IndexError(f"Action index {index} out of range for '{name}'")
+
+        return mask[start + index]
+
+

@@ -2,11 +2,14 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 
+from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
 from marl.ui.ChoiceGridDialog import ChoiceGridDialog
 from marl.ui.ChoiceOption import ChoiceOption
+from marl.ui.EnvMock import EnvMock
 from marl.ui.board_view import BoardView
 from marl.ui.PlayerInfoPanel import PlayerInfoPanel
+from params.catan_constants import BANK_TRADE_PAIRS
 
 
 class ActionHandler:
@@ -114,7 +117,11 @@ class ActionHandler:
                 if give == receive:
                     continue
 
-                enabled = True
+                give_index = resources.index(give)
+                receive_index = resources.index(receive)
+
+                trade_index = BANK_TRADE_PAIRS.index((resources_names[give_index], resources_names[receive_index]))
+                enabled = self.action_masks.is_action_enabled(self.game.current_player, "trade_bank", trade_index)
 
                 def make_trade_callback(g, r):
                     def handler():
@@ -128,8 +135,8 @@ class ActionHandler:
                         text=f"{give} → {receive}",
                         enabled=enabled,
                         callback=make_trade_callback(
-                            resources_names[resources.index(give)],
-                            resources_names[resources.index(receive)],
+                            resources_names[give_index],
+                            resources_names[receive_index],
                         )
                     )
                 )
@@ -151,6 +158,11 @@ class ActionPanel(QWidget, ActionHandler):
         self.game = game
         self.board_view = board_view
         self.info_panel = info_panel
+
+        # Dummy env with game object for ActionSpace
+        env = EnvMock(self.game)
+        self.action_masks = ActionSpace(env)
+
         self.setFixedWidth(220)
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
