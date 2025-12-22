@@ -4,6 +4,7 @@ from collections import Counter
 from typing import Dict, List
 
 import numpy as np
+import random
 
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
@@ -39,6 +40,21 @@ class CatanPlayer:
     @property
     def victory_points(self) -> int:
         return self.points + self.hidden_points
+
+    def discard_random_half(self):
+        total = sum(self.resources.values())
+        if total <= 7:
+            return
+
+        to_discard = total // 2
+        pool = []
+        for res, count in self.resources.items():
+            pool.extend([res] * count)
+
+        # Randomly discard
+        discarded = random.sample(pool, to_discard)
+        for res in discarded:
+            self.resources[res] -= 1
 
     def take_resources(self, roll: int, board: CatanBoard):
         """

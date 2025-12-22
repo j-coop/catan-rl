@@ -72,8 +72,14 @@ class CatanGame:
     def handle_dice_roll(self):
         roll = self.get_dice_roll()
         self.last_roll = roll
-        for player in self.players:
-            player.take_resources(roll, self.board)
+        print(f"Dice rolled: {roll}")
+        if roll == 7:
+            for player in self.players:
+                player.discard_random_half()           
+            # self.phase = CatanPhase.ROBBER_MOVE
+        else:
+            for player in self.players:
+                player.take_resources(roll, self.board)
 
     def step(self, player_name: str, action: int):
         # Decode action index, call appropriate place/robber/buy/end turn methods
