@@ -8,7 +8,9 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS, RESOURCE_TYPES
+from params.catan_constants import (BANK_STATE, N_NODES, N_EDGES,
+                                    LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
+                                    RESOURCE_TYPES)
 from params.edges_list import EDGES_LIST
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
@@ -437,6 +439,7 @@ class CatanGame:
                 res_amount = tile[1]
                 if res_amount is not None:
                     player.resources[res_name] += 1
+                    BANK_STATE[res_name] -= 1
 
             roads = self.board.get_valid_road_spots(player)
             valid_roads = []

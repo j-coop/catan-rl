@@ -400,8 +400,10 @@ class CatanEnv(MultiAgentEnv):
     def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
         res_counts = np.array(list(player.resources.values()), dtype=np.float32) / MAX_RESOURCE_COUNT
         dev_counts = np.array(list(player.dev_cards.values()), dtype=np.float32) / 5.0
-
-        victory_points = np.array([player.victory_points / MAX_VICTORY_POINTS])
+        victory_points = np.array(
+            [min(player.victory_points / MAX_VICTORY_POINTS, 1.0)],
+            dtype=np.float32
+        )
         has_longest_road = self.game.longest_road_owner is not None and self.game.longest_road_owner.name == player.name
         has_largest_army = self.game.largest_army_owner is not None and self.game.largest_army_owner.name == player.name
         longest_road = np.array([float(has_longest_road)])
