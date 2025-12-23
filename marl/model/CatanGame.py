@@ -207,21 +207,21 @@ class CatanGame:
                 if self.largest_army_owner is not None:
                     self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
-            elif card_type == "road_building":
-                # Player will now be able to build two roads
-                self.phase = CatanPhase.ROAD_BUILDING
-                self._roads_remaining_from_card = 2  # Track roads to build
-            elif card_type == "year_of_plenty":
-                # Player chooses 2 resources from bank in two consecutive actions
-                self.phase = CatanPhase.YEAR_OF_PLENTY
-                self._year_of_plenty_choices = []
-            elif card_type == "monopoly":
-                # Player chooses one resource type to take from all others
-                self.phase = CatanPhase.MONOPOLY
-            elif card_type == "victory_point":
-                # Immediate hidden point
-                player.hidden_points += 1
-                self.check_victory(agent)
+        elif card_type == "road_building":
+            # Player will now be able to build two roads
+            self.phase = CatanPhase.ROAD_BUILDING
+            self._roads_remaining_from_card = 2  # Track roads to build
+        elif card_type == "year_of_plenty":
+            # Player chooses 2 resources from bank in two consecutive actions
+            self.phase = CatanPhase.YEAR_OF_PLENTY
+            self._year_of_plenty_choices = []
+        elif card_type == "monopoly":
+            # Player chooses one resource type to take from all others
+            self.phase = CatanPhase.MONOPOLY
+        elif card_type == "victory_point":
+            # Immediate hidden point
+            player.hidden_points += 1
+            self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
