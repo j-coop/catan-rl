@@ -136,7 +136,6 @@ class ActionSpace:
         direct = player.can_afford_directly("road")
         with_trades = player.can_afford_with_trades("road", self.env.game.bank)
         if direct or with_trades:
-            # print(f"can_afford_road, {player.resources}")
             valid_edges = self.env.game.board.get_valid_road_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_road")
             for edge in valid_edges:

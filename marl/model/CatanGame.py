@@ -77,8 +77,7 @@ class CatanGame:
         print(f"Dice rolled: {roll}")
         if roll == 7:
             for player in self.players:
-                player.discard_random_half()           
-            # self.phase = CatanPhase.ROBBER_MOVE
+                player.discard_random_half()
         else:
             for player in self.players:
                 player.take_resources(roll, self.board)

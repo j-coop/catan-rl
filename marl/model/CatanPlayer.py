@@ -61,11 +61,8 @@ class CatanPlayer:
         """
         Collect resources for this player after a dice roll.
         Settlements yield +1, cities yield +2.
-        Robber blocks production on its tile.
+        Resources are only given if the bank has enough.
         """
-        if roll == 7:
-            return  # robber event, no production
-
         for node in self.settlements + self.cities:
             for tile_index in NODES_TO_TILES.get(node, []):
                 resource, token = board.tiles[tile_index]

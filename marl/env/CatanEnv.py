@@ -55,17 +55,6 @@ class CatanEnv(MultiAgentEnv):
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
 
-    # def observation_space(self, agent=None):
-    #     print(agent)
-    #     if agent is None:
-    #         return self.observation_spaces  # returns dict if needed
-    #     return self.observation_spaces
-    #
-    # def action_space(self, agent=None):
-    #     if agent is None:
-    #         return self.action_spaces
-    #     return self.action_spaces
-
     @property
     def get_sub_environments(self):
         return self.unwrapped
@@ -113,10 +102,6 @@ class CatanEnv(MultiAgentEnv):
         # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
         mask = self.actions.get_action_mask(player)
         print(f"Resources after mask: {player.resources}")
-        # print(mask)
-        # if mask[action] == 0:
-        #     print("Chosen action illegal - end turn")
-        #     action = self.actions.get_action_space_size() - 1
         if mask[action] == 0:
             print("Chosen action illegal - end step, small penalty and redo same state")
 
@@ -154,8 +139,6 @@ class CatanEnv(MultiAgentEnv):
             # Advance to next player (no dice roll yet)
             self.game.end_turn()
             self.agent_selection = self.game.current_player.name
-
-            # Mark that a dice roll should happen
             self.pending_dice_roll = True
         else:
             # Continue with same agent
