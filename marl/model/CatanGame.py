@@ -8,7 +8,9 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import N_NODES, N_EDGES, LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS, RESOURCE_TYPES
+from params.catan_constants import (BANK_STATE, N_NODES, N_EDGES,
+                                    LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
+                                    RESOURCE_TYPES)
 from params.edges_list import EDGES_LIST
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
@@ -75,8 +77,7 @@ class CatanGame:
         print(f"Dice rolled: {roll}")
         if roll == 7:
             for player in self.players:
-                player.discard_random_half()           
-            # self.phase = CatanPhase.ROBBER_MOVE
+                player.discard_random_half()
         else:
             for player in self.players:
                 player.take_resources(roll, self.board)
@@ -207,21 +208,21 @@ class CatanGame:
                 if self.largest_army_owner is not None:
                     self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
-            elif card_type == "road_building":
-                # Player will now be able to build two roads
-                self.phase = CatanPhase.ROAD_BUILDING
-                self._roads_remaining_from_card = 2  # Track roads to build
-            elif card_type == "year_of_plenty":
-                # Player chooses 2 resources from bank in two consecutive actions
-                self.phase = CatanPhase.YEAR_OF_PLENTY
-                self._year_of_plenty_choices = []
-            elif card_type == "monopoly":
-                # Player chooses one resource type to take from all others
-                self.phase = CatanPhase.MONOPOLY
-            elif card_type == "victory_point":
-                # Immediate hidden point
-                player.hidden_points += 1
-                self.check_victory(agent)
+        elif card_type == "road_building":
+            # Player will now be able to build two roads
+            self.phase = CatanPhase.ROAD_BUILDING
+            self._roads_remaining_from_card = 2  # Track roads to build
+        elif card_type == "year_of_plenty":
+            # Player chooses 2 resources from bank in two consecutive actions
+            self.phase = CatanPhase.YEAR_OF_PLENTY
+            self._year_of_plenty_choices = []
+        elif card_type == "monopoly":
+            # Player chooses one resource type to take from all others
+            self.phase = CatanPhase.MONOPOLY
+        elif card_type == "victory_point":
+            # Immediate hidden point
+            player.hidden_points += 1
+            self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
@@ -437,6 +438,7 @@ class CatanGame:
                 res_amount = tile[1]
                 if res_amount is not None:
                     player.resources[res_name] += 1
+                    BANK_STATE[res_name] -= 1
 
             roads = self.board.get_valid_road_spots(player)
             valid_roads = []

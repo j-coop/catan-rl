@@ -8,7 +8,8 @@ import random
 
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
-                                    RESOURCE_TYPES, BUILD_COSTS)
+                                    RESOURCE_TYPES, BUILD_COSTS,
+                                    BANK_STATE)
 
 from typing import TYPE_CHECKING
 
@@ -60,11 +61,8 @@ class CatanPlayer:
         """
         Collect resources for this player after a dice roll.
         Settlements yield +1, cities yield +2.
-        Robber blocks production on its tile.
+        Resources are only given if the bank has enough.
         """
-        if roll == 7:
-            return  # robber event, no production
-
         for node in self.settlements + self.cities:
             for tile_index in NODES_TO_TILES.get(node, []):
                 resource, token = board.tiles[tile_index]
@@ -73,10 +71,18 @@ class CatanPlayer:
                 if token != roll:
                     continue
                 if tile_index == board.robber_position:
-                    continue  # robber blocks production
+                    continue
 
                 gain = 1 if node in self.settlements else 2
-                self.resources[resource] += gain
+                bank_available = BANK_STATE.get(resource, 0)
+                actual_gain = min(gain, bank_available)
+
+                self.resources[resource] += actual_gain
+                BANK_STATE[resource] -= actual_gain
+
+                if actual_gain < gain:
+                    print(f"{self.name} gets {actual_gain}/{gain} {resource} "
+                        f"(bank now {BANK_STATE[resource]})")
 
     def pay_for_build(self, build_type: str):
         print(f"Available resources: {self.resources}")
