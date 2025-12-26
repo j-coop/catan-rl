@@ -59,13 +59,6 @@ TILE_TYPE_COUNTS = {
 }
 N_TILE_TYPES = 6
 MAX_RESOURCE_COUNT = 19
-BANK_STATE = {
-    "wood":  MAX_RESOURCE_COUNT,
-    "brick": MAX_RESOURCE_COUNT,
-    "sheep": MAX_RESOURCE_COUNT,
-    "wheat": MAX_RESOURCE_COUNT,
-    "ore":   MAX_RESOURCE_COUNT
-}
 
 PORT_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "3for1"]
 PORT_TYPE_COUNTS = {

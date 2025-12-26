@@ -1,5 +1,6 @@
 import math
 import os
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPolygonItem,
@@ -13,7 +14,10 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import QPointF, Qt, QRectF, QLineF
 
 from marl.model.CatanGame import CatanGame
-from params.catan_constants import N_EDGES, N_NODES, PORT_NODE_PAIRS, RESOURCE_TYPES
+if TYPE_CHECKING:
+    from marl.ui.ActionPanel import ActionPanel
+from marl.ui.PlayerInfoPanel import PlayerInfoPanel
+from params.catan_constants import N_EDGES, N_NODES, PORT_NODE_PAIRS, RESOURCE_TYPES, N_TILES
 from params.tiles2edges_adjacency_map import TILES_TO_EDGES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from params.edges_list import EDGES_LIST
@@ -236,16 +240,23 @@ class HexItem(QGraphicsPolygonItem):
     def __init__(self,
                  center: QPointF,
                  radius: float,
+                 index: int,
                  fill: QColor = QColor(224, 179, 101),
                  texture_path: str | None = None):
         super().__init__()
         self.center = center
         self.radius = radius
+        self.index = index
+
+        self.hovered = False
+        self.selectable = False
 
         polygon = self._create_hex_polygon(center, radius)
         self.setPolygon(QPolygonF(polygon))
         self.setPen(QPen(Qt.GlobalColor.black, 1))
         self.setZValue(0)
+
+        self.setAcceptHoverEvents(True)
 
         # Default flat color
         brush = QBrush(fill)
@@ -288,13 +299,47 @@ class HexItem(QGraphicsPolygonItem):
             pts.append(QPointF(x, y))
         return pts
 
+    def hoverEnterEvent(self, event):
+        if self.selectable:
+            self.hovered = True
+            self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        if self.selectable:
+            self.hovered = False
+            self.update()
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event):
+        view = self.scene().views()[0]
+
+        if view.awaiting_hex_callback and self.selectable:
+            callback = view.awaiting_hex_callback
+            view.awaiting_hex_callback = None
+            callback(self.index)
+            event.accept()
+            return
+
+        super().mousePressEvent(event)
+
+    def paint(self, painter: QPainter, option, widget=None):
+        super().paint(painter, option, widget)
+
+        if self.selectable and self.hovered:
+            painter.setBrush(QBrush(QColor(255, 255, 0, 60)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawPolygon(self.polygon())
+
 
 class BoardView(QGraphicsView):
     ROW_COUNTS = [3, 4, 5, 4, 3]
 
-    def __init__(self, game: CatanGame | None = None, hex_radius: float = 70):
+    def __init__(self, info_panel: PlayerInfoPanel, game: CatanGame | None = None, hex_radius: float = 70):
         super().__init__()
         self.game = game
+        self.info_panel = info_panel
+        self.action_panel: ActionPanel | None = None  # set in CatanWindow
         self.setRenderHints(self.renderHints() | QPainter.RenderHint.Antialiasing)
         self.scene = QGraphicsScene(self)
         self.setScene(self.scene)
@@ -302,6 +347,7 @@ class BoardView(QGraphicsView):
         self.selected_item = None
         self.awaiting_node_callback = None
         self.awaiting_edge_callback = None
+        self.awaiting_hex_callback = None
         self.nodes = []
         self.edges = []
 
@@ -369,7 +415,7 @@ class BoardView(QGraphicsView):
             center = QPointF(center.x() + translate_x, center.y() + translate_y)
             resource, token = self.game.board.tiles[i]
 
-            hex_item = HexItem(center, r, texture_path=f'./assets/{resource}.jpg')
+            hex_item = HexItem(center, r, i, texture_path=f'./assets/{resource}.jpg')
             self.scene.addItem(hex_item)
             self.hex_items.append(hex_item)
             if token is not None:
@@ -571,6 +617,28 @@ class BoardView(QGraphicsView):
             self.selected_item.set_selected(False)
             self.selected_item = None
 
+    def expect_hex_selection(self, callback, valid_hexes: list[int]):
+        """
+        BoardView will call callback(hex_index) after user clicks a valid hex.
+        """
+        self.awaiting_hex_callback = callback
+        self.awaiting_node_callback = None
+        self.awaiting_edge_callback = None
+
+        if self.selected_item:
+            self.selected_item = None
+
+        for hex_item in self.hex_items:
+            hex_item.selectable = hex_item.index in valid_hexes
+            hex_item.hovered = False
+            hex_item.update()
+
+    def clear_hex_selection(self):
+        for hex_item in self.hex_items:
+            hex_item.selectable = False
+            hex_item.hovered = False
+            hex_item.update()
+
     def build_settlement_ui(self, index: int):
         for node in self.nodes:
             if node.index == index:
@@ -603,19 +671,43 @@ class BoardView(QGraphicsView):
             self.roll_text_item.setVisible(False)
             return
 
-        # 🎲 Dice emojis + number
-        self.roll_text_item.setHtml(
-            f"""
-            <div style="
-                background-color: rgba(230, 230, 230, 220);
-                border: 2px solid black;
-                border-radius: 8px;
-                padding: 6px 14px;
-            ">
-                🎲 Roll: <b>{roll}</b>
-            </div>
-            """
-        )
+        if roll == 7:
+            def callback(hex_index: int):
+                self.game.move_robber(self.game.current_player.name, hex_index)
+                self.update_robber()
+                self.clear_hex_selection()
+                self.info_panel._update_after_game_change()
+                self.action_panel.update_buttons()
+
+            self.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
+
+        if not self.game.game_over:
+            # 🎲 Dice emojis + number
+            self.roll_text_item.setHtml(
+                f"""
+                <div style="
+                    background-color: rgba(230, 230, 230, 220);
+                    border: 2px solid black;
+                    border-radius: 8px;
+                    padding: 6px 14px;
+                ">
+                    🎲 Roll: <b>{roll}{' - Choose robber tile' if roll == 7 else ''}</b>
+                </div>
+                """
+            )
+        else:
+            self.roll_text_item.setHtml(
+                f"""
+                <div style="
+                    background-color: rgba(230, 230, 230, 220);
+                    border: 2px solid black;
+                    border-radius: 8px;
+                    padding: 6px 14px;
+                ">
+                    👑 Winner: <b>{self.game.winner}</b>
+                </div>
+                """
+            )
 
         self.roll_text_item.setVisible(True)
 

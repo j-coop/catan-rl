@@ -8,7 +8,7 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import (BANK_STATE, N_NODES, N_EDGES,
+from params.catan_constants import (N_NODES, N_EDGES,
                                     LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
                                     RESOURCE_TYPES)
 from params.edges_list import EDGES_LIST
@@ -24,12 +24,12 @@ class CatanGame:
                  player_names: List[str],
                  ai_players: Optional[List[bool]] = None,
                  training: bool = False):
-        self.players = [
-            CatanPlayer(name=name, color=color)
-            for name, color in zip(player_names, player_colors)
-        ]
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
+        self.players = [
+            CatanPlayer(name=name, color=color, bank=self.bank)
+            for name, color in zip(player_names, player_colors)
+        ]
         self.turn: int = 0
         self.game_over: bool = False
         self.winner: str | None = None
@@ -76,6 +76,7 @@ class CatanGame:
         self.last_roll = roll
         print(f"Dice rolled: {roll}")
         if roll == 7:
+            self.phase = CatanPhase.ROBBER_MOVE
             for player in self.players:
                 player.discard_random_half()
         else:
@@ -118,7 +119,7 @@ class CatanGame:
         return size
 
     def get_player(self, agent):
-        return next((p for p in self.players if p.name == agent), CatanPlayer("", ""))
+        return next((p for p in self.players if p.name == agent), CatanPlayer("", "", self.bank))
 
     def check_victory(self, agent: str):
         player = self.get_player(agent)
@@ -159,6 +160,7 @@ class CatanGame:
 
         for player in self.players:
             length = self.get_longest_road_length(player.name)
+            player.longest_road = length
             if length >= LONGEST_ROAD_MIN_LENGTH and length > self.longest_road_length:
                 self.longest_road_length = length
                 self.longest_road_owner = player
@@ -234,6 +236,9 @@ class CatanGame:
         """
         # Set robber position
         self.board.robber_position = tile_index
+
+        # Going back to normal game flow
+        self.phase = CatanPhase.NORMAL
 
         # Find players adjacent to tile_index (players who have settlement or city on any node touching that tile)
         adjacent_nodes = [node for node, tiles in NODES_TO_TILES.items() if tile_index in tiles]
@@ -438,7 +443,7 @@ class CatanGame:
                 res_amount = tile[1]
                 if res_amount is not None:
                     player.resources[res_name] += 1
-                    BANK_STATE[res_name] -= 1
+                    self.bank.draw_bank_resource(res_name, 1)
 
             roads = self.board.get_valid_road_spots(player)
             valid_roads = []
