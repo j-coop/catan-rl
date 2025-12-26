@@ -681,19 +681,33 @@ class BoardView(QGraphicsView):
 
             self.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
 
-        # 🎲 Dice emojis + number
-        self.roll_text_item.setHtml(
-            f"""
-            <div style="
-                background-color: rgba(230, 230, 230, 220);
-                border: 2px solid black;
-                border-radius: 8px;
-                padding: 6px 14px;
-            ">
-                🎲 Roll: <b>{roll}{' - Choose robber tile' if roll == 7 else ''}</b>
-            </div>
-            """
-        )
+        if not self.game.game_over:
+            # 🎲 Dice emojis + number
+            self.roll_text_item.setHtml(
+                f"""
+                <div style="
+                    background-color: rgba(230, 230, 230, 220);
+                    border: 2px solid black;
+                    border-radius: 8px;
+                    padding: 6px 14px;
+                ">
+                    🎲 Roll: <b>{roll}{' - Choose robber tile' if roll == 7 else ''}</b>
+                </div>
+                """
+            )
+        else:
+            self.roll_text_item.setHtml(
+                f"""
+                <div style="
+                    background-color: rgba(230, 230, 230, 220);
+                    border: 2px solid black;
+                    border-radius: 8px;
+                    padding: 6px 14px;
+                ">
+                    👑 Winner: <b>{self.game.winner}</b>
+                </div>
+                """
+            )
 
         self.roll_text_item.setVisible(True)
 

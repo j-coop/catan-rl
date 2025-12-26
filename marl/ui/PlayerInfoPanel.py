@@ -59,11 +59,13 @@ class PlayerInfoPanel(QWidget):
             block.setObjectName("playerBlock")
             block.setFrameShape(QFrame.Shape.NoFrame)
 
+            game_over = self.game.game_over
+
             if is_active:
                 block.setStyleSheet(
                     f"""
                     QFrame#playerBlock {{
-                        background-color: {player.color};
+                        background-color: {player.color if not game_over or self.game.winner == player.name else 'grey'};
                         border-radius: 8px;
                         border: 3px solid black;
                     }}
@@ -73,7 +75,7 @@ class PlayerInfoPanel(QWidget):
                 block.setStyleSheet(
                     f"""
                     QFrame#playerBlock {{
-                        background-color: {player.color};
+                        background-color: {player.color if not game_over or self.game.winner == player.name else 'grey'};
                         border-radius: 8px;
                         border: none;
                     }}
