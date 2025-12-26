@@ -22,15 +22,19 @@ class PlayerInfoPanel(QWidget):
 
     def _get_road_desc(self, player):
         if self.game.has_player_the_longest_road(player):
-            return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
+            return f"<span style='font-size:14px; font-weight:bold;'>✅ {self.game.longest_road_length}</span>"
         else:
-            return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
+            return (f"<span style='font-size:14px; font-weight:bold;'>"
+                    f"🚫 {player.longest_road}/{max(5, self.game.longest_road_length)}"
+                    f"</span>")
 
     def _get_knight_desc(self, player):
         if self.game.has_player_the_largest_army(player):
-            return "<span style='font-size:14px; font-weight:bold;'>✅</span>"
+            return f"<span style='font-size:14px; font-weight:bold;'>✅ {self.game.largest_army_count}</span>"
         else:
-            return "<span style='font-size:14px; font-weight:bold;'>🚫</span>"
+            return (f"<span style='font-size:14px; font-weight:bold;'>"
+                    f"🚫 {player.knights_played}/{self.game.largest_army_count}"
+                    f"</span>")
 
     def _get_resources_desc(self, player):
         icons = ["🪵", "🧱", "🐑", "🌾", "🪨"]

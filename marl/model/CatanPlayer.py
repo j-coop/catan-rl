@@ -37,6 +37,7 @@ class CatanPlayer:
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
         self.hidden_points: int = 0 # victory points other players don't know about
+        self.longest_road = 0
 
     @property
     def victory_points(self) -> int:

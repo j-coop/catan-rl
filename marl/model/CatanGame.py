@@ -159,6 +159,7 @@ class CatanGame:
 
         for player in self.players:
             length = self.get_longest_road_length(player.name)
+            player.longest_road = length
             if length >= LONGEST_ROAD_MIN_LENGTH and length > self.longest_road_length:
                 self.longest_road_length = length
                 self.longest_road_owner = player
