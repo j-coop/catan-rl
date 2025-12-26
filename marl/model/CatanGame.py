@@ -76,6 +76,7 @@ class CatanGame:
         self.last_roll = roll
         print(f"Dice rolled: {roll}")
         if roll == 7:
+            self.phase = CatanPhase.ROBBER_MOVE
             for player in self.players:
                 player.discard_random_half()
         else:
@@ -276,6 +277,9 @@ class CatanGame:
         thief = self.get_player(agent_name)
         if thief:
             thief.resources[stolen_resource] += 1
+
+        # Going back to normal game flow
+        self.phase = CatanPhase.NORMAL
 
     def trade_bank(self, agent, trade_index: int):
         """
