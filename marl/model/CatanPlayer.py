@@ -8,8 +8,7 @@ import random
 
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
-                                    RESOURCE_TYPES, BUILD_COSTS,
-                                    BANK_STATE)
+                                    RESOURCE_TYPES, BUILD_COSTS)
 
 from typing import TYPE_CHECKING
 
@@ -22,9 +21,10 @@ class CatanPlayer:
     """
     Stores player-specific game state.
     """
-    def __init__(self, name: str, color: str):
+    def __init__(self, name: str, color: str, bank: CatanBank):
         self.name: str = name
         self.color: str = color
+        self.bank: CatanBank = bank
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
 
         # Dev cards
@@ -57,6 +57,7 @@ class CatanPlayer:
         discarded = random.sample(pool, to_discard)
         for res in discarded:
             self.resources[res] -= 1
+            self.bank.return_bank_resource(res, 1)
 
     def take_resources(self, roll: int, board: CatanBoard):
         """
@@ -75,15 +76,15 @@ class CatanPlayer:
                     continue
 
                 gain = 1 if node in self.settlements else 2
-                bank_available = BANK_STATE.get(resource, 0)
+                bank_available = self.bank.resources[resource]
                 actual_gain = min(gain, bank_available)
 
                 self.resources[resource] += actual_gain
-                BANK_STATE[resource] -= actual_gain
+                self.bank.draw_bank_resource(resource, actual_gain)
 
                 if actual_gain < gain:
                     print(f"{self.name} gets {actual_gain}/{gain} {resource} "
-                        f"(bank now {BANK_STATE[resource]})")
+                        f"(bank now {self.bank.resources[resource]})")
 
     def pay_for_build(self, build_type: str):
         print(f"Available resources: {self.resources}")
@@ -91,17 +92,12 @@ class CatanPlayer:
             raise ValueError(f"Unknown build type: {build_type}")
 
         cost = Counter(BUILD_COSTS[build_type])
-        # print(f"resources: {self.resources}")
-        # print(f"cost: {cost}")
         shortages = self._deduct_direct_resources(cost)
-        # print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
             shortages = self._cover_shortages_with_trades(shortages)
-            # print(f"shortages: {shortages}")
 
         if not self._all_shortages_covered(shortages):
-            # print(f"shortages: {shortages}")
             raise ValueError(f"Player {self.name} cannot afford to build {build_type}, even with trades, {self.resources}")
 
     def _deduct_direct_resources(self, cost: Counter) -> Counter:
@@ -110,14 +106,15 @@ class CatanPlayer:
         remaining = Counter()
         for res, qty in cost.items():
             available_qty = self.resources.get(res, 0)
-            # print(res, qty, available_qty)
             if available_qty >= qty:
                 self.resources[res] -= qty
+                self.bank.return_bank_resource(res, qty)
                 remaining[res] = 0
             else:
                 self.resources[res] = 0
                 remaining[res] = qty - available_qty
-        # print(self.resources)
+                self.bank.return_bank_resource(res, available_qty)
+
         return remaining
 
     def _all_shortages_covered(self, shortages: Counter) -> bool:
@@ -147,6 +144,7 @@ class CatanPlayer:
                     continue
                 trade_amount = min(max_trade_units, needed)
                 self.resources[res] -= trade_amount * ratio
+                self.bank.return_bank_resource(res, trade_amount * ratio)
                 shortages[shortage_res] -= trade_amount
                 max_trade_units -= trade_amount
         return shortages

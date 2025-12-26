@@ -2,7 +2,7 @@ import random
 from typing import Dict, List
 
 from params.catan_constants import (DEV_CARD_COUNTS,
-                                    RESOURCE_TYPES)
+                                    RESOURCE_TYPES, MAX_RESOURCE_COUNT)
 
 
 class CatanBank:
@@ -10,7 +10,7 @@ class CatanBank:
     Tracks remaining resources and development cards.
     """
     def __init__(self, seed: int | None = None):
-        self.resources: Dict[str, int] = {res: 19 for res in RESOURCE_TYPES}
+        self.resources: Dict[str, int] = {res: MAX_RESOURCE_COUNT for res in RESOURCE_TYPES}
 
         # Initialize dev card stack
         self.dev_cards_stack: List[str] = []
@@ -19,6 +19,14 @@ class CatanBank:
 
         rng = random.Random(seed)
         rng.shuffle(self.dev_cards_stack)
+
+    def draw_bank_resource(self, resource: str, count: int):
+        self.resources[resource] -= count
+        if self.resources[resource] < 0:
+            self.resources[resource] = 0
+
+    def return_bank_resource(self, resource: str, count: int):
+        self.resources[resource] += count
 
     def draw_dev_card(self) -> str | None:
         """

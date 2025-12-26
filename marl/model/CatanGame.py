@@ -8,7 +8,7 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import (BANK_STATE, N_NODES, N_EDGES,
+from params.catan_constants import (N_NODES, N_EDGES,
                                     LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
                                     RESOURCE_TYPES)
 from params.edges_list import EDGES_LIST
@@ -24,12 +24,12 @@ class CatanGame:
                  player_names: List[str],
                  ai_players: Optional[List[bool]] = None,
                  training: bool = False):
-        self.players = [
-            CatanPlayer(name=name, color=color)
-            for name, color in zip(player_names, player_colors)
-        ]
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
+        self.players = [
+            CatanPlayer(name=name, color=color, bank=self.bank)
+            for name, color in zip(player_names, player_colors)
+        ]
         self.turn: int = 0
         self.game_over: bool = False
         self.winner: str | None = None
@@ -119,7 +119,7 @@ class CatanGame:
         return size
 
     def get_player(self, agent):
-        return next((p for p in self.players if p.name == agent), CatanPlayer("", ""))
+        return next((p for p in self.players if p.name == agent), CatanPlayer("", "", self.bank))
 
     def check_victory(self, agent: str):
         player = self.get_player(agent)
@@ -443,7 +443,7 @@ class CatanGame:
                 res_amount = tile[1]
                 if res_amount is not None:
                     player.resources[res_name] += 1
-                    BANK_STATE[res_name] -= 1
+                    self.bank.draw_bank_resource(res_name, 1)
 
             roads = self.board.get_valid_road_spots(player)
             valid_roads = []
