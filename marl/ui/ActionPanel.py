@@ -9,7 +9,7 @@ from marl.ui.ChoiceOption import ChoiceOption
 from marl.ui.EnvMock import EnvMock
 from marl.ui.board_view import BoardView
 from marl.ui.PlayerInfoPanel import PlayerInfoPanel
-from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES
+from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES
 
 
 class ActionHandler:
@@ -65,9 +65,21 @@ class ActionHandler:
     def show_dev_card_dialog(self):
         current_player = self.game.current_player
 
-        def make_callback(func_name: str):
+        def make_callback(card_type: str):
             def callback():
-                getattr(self.game, func_name)()  # call the method by name (lazy)
+                if card_type == "knight":
+                    def callback(hex_index: int):
+                        self.game.move_robber(self.game.current_player.name, hex_index)
+                        self.board_view.update_robber()
+                        self.board_view.clear_hex_selection()
+                        self.info_panel._update_after_game_change()
+                        self.update_buttons()
+
+                    self.board_view.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
+
+                # Call the unified game handler
+                self.game.play_dev_card(current_player.name, card_type)
+
                 self.board_view.update_roll_display()
                 self.info_panel.refresh()
                 self.update_buttons()
@@ -81,7 +93,7 @@ class ActionHandler:
                     current_player, "play_dev_card",
                     DEV_CARD_TYPES.index("knight")
                 ),
-                callback=make_callback("play_knight"),
+                callback=make_callback("knight"),
             ),
             ChoiceOption(
                 text="🏆 Victory Point",
@@ -89,7 +101,7 @@ class ActionHandler:
                     current_player, "play_dev_card",
                     DEV_CARD_TYPES.index("victory_point")
                 ),
-                callback=make_callback("play_victory_point"),
+                callback=make_callback("victory_point"),
             ),
             ChoiceOption(
                 text="🛣 Road Building",
@@ -97,7 +109,7 @@ class ActionHandler:
                     current_player, "play_dev_card",
                     DEV_CARD_TYPES.index("road_building")
                 ),
-                callback=make_callback("play_road_building"),
+                callback=make_callback("road_building"),
             ),
             ChoiceOption(
                 text="📦 Monopoly",
@@ -105,7 +117,7 @@ class ActionHandler:
                     current_player, "play_dev_card",
                     DEV_CARD_TYPES.index("monopoly")
                 ),
-                callback=make_callback("play_monopoly"),
+                callback=make_callback("monopoly"),
             ),
             ChoiceOption(
                 text="🌾 Year of Plenty",
@@ -113,7 +125,7 @@ class ActionHandler:
                     current_player, "play_dev_card",
                     DEV_CARD_TYPES.index("year_of_plenty")
                 ),
-                callback=make_callback("play_year_of_plenty"),
+                callback=make_callback("year_of_plenty"),
             ),
         ]
 

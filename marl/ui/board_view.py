@@ -673,10 +673,7 @@ class BoardView(QGraphicsView):
 
         if roll == 7:
             def callback(hex_index: int):
-                print('tile choice callback')
-                print(self.game.board.robber_position)
                 self.game.move_robber(self.game.current_player.name, hex_index)
-                print(self.game.board.robber_position)
                 self.update_robber()
                 self.clear_hex_selection()
                 self.info_panel._update_after_game_change()

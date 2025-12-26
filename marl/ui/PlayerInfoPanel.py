@@ -33,7 +33,7 @@ class PlayerInfoPanel(QWidget):
             return f"<span style='font-size:14px; font-weight:bold;'>✅ {self.game.largest_army_count}</span>"
         else:
             return (f"<span style='font-size:14px; font-weight:bold;'>"
-                    f"🚫 {player.knights_played}/{self.game.largest_army_count}"
+                    f"🚫 {player.knights_played}/{max(3, self.game.largest_army_count)}"
                     f"</span>")
 
     def _get_resources_desc(self, player):

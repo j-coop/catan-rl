@@ -237,6 +237,9 @@ class CatanGame:
         # Set robber position
         self.board.robber_position = tile_index
 
+        # Going back to normal game flow
+        self.phase = CatanPhase.NORMAL
+
         # Find players adjacent to tile_index (players who have settlement or city on any node touching that tile)
         adjacent_nodes = [node for node, tiles in NODES_TO_TILES.items() if tile_index in tiles]
         adjacent_players = set()
@@ -277,9 +280,6 @@ class CatanGame:
         thief = self.get_player(agent_name)
         if thief:
             thief.resources[stolen_resource] += 1
-
-        # Going back to normal game flow
-        self.phase = CatanPhase.NORMAL
 
     def trade_bank(self, agent, trade_index: int):
         """
