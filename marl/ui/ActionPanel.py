@@ -15,39 +15,48 @@ from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES
 class ActionHandler:
 
     def on_build_settlement(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(node_index):
-            self.game.build_settlement(player, node_index)
-            board.build_settlement_ui(node_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()
+            if self.action_masks.is_action_enabled(player=player, name="build_settlement", index=node_index):
+                self.game.build_settlement(player.name, node_index)
+                board.build_settlement_ui(node_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()
+            else:
+                print("Invalid node chosen!")
         board.expect_node_selection(callback)
 
     def on_build_road(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(edge_index):
-            self.game.build_road(player, edge_index)
-            board.build_road_ui(edge_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()  # necessary here after async callback
+            if self.action_masks.is_action_enabled(player=player, name="build_road", index=edge_index):
+                self.game.build_road(player.name, edge_index)
+                board.build_road_ui(edge_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()  # necessary here after async callback
+            else:
+                print("Invalid edge chosen!")
         board.expect_edge_selection(callback)
 
     def on_build_city(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(node_index):
-            self.game.build_city(player, node_index)
-            board.upgrade_city_ui(node_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()
+            if self.action_masks.is_action_enabled(player=player, name="build_city", index=node_index):
+                self.game.build_city(player.name, node_index)
+                board.upgrade_city_ui(node_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()
+            else:
+                print("Invalid edge chosen!")
         board.expect_node_selection(callback)
 
     def on_buy_dev_card(self):
@@ -269,3 +278,5 @@ class ActionPanel(QWidget, ActionHandler):
             btn = self.buttons[btn_name]
             btn.setEnabled(self.action_masks.is_action_enabled(player=player, name=action_name, mask=mask)
                            and not self.game.game_over)
+
+        self.board_view.update_roll_display()

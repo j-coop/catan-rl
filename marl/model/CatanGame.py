@@ -222,8 +222,8 @@ class CatanGame:
             # Player chooses one resource type to take from all others
             self.phase = CatanPhase.MONOPOLY
         elif card_type == "victory_point":
-            # Immediate hidden point
-            player.hidden_points += 1
+            # Immediate visible point
+            player.points += 1
             self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
