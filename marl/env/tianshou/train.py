@@ -13,9 +13,20 @@ from tianshou.env import DummyVectorEnv, PettingZooEnv
 import numpy as np
 
 
+class ScalarRewardPettingZooEnv(PettingZooEnv):
+    def step(self, action):
+        obs, rew, terminated, truncated, info = super().step(action)
+
+        if isinstance(rew, (list, tuple, np.ndarray)):
+            rew = float(np.sum(rew))
+
+        return obs, rew, terminated, truncated, info
+
+
 train_envs = DummyVectorEnv([
-    lambda: PettingZooEnv(CatanEnv())
+    lambda: ScalarRewardPettingZooEnv(CatanEnv())
 ])
+
 
 obs_dim = train_envs.observation_space[0]["observation"].shape[0]
 act_dim = train_envs.action_space[0].n
@@ -52,7 +63,6 @@ params = OnPolicyTrainerParams(
     training_collector=collector,
     epoch_num_steps=30000,
     batch_size=1024,
-    multi_agent_return_reduction=lambda returns: np.array([np.mean(r) if isinstance(r, (list, np.ndarray)) else r for r in returns])
 )
 
 result = OnPolicyTrainer(
