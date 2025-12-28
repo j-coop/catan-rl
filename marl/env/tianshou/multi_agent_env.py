@@ -95,7 +95,9 @@ class CatanEnv(AECEnv,
         }
 
     def step(self, action):
-        print("Step:", self.step_counter)
+        print("---------------------------------------------------------------------------------------")
+        print(f"Step: {self.step_counter}, {self.agent_selection} "
+              f"({self.game.players[self.agents.index(self.agent_selection)].victory_points})")
         self.step_counter += 1
         agent = self.agent_selection
 
@@ -107,7 +109,6 @@ class CatanEnv(AECEnv,
 
         player = self.game.get_player(agent)
         mask = self.actions.get_action_mask(player)
-        print("Agent:", agent)
         print("Chosen action:", action)
 
         if mask[action] == 0:
