@@ -233,6 +233,14 @@ class CatanGame:
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
 
+    def play_monopoly(self, player: CatanPlayer, resource: str):
+        for p in self.players:
+            if p.name == player.name:
+                continue
+            res_num = p.resources[resource]
+            p.resources[resource] = 0
+            player.resources[resource] += res_num
+
     def move_robber(self, agent_name: str, tile_index: int):
         """
         Move robber to tile_index. Then select a victim among players
