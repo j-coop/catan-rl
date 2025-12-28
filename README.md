@@ -30,9 +30,8 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-## Project team  
+## Project team
 - Jakub Bednarz
 - Piotr Michalski
-- Jakub Zwierzycki
 
 The project is being realized as a master's degree research project at Gdansk University of Technology (PG).  
