@@ -48,7 +48,7 @@ class CatanGame:
 
         # Special actions control
         self._year_of_plenty_choices = []
-        self._roads_remaining_from_card = None
+        self.roads_remaining_from_card = None
 
         # For UI
         self.last_roll = None
@@ -178,7 +178,12 @@ class CatanGame:
         player.roads.append(edge_index)
 
         if not init_placement:
-            player.pay_for_build("road")
+            if self.roads_remaining_from_card > 0:
+                self.roads_remaining_from_card -= 1
+                if self.roads_remaining_from_card == 0:
+                    self.phase = CatanPhase.NORMAL
+            else:
+                player.pay_for_build("road")
 
         self.recompute_longest_road()
         self.check_victory(agent)
@@ -213,7 +218,7 @@ class CatanGame:
         elif card_type == "road_building":
             # Player will now be able to build two roads
             self.phase = CatanPhase.ROAD_BUILDING
-            self._roads_remaining_from_card = 2  # Track roads to build
+            self.roads_remaining_from_card = 2  # Track roads to build
         elif card_type == "year_of_plenty":
             # Player chooses 2 resources from bank in two consecutive actions
             self.phase = CatanPhase.YEAR_OF_PLENTY
