@@ -47,8 +47,8 @@ class CatanGame:
         self.largest_army_owner: CatanPlayer | None = None
 
         # Special actions control
-        self._year_of_plenty_choices = []
-        self._roads_remaining_from_card = None
+        self.year_of_plenty_choices_remaining = 0
+        self.roads_remaining_from_card = 0
 
         # For UI
         self.last_roll = None
@@ -178,7 +178,12 @@ class CatanGame:
         player.roads.append(edge_index)
 
         if not init_placement:
-            player.pay_for_build("road")
+            if self.roads_remaining_from_card > 0:
+                self.roads_remaining_from_card -= 1
+                if self.roads_remaining_from_card == 0:
+                    self.phase = CatanPhase.NORMAL
+            else:
+                player.pay_for_build("road")
 
         self.recompute_longest_road()
         self.check_victory(agent)
@@ -213,20 +218,40 @@ class CatanGame:
         elif card_type == "road_building":
             # Player will now be able to build two roads
             self.phase = CatanPhase.ROAD_BUILDING
-            self._roads_remaining_from_card = 2  # Track roads to build
+            self.roads_remaining_from_card = 2  # Track roads to build
         elif card_type == "year_of_plenty":
             # Player chooses 2 resources from bank in two consecutive actions
             self.phase = CatanPhase.YEAR_OF_PLENTY
-            self._year_of_plenty_choices = []
+            self.year_of_plenty_choices_remaining = 2
         elif card_type == "monopoly":
             # Player chooses one resource type to take from all others
             self.phase = CatanPhase.MONOPOLY
         elif card_type == "victory_point":
-            # Immediate hidden point
-            player.hidden_points += 1
+            # Immediate visible point
+            player.points += 1
             self.check_victory(agent)
         else:
             raise ValueError(f"Unknown dev card type: {card_type}")
+
+    def play_monopoly(self, player: CatanPlayer, resource: str):
+        for other_player in self.players:
+            if other_player.name == player.name:
+                continue
+            stolen = other_player.resources[resource]
+            if stolen > 0:
+                other_player.resources[resource] = 0
+                player.resources[resource] += stolen
+
+        self.phase = CatanPhase.NORMAL
+
+    def give_year_of_plenty_resource(self, player: CatanPlayer, resource: str):
+        if self.bank.resources[resource] > 0:
+            player.resources[resource] += 1
+            self.bank.draw_bank_resource(resource, 1)
+
+        self.year_of_plenty_choices_remaining -= 1
+        if self.year_of_plenty_choices_remaining == 0:
+            self.phase = CatanPhase.NORMAL
 
     def move_robber(self, agent_name: str, tile_index: int):
         """
@@ -322,32 +347,10 @@ class CatanGame:
 
         # --- YEAR OF PLENTY ---
         if self.phase == CatanPhase.YEAR_OF_PLENTY:
-            if not hasattr(self, "_year_of_plenty_choices"):
-                self._year_of_plenty_choices = []
-
-            self._year_of_plenty_choices.append(resource)
-
-            # After two resources are chosen, give them to the player
-            if len(self._year_of_plenty_choices) == 2:
-                for res in self._year_of_plenty_choices:
-                    # Bank gives resource if available
-                    if self.bank.resources[res] > 0:
-                        self.bank.resources[res] -= 1
-                        player.resources[res] += 1
-                # Reset
-                del self._year_of_plenty_choices
-                self.phase = CatanPhase.NORMAL
+            self.give_year_of_plenty_resource(player, resource)
         # --- MONOPOLY ---
         elif self.phase == CatanPhase.MONOPOLY:
-            for other_player in self.players:
-                if other_player.name == player.name:
-                    continue
-                stolen = other_player.resources[resource]
-                if stolen > 0:
-                    other_player.resources[resource] = 0
-                    player.resources[resource] += stolen
-
-            self.phase = CatanPhase.NORMAL
+            self.play_monopoly(player, resource)
         else:
             raise RuntimeError("choose_resource called outside a valid special card phase.")
 

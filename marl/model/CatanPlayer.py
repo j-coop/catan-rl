@@ -127,26 +127,35 @@ class CatanPlayer:
         tradable_resources = []
 
         for res, qty in self.resources.items():
-            if qty == 0 or res in shortages:
+            if qty == 0:
                 continue
             ratio = self._get_trade_ratio(res)
-            tradable_resources.append((ratio, res, qty))
+            if qty >= ratio:
+                tradable_resources.append((ratio, res, qty))
 
-        # Prioritize resources with the best trade ratio
+        # Best trade ratios first (2:1, then 3:1, then 4:1)
         tradable_resources.sort(key=lambda x: x[0])
 
         for ratio, res, qty in tradable_resources:
             max_trade_units = qty // ratio
             if max_trade_units == 0:
                 continue
+
             for shortage_res, needed in shortages.items():
                 if needed == 0:
                     continue
-                trade_amount = min(max_trade_units, needed)
-                self.resources[res] -= trade_amount * ratio
-                self.bank.return_bank_resource(res, trade_amount * ratio)
-                shortages[shortage_res] -= trade_amount
-                max_trade_units -= trade_amount
+
+                trade_units = min(max_trade_units, needed)
+
+                self.resources[res] -= trade_units * ratio
+                self.bank.return_bank_resource(res, trade_units * ratio)
+
+                shortages[shortage_res] -= trade_units
+                max_trade_units -= trade_units
+
+                if max_trade_units == 0:
+                    break
+
         return shortages
 
     def _get_trade_ratio(self, resource: str) -> int:
@@ -188,13 +197,15 @@ class CatanPlayer:
 
         tradable = 0
         for res, qty in available.items():
-            if res in shortages:
-                continue  # don’t trade away resources you already need
-            if qty == 0:
-                continue  # no resources to trade
+            required = cost.get(res, 0)
+            surplus = max(0, qty - required)
+
+            if surplus == 0:
+                continue
 
             ratio = self._get_trade_ratio(res)
-            tradable += qty // ratio
+            tradable += surplus // ratio
+
         # print("Is enough resources", build_type, tradable >= total_needed, self.resources)
         return tradable >= total_needed
 

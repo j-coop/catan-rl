@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
+from marl.model.CatanPhase import CatanPhase
 from marl.ui.ChoiceGridDialog import ChoiceGridDialog
 from marl.ui.ChoiceOption import ChoiceOption
 from marl.ui.EnvMock import EnvMock
@@ -15,39 +16,48 @@ from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES
 class ActionHandler:
 
     def on_build_settlement(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(node_index):
-            self.game.build_settlement(player, node_index)
-            board.build_settlement_ui(node_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()
+            if self.action_masks.is_action_enabled(player=player, name="build_settlement", index=node_index):
+                self.game.build_settlement(player.name, node_index)
+                board.build_settlement_ui(node_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()
+            else:
+                print("Invalid node chosen!")
         board.expect_node_selection(callback)
 
     def on_build_road(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(edge_index):
-            self.game.build_road(player, edge_index)
-            board.build_road_ui(edge_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()  # necessary here after async callback
+            if self.action_masks.is_action_enabled(player=player, name="build_road", index=edge_index):
+                self.game.build_road(player.name, edge_index)
+                board.build_road_ui(edge_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()  # necessary here after async callback
+            else:
+                print("Invalid edge chosen!")
         board.expect_edge_selection(callback)
 
     def on_build_city(self):
-        player = self.game.current_player.name
+        player = self.game.current_player
         board: BoardView = self.parent().findChild(BoardView)
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
 
         def callback(node_index):
-            self.game.build_city(player, node_index)
-            board.upgrade_city_ui(node_index)
-            info_panel._update_after_game_change()
-            self.update_buttons()
+            if self.action_masks.is_action_enabled(player=player, name="build_city", index=node_index):
+                self.game.build_city(player.name, node_index)
+                board.upgrade_city_ui(node_index)
+                info_panel._update_after_game_change()
+                self.update_buttons()
+            else:
+                print("Invalid edge chosen!")
         board.expect_node_selection(callback)
 
     def on_buy_dev_card(self):
@@ -180,6 +190,63 @@ class ActionHandler:
         )
         dlg.exec()
 
+    def show_choose_resource_dialog(self):
+        current_player = self.game.current_player
+
+        is_year_of_plenty = self.game.phase == CatanPhase.YEAR_OF_PLENTY
+        is_monopoly = self.game.phase == CatanPhase.MONOPOLY
+
+        def make_callback(resource: str):
+            def callback():
+                if is_monopoly:
+                    self.game.play_monopoly(current_player, resource)
+                elif is_year_of_plenty:
+                    self.game.give_year_of_plenty_resource(current_player, resource)
+                else:
+                    raise ValueError("Choosing resource in wrong game phase")
+
+                self.board_view.update_roll_display()
+                self.info_panel.refresh()
+                self.update_buttons()
+
+            return callback
+
+        options = [
+            ChoiceOption(
+                text="🪵 Wood",
+                enabled=True,
+                callback=make_callback("wood"),
+            ),
+            ChoiceOption(
+                text="🧱 Brick",
+                enabled=True,
+                callback=make_callback("brick"),
+            ),
+            ChoiceOption(
+                text="🐑 Sheep",
+                enabled=True,
+                callback=make_callback("sheep"),
+            ),
+            ChoiceOption(
+                text="🌾 Wheat",
+                enabled=True,
+                callback=make_callback("wheat"),
+            ),
+            ChoiceOption(
+                text="🪨 Ore",
+                enabled=True,
+                callback=make_callback("ore"),
+            ),
+        ]
+
+        dlg = ChoiceGridDialog(
+            title=f"Choose {'Monopoly' if is_monopoly else 'Year of plenty'} resource",
+            options=options,
+            columns=2,
+            parent=self,
+        )
+        dlg.exec()
+
 
 class ActionPanel(QWidget, ActionHandler):
     """Right-side control buttons."""
@@ -211,6 +278,7 @@ class ActionPanel(QWidget, ActionHandler):
             "Buy Dev Card": self.on_buy_dev_card,
             "Play Dev Card": self.show_dev_card_dialog,
             "Trade": self.show_bank_trade_dialog,
+            "Choose resource": self.show_choose_resource_dialog,
             "End Turn": self.on_end_turn,
         }
 
@@ -262,6 +330,7 @@ class ActionPanel(QWidget, ActionHandler):
             "Buy Dev Card": "buy_dev_card",
             "Play Dev Card": "play_dev_card",
             "Trade": "trade_bank",
+            "Choose resource": "choose_resource",
             "End Turn": "end_turn",
         }
 
@@ -269,3 +338,5 @@ class ActionPanel(QWidget, ActionHandler):
             btn = self.buttons[btn_name]
             btn.setEnabled(self.action_masks.is_action_enabled(player=player, name=action_name, mask=mask)
                            and not self.game.game_over)
+
+        self.board_view.update_roll_display()
