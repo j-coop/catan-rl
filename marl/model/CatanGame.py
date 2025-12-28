@@ -127,6 +127,7 @@ class CatanGame:
         if won:
             self.winner = agent
             self.game_over = True
+            print(f"GAME WON: {self.winner}")
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)

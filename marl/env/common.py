@@ -45,8 +45,7 @@ class EnvActionHandlerMixin:
     def choose_resource(self, agent: str, resource_index: int):
         if resource_index >= len(RESOURCE_TYPES):
             raise ValueError("No such resource")
-        resource = RESOURCE_TYPES[resource_index]
-        self.game.take_resource(agent, resource)
+        self.game.choose_resource(agent, resource_index)
 
     def end_turn(self, _: str, __: int):
         """End the player's turn."""
