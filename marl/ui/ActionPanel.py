@@ -201,7 +201,7 @@ class ActionHandler:
                 if is_monopoly:
                     self.game.play_monopoly(current_player, resource)
                 elif is_year_of_plenty:
-                    pass
+                    self.game.give_year_of_plenty_resource(current_player, resource)
                 else:
                     raise ValueError("Choosing resource in wrong game phase")
 
