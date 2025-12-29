@@ -1,11 +1,10 @@
 import numpy as np
 
-from marl.model.CatanGame import CatanGame
-from params.catan_constants import N_TILES, N_TILE_TYPES, N_TOKEN_VALUES, TILE_TYPES, TOKENS, N_PORT_TYPES
+from marl.model.CatanBoard import CatanBoard
+from params.catan_constants import N_TILES, N_TILE_TYPES, N_TOKEN_VALUES, TILE_TYPES, TOKENS, N_PORT_TYPES, N_PLAYERS
 
 
-def game_to_base_env_state(game: CatanGame) -> dict:
-    board = game.board
+def game_to_base_env_state(board: CatanBoard) -> dict:
 
     resources = np.zeros((N_TILES, N_TILE_TYPES), dtype=np.int8)
     tokens = np.zeros((N_TILES, N_TOKEN_VALUES), dtype=np.int8)
@@ -24,7 +23,7 @@ def game_to_base_env_state(game: CatanGame) -> dict:
         "has_robber": has_robber,
         "nodes_settlements": np.zeros((N_TILES, 6), dtype=np.int8),
         "nodes_cities": np.zeros((N_TILES, 6), dtype=np.int8),
-        "nodes_owners": np.zeros((N_TILES, 6, len(game.players)), dtype=np.int8),
+        "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
         "nodes_ports": np.zeros(([N_TILES, 6, N_PORT_TYPES])),  # no ports - life is too short to encode list of ports on nodes as [N_TILES, 6, N_PORT_TYPES]
-        "edges_owners": np.zeros((N_TILES, 6, len(game.players)), dtype=np.int8),
+        "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
     }

@@ -4,6 +4,7 @@ from typing import List, Dict, Optional
 
 import numpy as np
 
+from envs.init_placement_env.InitPlacementModel import InitPlacementModel
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
@@ -54,10 +55,17 @@ class CatanGame:
         # For UI
         self.last_roll = None
 
+        # Init placement model
+        self._init_model = (
+            InitPlacementModel(init_placement_model_path, self.board)
+            if init_placement_model_path
+            else None
+        )
+
         print("GAME OBJECT INITIALIZED")
 
         if not training:
-            self.generate_random_init_board_state()
+            self.generate_init_board_state()
             self.ai_players = [0] * len(self.players)
         else:
             self.ai_players = ai_players
@@ -457,3 +465,15 @@ class CatanGame:
                 if road_nodes[0] == node or road_nodes[1] == node:
                     valid_roads.append(road)
             place_road(player, valid_roads)
+
+    def generate_init_board_state(self):
+        if not self._init_model:
+            self.generate_random_init_board_state()
+            return
+
+        # try:
+        base_obs = self._init_model.generate_initial_board()
+        self._init_model.apply_base_obs_to_game(base_obs, self)
+        # except Exception as e:
+        #     print("⚠️ Init placement model failed:", e)
+        #     self.generate_random_init_board_state()
