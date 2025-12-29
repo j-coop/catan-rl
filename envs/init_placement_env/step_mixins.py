@@ -118,7 +118,7 @@ class CatanStepMixin:
             return gains
 
         def save_settlement_gains(gains):
-            player = self._turn_order[self._turn_index]
+            player = self.turn_order[self._turn_index]
             self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
 
         def normalize_gain_score(gains):
@@ -136,7 +136,7 @@ class CatanStepMixin:
         return normalized_gain_score
 
     def _evaluate_resources_distribution(self, gains):
-        player = self._turn_order[self._turn_index]
+        player = self.turn_order[self._turn_index]
         gained = gains[player][0] + gains[player][1]
 
         total = np.sum(gained)

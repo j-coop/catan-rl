@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 from sb3_contrib.ppo_mask import MaskablePPO
 from sb3_contrib.common.wrappers import ActionMasker
@@ -6,6 +8,7 @@ from envs.base_env.env import CatanBaseEnv
 from envs.init_placement_env.env import CatanInitPlacementEnv
 from marl.adapters.game_to_base_env import game_to_base_env_state
 from marl.model.CatanBoard import CatanBoard
+from params.catan_constants import N_NODES
 from params.edges_list import EDGES_LIST
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
@@ -20,6 +23,10 @@ class InitPlacementModel:
     def __init__(self, model_path: str, board: CatanBoard):
         self.model = MaskablePPO.load(model_path)
         self.board = board
+
+        # Order of placing settlements and roads
+        self.settlements_history = []
+        self.roads_history = []
 
     def generate_initial_board(self):
         """
@@ -42,20 +49,26 @@ class InitPlacementModel:
         obs, _ = placement_env.reset()
 
         # Run placement loop
-        for _ in range(16):
+        for i in range(16):
             mask = placement_env.unwrapped.get_action_masks()
             action, _ = self.model.predict(
                 obs,
                 deterministic=True,
                 action_masks=mask,
             )
+            player_index = placement_env.unwrapped.turn_order[i // 2]
+            if i % 2 == 0:
+                # Settlement
+                self.settlements_history.append((int(action), player_index)) # (node_id, player_index)
+            else:
+                # Road
+                self.roads_history.append((int(action) - N_NODES, player_index)) # (edge_id, player_index)
             obs, _, _, _, info = placement_env.step(action)
 
         # base_obs inside env is now mutated
         return placement_env.unwrapped._base_obs
 
-    @staticmethod
-    def apply_base_obs_to_game(base_obs, game, player_order=None):
+    def apply_base_obs_to_game(self, base_obs, game, player_order=None):
         """
         Apply final base_obs from init placement env to CatanGame.
 
@@ -64,54 +77,4 @@ class InitPlacementModel:
         player_order: optional list mapping base_obs player index → CatanGame player name
         """
 
-        if player_order is None:
-            player_order = [p.name for p in game.players]
-
-        # Build TILE_NODE_MAP
-        TILE_NODE_MAP = {}
-        for tile_id, nodes in TILES_TO_NODES.items():
-            for local_node_id, global_node_id in enumerate(nodes):
-                TILE_NODE_MAP[(tile_id, local_node_id)] = global_node_id
-
-        # Build TILE_EDGE_MAP
-        TILE_EDGE_MAP = {}
-        for edge_id, (node_a, node_b) in enumerate(EDGES_LIST):
-            for tile_id, tile_nodes in TILES_TO_NODES.items():
-                for i in range(len(tile_nodes)):
-                    n1, n2 = tile_nodes[i], tile_nodes[(i + 1) % 6]
-                    if (node_a, node_b) == (n1, n2) or (node_a, node_b) == (n2, n1):
-                        TILE_EDGE_MAP[(tile_id, i)] = edge_id
-                        break
-
-        # Collect settlements to build
-        settlements_to_build = set()
-        nodes_owners = base_obs["nodes_owners"]  # shape (N_TILES, 6, N_PLAYERS)
-        tiles, local_nodes, n_players = nodes_owners.shape
-
-        for tile_id in range(tiles):
-            for local_node_id in range(local_nodes):
-                for player_idx in range(n_players):
-                    if nodes_owners[tile_id, local_node_id, player_idx]:
-                        global_node_id = TILE_NODE_MAP[(tile_id, local_node_id)]
-                        settlements_to_build.add((player_order[player_idx], global_node_id))
-
-        # Apply settlements
-        for player_name, node_id in settlements_to_build:
-            game.build_settlement(player_name, node_id, init_placement=True)
-
-        # Collect roads to build
-        roads_to_build = set()
-        edges_owners = base_obs["edges_owners"]  # shape (N_TILES, 6, N_PLAYERS)
-        tiles, local_edges, n_players = edges_owners.shape
-
-        for tile_id in range(tiles):
-            for local_edge_id in range(local_edges):
-                for player_idx in range(n_players):
-                    if edges_owners[tile_id, local_edge_id, player_idx]:
-                        global_edge_id = TILE_EDGE_MAP[(tile_id, local_edge_id)]
-                        roads_to_build.add((player_order[player_idx], global_edge_id))
-
-        # Apply roads
-        for player_name, edge_id in roads_to_build:
-            game.build_road(player_name, edge_id, init_placement=True)
-
+        return self.settlements_history, self.roads_history
