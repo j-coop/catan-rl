@@ -4,13 +4,14 @@ from typing import List, Dict, Optional
 
 import numpy as np
 
+from envs.init_placement_env.InitPlacementModel import InitPlacementModel
 from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import (N_NODES, N_EDGES,
                                     LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
-                                    RESOURCE_TYPES)
+                                    RESOURCE_TYPES, N_PLAYERS)
 from params.edges_list import EDGES_LIST
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 
@@ -23,7 +24,8 @@ class CatanGame:
                  player_colors: List[str], 
                  player_names: List[str],
                  ai_players: Optional[List[bool]] = None,
-                 training: bool = False):
+                 training: bool = False,
+                 init_placement_model_path: str | None = None):
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.players = [
@@ -53,10 +55,17 @@ class CatanGame:
         # For UI
         self.last_roll = None
 
+        # Init placement model
+        self._init_model = (
+            InitPlacementModel(init_placement_model_path, self.board)
+            if init_placement_model_path
+            else None
+        )
+
         print("GAME OBJECT INITIALIZED")
 
         if not training:
-            self.generate_random_init_board_state()
+            self.generate_init_board_state()
             self.ai_players = [0] * len(self.players)
         else:
             self.ai_players = ai_players
@@ -456,3 +465,35 @@ class CatanGame:
                 if road_nodes[0] == node or road_nodes[1] == node:
                     valid_roads.append(road)
             place_road(player, valid_roads)
+
+    def generate_init_board_state(self):
+        if not self._init_model:
+            self.generate_random_init_board_state()
+            return
+
+        try:
+            base_obs = self._init_model.generate_initial_board()
+            settlements_history, roads_history = self._init_model.apply_base_obs_to_game(base_obs, self)
+
+            # Build settlements and assign resources for second placement
+            for player_idx, player in enumerate(self.players):
+                first_settlement_idx = player_idx
+                node_id, _ = settlements_history[first_settlement_idx]
+                self.build_settlement(self.players[player_idx].name, node_id, init_placement=True)
+
+                second_settlement_idx = 2 * N_PLAYERS - 1 - player_idx
+                node_id, _ = settlements_history[second_settlement_idx]
+                self.build_settlement(self.players[player_idx].name, node_id, init_placement=True)
+
+                # Assign resources from adjacent tiles
+                for tile_id in NODES_TO_TILES[node_id]:
+                    resource, _ = self.board.tiles[tile_id]
+                    if resource != "desert":
+                        player.resources[resource] += 1
+
+            # Build roads
+            for edge_id, player_idx in roads_history:
+                self.build_road(self.players[player_idx].name, edge_id, init_placement=True)
+        except Exception as e:
+            print("⚠️ Init placement model failed:", e)
+            self.generate_random_init_board_state()

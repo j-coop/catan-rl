@@ -26,7 +26,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             base_env = CatanBaseEnv(save_env=False)
             self._base_obs = base_env.reset()
         self._train = train
-        self._turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
+        self.turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
         self._turn_index = 0
         self._placement_stage = "settlement"
         self._ep_done_previously = ep_done_previously
@@ -58,7 +58,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._obs = self._CatanResetMixin__prepare_obs_dict()
 
     def get_action_masks(self) -> np.ndarray:
-        player = self._turn_order[self._turn_index]
+        player = self.turn_order[self._turn_index]
         settlement_mask = self.__settlement_placement_mask.copy()
         road_mask = self.__road_placement_mask[:, player].copy()
 
@@ -98,7 +98,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         settlement_action, road_action = self._decode_action(action)
         self._verify_action(action, settlement_action, road_action)
 
-        player = self._turn_order[self._turn_index]
+        player = self.turn_order[self._turn_index]
         self._apply_action(player, settlement_action, road_action)
         done = self._check_all_moves_done(road_action)
 
@@ -159,7 +159,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
 
     def _check_all_moves_done(self, road_action):
         is_road = self._is_placing_road(road_action)
-        return self._turn_index == len(self._turn_order) - 1 and is_road
+        return self._turn_index == len(self.turn_order) - 1 and is_road
 
     def _after_settlement(self, settlement_action, reward):
         self._last_settlement_node_index = np.argmax(settlement_action)
@@ -175,8 +175,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
         else:
             self._turn_index = 0
             self.__episode_counter += 1
-            ep_number = (self._ep_done_previously + self.__episode_counter)
-            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
+            # ep_number = (self._ep_done_previously + self.__episode_counter)
+            # print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
         self._placement_stage = "settlement"
         self.__road_placement_mask[:, player] = 0
 

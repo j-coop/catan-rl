@@ -17,7 +17,7 @@ def main():
 
     colors=["#2c3aff", "#c525c5", "#dbc33a", '#32a852']
     names = ["Blue Player", "Purple Player", "Yellow Player", "Green Player"]
-    game = CatanGame(player_colors=colors, player_names=names)
+    game = CatanGame(player_colors=colors, player_names=names, init_placement_model_path="models/init_placement_model.zip")
     window = CatanWindow(game)
     window.show()
     sys.exit(app.exec())
