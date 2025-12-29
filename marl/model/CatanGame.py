@@ -23,7 +23,8 @@ class CatanGame:
                  player_colors: List[str], 
                  player_names: List[str],
                  ai_players: Optional[List[bool]] = None,
-                 training: bool = False):
+                 training: bool = False,
+                 init_placement_model_path: str | None = None):
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.players = [
