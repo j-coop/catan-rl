@@ -8,9 +8,10 @@ from marl.model.CatanGame import CatanGame
 class PlayerInfoPanel(QWidget):
     """Left-side panel showing player stats."""
 
-    def __init__(self, game: CatanGame):
+    def __init__(self, game: CatanGame, config):
         super().__init__()
         self.game = game
+        self.config = config  # player_name: is_AI_agent format
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
         self.setFixedWidth(210)
@@ -86,14 +87,15 @@ class PlayerInfoPanel(QWidget):
             v.setContentsMargins(8, 4, 8, 4)
 
             dot = "● " if is_active else ""
-            name_label = QLabel(f"{dot}{player.name}")
+            agent_icon = " 🤖" if self.config[player.name] else ""
+            name_label = QLabel(f"{dot}{player.name}{agent_icon}")
             name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             if is_active:
-                name_label.setFont(QFont("Arial", 14, QFont.Weight.Black))
+                name_label.setFont(QFont("Arial", 16, QFont.Weight.Black))
                 name_label.setStyleSheet("color: white; font-style: italic;")
             else:
-                name_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+                name_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
                 name_label.setStyleSheet("color: white;")
 
             points_label = QLabel()

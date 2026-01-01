@@ -1,3 +1,4 @@
+from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 
 from marl.model.CatanGame import CatanGame
@@ -9,15 +10,17 @@ from marl.ui.board_view import BoardView
 class CatanWindow(QWidget):
     """Main game window combining board + info panels."""
 
-    def __init__(self, game: CatanGame):
+    def __init__(self, game: CatanGame, config):
         super().__init__()
         self.game = game
+        self.config = config  # player_name: is_AI_agent format
+
         self.setWindowTitle("Settlers of Catan RL")
 
         layout = QHBoxLayout()
         self.setLayout(layout)
 
-        self.info_panel = PlayerInfoPanel(game)
+        self.info_panel = PlayerInfoPanel(game, config)
         self.board = BoardView(info_panel=self.info_panel, hex_radius=65, game=game)
         self.action_panel = ActionPanel(game, self.board, self.info_panel)
         self.board.action_panel = self.action_panel
@@ -27,3 +30,11 @@ class CatanWindow(QWidget):
         layout.addWidget(self.action_panel)
 
         self.setMinimumSize(1200, 800)
+        self.center_on_screen()
+
+    def center_on_screen(self):
+        screen = QGuiApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(screen_geometry.center())
+        self.move(window_geometry.topLeft())
