@@ -1,3 +1,4 @@
+from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 
 from marl.model.CatanGame import CatanGame
@@ -27,3 +28,11 @@ class CatanWindow(QWidget):
         layout.addWidget(self.action_panel)
 
         self.setMinimumSize(1200, 800)
+        self.center_on_screen()
+
+    def center_on_screen(self):
+        screen = QGuiApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(screen_geometry.center())
+        self.move(window_geometry.topLeft())

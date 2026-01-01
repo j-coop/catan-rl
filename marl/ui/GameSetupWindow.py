@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton
 )
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QGuiApplication
 from PyQt6.QtCore import Qt
 
 from PyQt6_SwitchControl import SwitchControl
@@ -13,6 +13,7 @@ class GameSetupWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Game Setup")
         self.setFixedSize(480, 360)
+        self.center_on_screen()
 
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(18)
@@ -93,3 +94,10 @@ class GameSetupWindow(QWidget):
             for name, switch in self.player_rows
         }
         self.launch_game(config)
+
+    def center_on_screen(self):
+        screen = QGuiApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(screen_geometry.center())
+        self.move(window_geometry.topLeft())
