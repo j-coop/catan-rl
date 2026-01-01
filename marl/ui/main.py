@@ -29,7 +29,7 @@ def main():
             init_placement_model_path="models/init_placement_model.zip",
         )
 
-        app.main_window = CatanWindow(game)  # Keep reference for window to open
+        app.main_window = CatanWindow(game, config)  # Keep reference for window to open
         app.main_window.show()
 
         setup.close()

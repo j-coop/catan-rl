@@ -90,7 +90,7 @@ class GameSetupWindow(QWidget):
 
     def start_game(self):
         config = {
-            name: switch.clicked
+            name: switch.isChecked()
             for name, switch in self.player_rows
         }
         self.launch_game(config)
