@@ -118,7 +118,7 @@ class CatanEnv(AECEnv,
         self.apply_action(agent, action)
 
         if self.is_end_turn_action(action):
-            self.game.end_turn()
+            self.game.end_turn(is_ui_action=False)
             self.agent_selection = self.game.current_player.name
             self.game.handle_dice_roll()
 

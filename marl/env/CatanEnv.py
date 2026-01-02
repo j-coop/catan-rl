@@ -135,7 +135,7 @@ class CatanEnv(MultiAgentEnv,
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
             # Advance to next player (no dice roll yet)
-            self.game.end_turn()
+            self.game.end_turn(is_ui_action=False)
             self.agent_selection = self.game.current_player.name
             self.pending_dice_roll = True
         else:

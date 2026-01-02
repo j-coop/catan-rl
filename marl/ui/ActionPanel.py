@@ -5,11 +5,13 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
 from marl.model.CatanPhase import CatanPhase
+from marl.model.GameManager import GameManager
 from marl.ui.ChoiceGridDialog import ChoiceGridDialog
 from marl.ui.ChoiceOption import ChoiceOption
 from marl.ui.EnvMock import EnvMock
 from marl.ui.board_view import BoardView
 from marl.ui.PlayerInfoPanel import PlayerInfoPanel
+from marl.ui.controllers.HumanController import HumanController
 from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES
 
 
@@ -71,6 +73,9 @@ class ActionHandler:
         self.game.end_turn(is_ui_action=True)
         self.info_panel.refresh()
         self.board_view.update_roll_display()
+
+        # Notify GameManager
+        self.game_manager.on_turn_changed()
 
     def show_dev_card_dialog(self):
         current_player = self.game.current_player
@@ -251,11 +256,13 @@ class ActionHandler:
 class ActionPanel(QWidget, ActionHandler):
     """Right-side control buttons."""
 
-    def __init__(self, game: CatanGame, board_view: BoardView, info_panel: PlayerInfoPanel):
+    def __init__(self, game: CatanGame, board_view: BoardView, info_panel: PlayerInfoPanel, game_manager: GameManager):
         super().__init__()
         self.game = game
         self.board_view = board_view
         self.info_panel = info_panel
+        self.game_manager = game_manager
+        self.game_manager.action_panel = self
 
         # Dummy env with game object for ActionSpace
         env = EnvMock(self.game)
@@ -321,6 +328,9 @@ class ActionPanel(QWidget, ActionHandler):
         """Enable/disable buttons according to current player's legal actions."""
         player = self.game.current_player
         mask = self.action_masks.get_action_mask(player)
+
+        controller = self.game_manager.controllers[self.game.current_player.name]
+        is_human = isinstance(controller, HumanController)
 
         # Map button names to ActionSpec names
         mapping = {
