@@ -3,9 +3,14 @@ import sys
 import os
 from PyQt6.QtWidgets import QApplication
 
+from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
+from marl.model.GameManager import GameManager
 from marl.ui.CatanWindow import CatanWindow
+from marl.ui.EnvMock import EnvMock
 from marl.ui.GameSetupWindow import GameSetupWindow
+from marl.ui.controllers.HumanController import HumanController
+from marl.ui.controllers.AgentController import AgentController
 
 # Fix for Wayland/X11 if needed
 if platform.system() == "Windows":
@@ -28,6 +33,18 @@ def main():
             player_names=names,
             init_placement_model_path="models/init_placement_model.zip",
         )
+
+        controllers = {}
+        for name, is_ai in config.items():
+            if is_ai:
+                controllers[name] = AgentController(name)
+            else:
+                controllers[name] = HumanController(name)
+
+        env = EnvMock(game)
+        action_space = ActionSpace(env)
+
+        game_manager = GameManager(game, controllers, action_space)
 
         app.main_window = CatanWindow(game, config)  # Keep reference for window to open
         app.main_window.show()

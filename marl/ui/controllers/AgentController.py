@@ -2,7 +2,7 @@ import time
 from marl.ui.controllers.PlayerController import PlayerController
 
 
-class AIController(PlayerController):
+class AgentController(PlayerController):
     def __init__(self, player_name, agent, delay=2.0):
         super().__init__(player_name)
         self.agent = agent
