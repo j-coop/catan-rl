@@ -44,10 +44,12 @@ def main():
         env = EnvMock(game)
         action_space = ActionSpace(env)
 
-        game_manager = GameManager(game, controllers, action_space)
+        game_manager = GameManager(game, controllers, action_space, config)
 
-        app.main_window = CatanWindow(game, config)  # Keep reference for window to open
+        app.main_window = CatanWindow(game, game_manager)  # Keep reference for window to open
         app.main_window.show()
+
+        game_manager.on_turn_changed()
 
         setup.close()
 
