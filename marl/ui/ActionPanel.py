@@ -262,6 +262,7 @@ class ActionPanel(QWidget, ActionHandler):
         self.board_view = board_view
         self.info_panel = info_panel
         self.game_manager = game_manager
+        self.game_manager.action_panel = self
 
         # Dummy env with game object for ActionSpace
         env = EnvMock(self.game)

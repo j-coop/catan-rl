@@ -29,11 +29,12 @@ class ActionSpace:
         size += 1 + 5 + 19 + 20 + 5 + 1
         return size
 
-    def init_action_specs(self):
+    def init_action_specs(self, use_callbacks=None):
         start = 0
 
         # Determine whether to use real callbacks
-        use_callbacks = not isinstance(self.env, EnvMock)
+        if use_callbacks is None:
+            use_callbacks = not isinstance(self.env, EnvMock)
 
         def cb(attr_name):
             if use_callbacks:

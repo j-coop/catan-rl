@@ -49,7 +49,7 @@ class EnvActionHandlerMixin:
 
     def end_turn(self, _: str, __: int):
         """End the player's turn."""
-        self.game.end_turn()
+        self.game.end_turn(is_ui_action=False)
 
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1

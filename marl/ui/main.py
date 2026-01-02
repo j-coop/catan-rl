@@ -4,6 +4,7 @@ import os
 from PyQt6.QtWidgets import QApplication
 
 from marl.env.ActionSpace import ActionSpace
+from marl.env.tianshou.multi_agent_env import CatanEnv
 from marl.model.CatanGame import CatanGame
 from marl.model.GameManager import GameManager
 from marl.ui.CatanWindow import CatanWindow
@@ -37,12 +38,14 @@ def main():
         controllers = {}
         for name, is_ai in config.items():
             if is_ai:
-                controllers[name] = AgentController(name)
+                controllers[name] = AgentController(name, name)
             else:
                 controllers[name] = HumanController(name)
 
-        env = EnvMock(game)
+        env = CatanEnv()
+        env.game = game
         action_space = ActionSpace(env)
+        action_space.init_action_specs(use_callbacks=True)
 
         game_manager = GameManager(game, controllers, action_space, config)
 
