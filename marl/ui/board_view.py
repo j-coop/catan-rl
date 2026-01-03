@@ -664,14 +664,15 @@ class BoardView(QGraphicsView):
                 edge.update_style()
                 return
 
-    def update_roll_display(self):
+    def update_roll_display(self, is_agent=False):
+        print("update_roll_display")
         roll = self.game.last_roll if self.game else None
 
         if roll is None:
             self.roll_text_item.setVisible(False)
             return
 
-        if roll == 7:
+        if roll == 7 and not is_agent:
             def callback(hex_index: int):
                 self.game.move_robber(self.game.current_player.name, hex_index)
                 self.update_robber()
@@ -682,6 +683,7 @@ class BoardView(QGraphicsView):
             self.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
 
         if not self.game.game_over:
+            print(f"🎲 Roll: <b>{roll}{' - Choose robber tile' if roll == 7 else ''}</b>")
             # 🎲 Dice emojis + number
             self.roll_text_item.setHtml(
                 f"""

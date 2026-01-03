@@ -47,9 +47,9 @@ class EnvActionHandlerMixin:
             raise ValueError("No such resource")
         self.game.choose_resource(agent, resource_index)
 
-    def end_turn(self, _: str, __: int):
+    def end_turn(self, _: str, __: int, is_ui_action=False):
         """End the player's turn."""
-        self.game.end_turn(is_ui_action=False)
+        self.game.end_turn(is_ui_action=is_ui_action)
 
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1

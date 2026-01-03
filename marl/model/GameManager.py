@@ -1,6 +1,6 @@
 
 class GameManager:
-    def __init__(self, game, controllers, action_space, config, ):
+    def __init__(self, game, controllers, action_space, config):
         self.game = game
         self.config = config
         self.controllers = controllers
