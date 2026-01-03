@@ -22,7 +22,7 @@ class AgentController(PlayerController):
                 print(game.get_player(agent).resources)
                 print(spec)
                 spec.handler(agent, local_index)
-                return
+                return spec, local_index
         raise ValueError(f"Invalid action index: {action}")
 
     def request_action(self, game, action_space, game_manager):
@@ -37,9 +37,17 @@ class AgentController(PlayerController):
         # TODO: insert real model action inference here
         valid_indices = [i for i, v in enumerate(mask) if v]
         action = random.choice(valid_indices)
-        # TODO: ui building updates after actions
 
-        self.apply_action(self.player_name, action, action_space, game)
+        action_spec, local_index = self.apply_action(self.player_name, action, action_space, game)
+        action_type = action_spec.name
+        # UI building updates after actions
+        if action_type == "build_road":
+            game_manager.board.build_road_ui(local_index)
+        elif action_type == "build_settlement":
+            game_manager.board.build_settlement_ui(local_index)
+        elif action_type == "build_city":
+            game_manager.board.upgrade_city_ui(local_index)
+
         # action_space.apply_action(self.player_name, action)
 
         # Update UI state
