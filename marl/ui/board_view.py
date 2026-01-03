@@ -664,14 +664,15 @@ class BoardView(QGraphicsView):
                 edge.update_style()
                 return
 
-    def update_roll_display(self):
+    def update_roll_display(self, is_agent=False):
+        print("update_roll_display")
         roll = self.game.last_roll if self.game else None
 
         if roll is None:
             self.roll_text_item.setVisible(False)
             return
 
-        if roll == 7:
+        if roll == 7 and not is_agent:
             def callback(hex_index: int):
                 self.game.move_robber(self.game.current_player.name, hex_index)
                 self.update_robber()

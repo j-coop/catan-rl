@@ -1,6 +1,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QTextEdit
 
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
@@ -322,7 +322,44 @@ class ActionPanel(QWidget, ActionHandler):
             self.buttons[operation] = btn
 
         layout.addStretch(1)
+
+        # --- Action log ---
+        log_title = QLabel("Game Log")
+        log_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        log_title.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        layout.addWidget(log_title)
+
+        self.log_view = QTextEdit()
+        self.log_view.setReadOnly(True)
+        self.log_view.setFixedHeight(300)
+        self.log_view.setStyleSheet("""
+            QTextEdit {
+                background-color: #fff;
+                color: white;
+                border-radius: 6px;
+                padding: 6px;
+            }
+        """)
+        layout.addWidget(self.log_view)
+
+        # Connect GameManager → UI
+        self.game_manager.log_updated.connect(self.refresh_log_view)
+
         self.update_buttons()  # Initial update
+
+    def refresh_log_view(self):
+        self.log_view.clear()
+
+        for entry in self.game_manager.action_logs[-100:]:  # keep last 100
+            print(entry)
+            self.log_view.append(
+                f'<span style="color:{entry.player_color}; font-weight:bold;">'
+                f'{entry.player_name}'
+                f'</span><span style="color:black; font-weight:italic;">: {entry.text}</span>'
+            )
+
+        # Auto-scroll to bottom
+        # self.log_view.moveCursor(self.log_view.textCursor().End)
 
     def update_buttons(self):
         """Enable/disable buttons according to current player's legal actions."""

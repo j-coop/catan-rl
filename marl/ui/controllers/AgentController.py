@@ -20,9 +20,11 @@ class AgentController(PlayerController):
                 print(f"Action type: {spec.name}")
                 local_index = action - start
                 print(game.get_player(agent).resources)
-                print(spec)
-                spec.handler(agent, local_index)
-                return
+                if spec.name == "end_turn":
+                    spec.handler(agent, local_index, is_ui_action=True)
+                else:
+                    spec.handler(agent, local_index)
+                return spec, local_index
         raise ValueError(f"Invalid action index: {action}")
 
     def request_action(self, game, action_space, game_manager):
@@ -31,20 +33,30 @@ class AgentController(PlayerController):
 
         # obs = game.get_observation_for_player(self.player_name)
         mask = action_space.get_action_mask(game.get_player(self.player_name))
-        print(mask)
 
-        action = 230 # end turn
         # TODO: insert real model action inference here
         valid_indices = [i for i, v in enumerate(mask) if v]
         action = random.choice(valid_indices)
-        # TODO: ui building updates after actions
 
-        self.apply_action(self.player_name, action, action_space, game)
-        # action_space.apply_action(self.player_name, action)
+        action_spec, local_index = self.apply_action(self.player_name, action, action_space, game)
+        action_type = action_spec.name
+        # UI building updates after actions
+        if action_type == "build_road":
+            game_manager.board.build_road_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"built road on edge {local_index}")
+        elif action_type == "build_settlement":
+            game_manager.board.build_settlement_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"built settlement on node {local_index}")
+        elif action_type == "build_city":
+            game_manager.board.upgrade_city_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"upgrade to city on node {local_index}")
+        elif action_type == "move_robber":
+            game_manager.board.update_robber()
+            game_manager.log_action(self.player_name, game.current_player.color, f"moved robber to tile {local_index}")
 
         # Update UI state
         game_manager.action_panel.info_panel.refresh()
-        game_manager.action_panel.board_view.update_roll_display()
+        game_manager.board.update_roll_display(is_agent=True)
 
         # Ask manager for another step
         game_manager.on_turn_changed()
