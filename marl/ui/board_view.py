@@ -683,7 +683,6 @@ class BoardView(QGraphicsView):
             self.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
 
         if not self.game.game_over:
-            print(f"🎲 Roll: <b>{roll}{' - Choose robber tile' if roll == 7 else ''}</b>")
             # 🎲 Dice emojis + number
             self.roll_text_item.setHtml(
                 f"""

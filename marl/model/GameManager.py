@@ -19,13 +19,11 @@ class GameManager(QObject):
 
         self.action_logs: list[ActionLogEntry] = []
 
-    def log_action(self, player_index: int, text: str):
-        player = self.game.players[player_index]
+    def log_action(self, player_name: str, player_color: str, text: str):
 
         entry = ActionLogEntry(
-            player_index=player_index,
-            player_name=player.name,
-            player_color=player.color,
+            player_name=player_name,
+            player_color=player_color,
             text=text,
         )
 

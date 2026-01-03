@@ -43,12 +43,16 @@ class AgentController(PlayerController):
         # UI building updates after actions
         if action_type == "build_road":
             game_manager.board.build_road_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"built road on edge {local_index}")
         elif action_type == "build_settlement":
             game_manager.board.build_settlement_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"built settlement on node {local_index}")
         elif action_type == "build_city":
             game_manager.board.upgrade_city_ui(local_index)
+            game_manager.log_action(self.player_name, game.current_player.color, f"upgrade to city on node {local_index}")
         elif action_type == "move_robber":
             game_manager.board.update_robber()
+            game_manager.log_action(self.player_name, game.current_player.color, f"moved robber to tile {local_index}")
 
         # Update UI state
         game_manager.action_panel.info_panel.refresh()
