@@ -384,6 +384,6 @@ class ActionPanel(QWidget, ActionHandler):
         for btn_name, action_name in mapping.items():
             btn = self.buttons[btn_name]
             btn.setEnabled(self.action_masks.is_action_enabled(player=player, name=action_name, mask=mask)
-                           and not self.game.game_over)
+                           and not self.game.game_over and is_human)
 
         self.board_view.update_roll_display()

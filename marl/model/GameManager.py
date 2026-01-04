@@ -75,4 +75,5 @@ class GameManager(QObject):
 
         # After action, refresh UI and if still AI, schedule again
         self.refresh_ui()
-        self._schedule_ai_if_needed()
+        if not self.game.game_over:
+            self._schedule_ai_if_needed()
