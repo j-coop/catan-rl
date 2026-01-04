@@ -128,8 +128,6 @@ class CatanEnv(AECEnv,
         self.rewards[agent] = float(reward)
         self._cumulative_rewards[agent] += reward
 
-        self.agent_selection = self.agents[(self.agents.index(agent) + 1) % len(self.agents)]
-
         if self.game.game_over:
             for a in self.agents:
                 self.terminations[a] = True
