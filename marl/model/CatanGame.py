@@ -335,7 +335,6 @@ class CatanGame:
         if player.resources[give_resource] < ratio:
             raise ValueError(f"{player.name} does not have enough {give_resource} to trade with bank (ratio={ratio}). {player.resources}")
 
-        # Validate bank has the requested resource
         if self.bank.resources[receive_resource] <= 0:
             raise ValueError(f"Bank is out of {receive_resource}! - this should have been masked")
 

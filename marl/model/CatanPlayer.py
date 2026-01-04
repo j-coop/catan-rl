@@ -241,7 +241,7 @@ class CatanPlayer:
             amount = self.resources.get(give, 0)
 
             # Skip if no resources of that type
-            if amount <= 0:
+            if amount <= 1:
                 continue
 
             # Determine trade ratio for this resource
@@ -256,13 +256,12 @@ class CatanPlayer:
             if amount < ratio:
                 continue
 
-            # Can trade into any *other* resource
+            # Can trade only when bank have enough resources
             for receive in RESOURCE_TYPES:
                 if receive == give:
                     continue
+                if self.bank.resources.get(receive, 0) == 0:
+                    continue
                 valid_trades.append((give, receive))
-
-        # if len(valid_trades) > 0:
-        #     print(f"valid_trades: {valid_trades}, {self.resources}")
 
         return valid_trades
