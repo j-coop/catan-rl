@@ -13,16 +13,18 @@ class MaskedActor(torch.nn.Module):
         self.logits = torch.nn.Linear(512, action_dim)
 
     def forward(self, obs, state=None, info=None):
-        obs_vec = obs["obs"]
-        mask = obs["mask"]
+        if hasattr(obs, "obs"):
+            obs_vec = obs.obs
+            mask = obs.mask
+        else:
+            obs_vec = obs["observation"]
+            mask = obs["action_mask"]
 
-        if not torch.is_tensor(obs_vec):
-            obs_vec = torch.as_tensor(obs_vec, dtype=torch.float32)
-        if not torch.is_tensor(mask):
-            mask = torch.as_tensor(mask, dtype=torch.bool)
+        obs_vec = torch.as_tensor(obs_vec, dtype=torch.float32)
+        mask = torch.as_tensor(mask, dtype=torch.bool, device=obs_vec.device)
 
         x, _ = self.net(obs_vec, state)
         logits = self.logits(x)
 
-        logits = logits.masked_fill(mask == 0, -1e12)
+        logits = logits.masked_fill(~mask, torch.finfo(logits.dtype).min)
         return logits, state
