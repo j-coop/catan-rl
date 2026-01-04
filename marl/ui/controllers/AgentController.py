@@ -14,6 +14,7 @@ class AgentController(PlayerController):
         self.player_name = player_name
         self.agent = agent
         self.delay = delay
+        self.is_human = False
 
     def apply_action(self, agent: str, action: int, action_space: ActionSpace, game: CatanGame):
         for spec in action_space.action_specs:

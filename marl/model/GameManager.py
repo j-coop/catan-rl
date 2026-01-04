@@ -7,7 +7,7 @@ class GameManager(QObject):
     log_updated = pyqtSignal()
     ui_updated = pyqtSignal()  # emit whenever UI should refresh
 
-    def __init__(self, game, controllers, action_space, config, ai_delay_ms=800):
+    def __init__(self, game, controllers, action_space, config, ai_delay_ms=1500):
         super().__init__()
         self.game = game
         self.config = config
