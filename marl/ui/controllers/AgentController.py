@@ -1,6 +1,8 @@
 import random
 import time
 
+from PyQt6.QtWidgets import QApplication
+
 from marl.env.ActionSpace import ActionSpace
 from marl.model.CatanGame import CatanGame
 from marl.ui.controllers.PlayerController import PlayerController
@@ -57,6 +59,3 @@ class AgentController(PlayerController):
         # Update UI state
         game_manager.action_panel.info_panel.refresh()
         game_manager.board.update_roll_display(is_agent=True)
-
-        # Ask manager for another step
-        game_manager.on_turn_changed()

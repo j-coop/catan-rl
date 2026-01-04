@@ -665,7 +665,6 @@ class BoardView(QGraphicsView):
                 return
 
     def update_roll_display(self, is_agent=False):
-        print("update_roll_display")
         roll = self.game.last_roll if self.game else None
 
         if roll is None:
