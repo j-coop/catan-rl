@@ -43,31 +43,31 @@ class ActionSpace:
                 return lambda *args, **kwargs: None  # dummy for UI
 
         self.action_specs.append(ActionSpec("build_settlement", (start, start + N_NODES), cb("build_settlement")))
-        start += N_NODES
+        start += N_NODES # 0-53
 
         self.action_specs.append(ActionSpec("build_city", (start, start + N_NODES), cb("build_city")))
-        start += N_NODES
+        start += N_NODES # 54-107
 
         self.action_specs.append(ActionSpec("build_road", (start, start + N_EDGES), cb("build_road")))
-        start += N_EDGES
+        start += N_EDGES # 108-179
 
         self.action_specs.append(ActionSpec("buy_dev_card", (start, start + 1), cb("buy_dev_card")))
-        start += 1
+        start += 1 # 180-180
 
         self.action_specs.append(ActionSpec("play_dev_card", (start, start + 5), cb("play_dev_card")))
-        start += 5
+        start += 5 # 181-185
 
         self.action_specs.append(ActionSpec("move_robber", (start, start + 19), cb("move_robber")))
-        start += 19
+        start += 19 # 186-204
 
         self.action_specs.append(ActionSpec("trade_bank", (start, start + 20), cb("trade_bank")))
-        start += 20
+        start += 20 # 205-224
 
         self.action_specs.append(ActionSpec("choose_resource", (start, start + 5), cb("choose_resource")))
-        start += 5
+        start += 5 # 225-229
 
         self.action_specs.append(ActionSpec("end_turn", (start, start + 1), cb("end_turn")))
-        start += 1
+        start += 1 # 230-230
         self.action_space_size = start
 
     # Utility to enable actions dynamically
@@ -106,9 +106,11 @@ class ActionSpace:
         """
         valid_edges = self.env.game.board.get_valid_road_spots(player)
         spec = next(s for s in self.action_specs if s.name == "build_road")
-
-        for edge in valid_edges:
-            mask[spec.range[0] + edge] = True
+        if not valid_edges:
+            self._enable(mask, "end_turn")
+        else:
+            for edge in valid_edges:
+                mask[spec.range[0] + edge] = True
 
     def _apply_normal_phase_mask(self, mask: list[bool], player: CatanPlayer):
         """
@@ -150,6 +152,9 @@ class ActionSpace:
 
         # --- Playing dev cards ---
         playable_cards = player.get_playable_dev_cards()
+        is_playable = self._is_road_building_playable(player)
+        if ("road_building" in playable_cards and not is_playable):
+            playable_cards.remove("road_building")
         spec = next(s for s in self.action_specs if s.name == "play_dev_card")
         for i, card_type in enumerate(DEV_CARD_TYPES):
             if card_type in playable_cards:
@@ -164,6 +169,11 @@ class ActionSpace:
 
         # --- Always allow end turn ---
         self._enable(mask, "end_turn")
+
+    def _is_road_building_playable(self, player: CatanPlayer):
+        game = self.env.game
+        valid_edges = game.board.get_valid_road_spots(player)
+        return False if not valid_edges else True
 
     # --- FOR UI ---
     def get_spec(self, name: str) -> ActionSpec:
@@ -194,5 +204,3 @@ class ActionSpace:
             raise IndexError(f"Action index {index} out of range for '{name}'")
 
         return mask[start + index]
-
-
