@@ -351,15 +351,11 @@ class ActionPanel(QWidget, ActionHandler):
         self.log_view.clear()
 
         for entry in self.game_manager.action_logs[-100:]:  # keep last 100
-            print(entry)
             self.log_view.append(
                 f'<span style="color:{entry.player_color}; font-weight:bold;">'
                 f'{entry.player_name}'
                 f'</span><span style="color:black; font-weight:italic;">: {entry.text}</span>'
             )
-
-        # Auto-scroll to bottom
-        # self.log_view.moveCursor(self.log_view.textCursor().End)
 
     def update_buttons(self):
         """Enable/disable buttons according to current player's legal actions."""
@@ -385,5 +381,3 @@ class ActionPanel(QWidget, ActionHandler):
             btn = self.buttons[btn_name]
             btn.setEnabled(self.action_masks.is_action_enabled(player=player, name=action_name, mask=mask)
                            and not self.game.game_over and is_human)
-
-        self.board_view.update_roll_display()
