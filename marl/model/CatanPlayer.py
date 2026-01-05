@@ -228,7 +228,8 @@ class CatanPlayer:
         return obs
 
     def get_playable_dev_cards(self):
-        return [card_type for card_type in DEV_CARD_TYPES if self.dev_cards.get(card_type, 0) > 0]
+        return [card_type for card_type in DEV_CARD_TYPES 
+                if self.dev_cards.get(card_type, 0) > 0]
 
     def get_valid_bank_trades(self) -> List[(str, str)]:
         """
