@@ -8,7 +8,8 @@ import random
 
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
-                                    RESOURCE_TYPES, BUILD_COSTS)
+                                    RESOURCE_TYPES, BUILD_COSTS, ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER,
+                                    CITIES_PER_PLAYER)
 
 from typing import TYPE_CHECKING
 
@@ -38,6 +39,10 @@ class CatanPlayer:
         self.points: int = 0
         self.hidden_points: int = 0 # victory points other players don't know about
         self.longest_road = 0
+
+        self.roads_remaining = ROADS_PER_PLAYER
+        self.settlements_remaining = SETTLEMENTS_PER_PLAYER
+        self.cities_remaining = CITIES_PER_PLAYER
 
     @property
     def victory_points(self) -> int:

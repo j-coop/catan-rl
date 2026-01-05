@@ -150,6 +150,7 @@ class CatanGame:
         if not init_placement:
             player.pay_for_build("settlement")
         player.points += 1
+        player.settlements_remaining -= 1
         self.recompute_longest_road()
         self.check_victory(agent)
 
@@ -158,6 +159,8 @@ class CatanGame:
         player.cities.append(node_index)
         player.pay_for_build("city")
         player.points += 1
+        player.cities_remaining -= 1
+        player.settlements_remaining += 1
         self.check_victory(agent)
         player.settlements.remove(node_index)
 
@@ -195,6 +198,8 @@ class CatanGame:
             else:
                 player.pay_for_build("road")
 
+        player.roads_remaining -= 1
+
         self.recompute_longest_road()
         self.check_victory(agent)
 
@@ -226,9 +231,10 @@ class CatanGame:
                     self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
         elif card_type == "road_building":
-            # Player will now be able to build two roads
-            self.phase = CatanPhase.ROAD_BUILDING
-            self.roads_remaining_from_card = 2  # Track roads to build
+            # Player will now be able to build two roads (if available!)
+            if player.roads_remaining > 0:
+                self.phase = CatanPhase.ROAD_BUILDING
+                self.roads_remaining_from_card = min(2, player.roads_remaining)  # Track roads to build
         elif card_type == "year_of_plenty":
             # Player chooses 2 resources from bank in two consecutive actions
             self.phase = CatanPhase.YEAR_OF_PLENTY
