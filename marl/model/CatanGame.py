@@ -62,8 +62,6 @@ class CatanGame:
             else None
         )
 
-        print("GAME OBJECT INITIALIZED")
-
         if not training:
             self.generate_init_board_state()
             self.ai_players = [0] * len(self.players)
@@ -83,7 +81,6 @@ class CatanGame:
     def handle_dice_roll(self):
         roll = self.get_dice_roll()
         self.last_roll = roll
-        print(f"Dice rolled: {roll}")
         if roll == 7:
             self.phase = CatanPhase.ROBBER_MOVE
             for player in self.players:
@@ -371,7 +368,6 @@ class CatanGame:
         player.resources[resource] += 1
 
     def end_turn(self, agent=None, index=None, is_ui_action=True):
-        print(f"Ending turn for {self.current_player.name}")
         self.turn += 1
         if self.turn == 4:
             self.turn = 0

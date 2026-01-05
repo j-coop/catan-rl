@@ -160,3 +160,5 @@ INIT_PLACEMENT_ENV_PATIENCE = 14
 
 # Magic statistical average reward for settlements (from baseline_reward.py)
 BASELINE_REWARD = 0.42962962962966283
+
+VERBOSE = False

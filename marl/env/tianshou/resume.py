@@ -13,7 +13,8 @@ from .actor import MaskedActor
 from .critic import Critic
 from .training_utils import (CheckpointLogger,
                              CheckpointManager,
-                             ScalarRewardPettingZooEnv)
+                             ScalarRewardPettingZooEnv,
+                             load_checkpoint)
 
 
 if __name__ == '__main__':
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     params = OnPolicyTrainerParams(
         training_collector=collector,
         max_epochs=100,
-        epoch_num_steps=30000,
+        epoch_num_steps=300,
         batch_size=1024,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger
@@ -72,3 +73,22 @@ if __name__ == '__main__':
     ).run()
 
     print("Training done")
+
+
+if __name__ == '__main__':
+    checkpoint_path = "trained_models\checkpoints\ppo_catan.pt"
+    meta = load_checkpoint(checkpoint_path, algo)
+    epoch_done = meta['epoch']
+
+    print("Loaded checkpoint:", checkpoint_path)
+    print(f"Epoch: {epoch_done}, Env steps: {meta['env_step']},"
+          " Gradient steps: {meta['gradient_step']}")
+
+    from tianshou.trainer import OnPolicyTrainer, OnPolicyTrainerParams
+    params = OnPolicyTrainerParams(
+        training_collector=collector,
+        max_epochs=100 - epoch_done,
+        epoch_num_steps=30000,
+        batch_size=1024)
+    trainer = OnPolicyTrainer(algo, params)
+    trainer.run()

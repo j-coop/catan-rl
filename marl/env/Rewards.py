@@ -3,7 +3,8 @@ import math
 from marl.model.CatanGame import CatanGame
 import numpy as np
 
-from params.catan_constants import DICE_PROBABILITIES
+from params.catan_constants import (DICE_PROBABILITIES,
+                                    VERBOSE)
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
@@ -55,16 +56,17 @@ class Rewards:
         risk_weighted = -0.2 * risk_component
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
-        print(
-            f"Total: {total_potential:.2f} | "
-            f"VP: {vp_weighted:.1f} | "
-            f"Prod: {prod_weighted:.1f} | "
-            f"Res: {resource_weighted:.1f} | "
-            f"Dev: {dev_weighted:.1f} | "
-            f"Port: {port_weighted:.1f} | "
-            f"Road: {road_weighted:.1f} | "
-            f"Risk: {risk_weighted:.1f}"
-        )
+        if VERBOSE:
+            print(
+                f"Total: {total_potential:.2f} | "
+                f"VP: {vp_weighted:.1f} | "
+                f"Prod: {prod_weighted:.1f} | "
+                f"Res: {resource_weighted:.1f} | "
+                f"Dev: {dev_weighted:.1f} | "
+                f"Port: {port_weighted:.1f} | "
+                f"Road: {road_weighted:.1f} | "
+                f"Risk: {risk_weighted:.1f}"
+            )
         return total_potential
 
     def expected_production(self, prod_by_resource):
