@@ -120,7 +120,7 @@ class ActionSpace:
         # --- Building settlements ---
         direct = player.can_afford_directly("settlement")
         with_trades = player.can_afford_with_trades("settlement", self.env.game.bank)
-        if direct or with_trades:
+        if (direct or with_trades) and player.settlements_remaining > 0:
             valid_nodes = self.env.game.board.get_valid_settlement_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_settlement")
             for node in valid_nodes:
@@ -129,7 +129,7 @@ class ActionSpace:
         # --- Building cities ---
         direct = player.can_afford_directly("city")
         with_trades = player.can_afford_with_trades("city", self.env.game.bank)
-        if direct or with_trades:
+        if (direct or with_trades) and player.cities_remaining > 0:
             # player can only upgrade existing settlements
             spec = next(s for s in self.action_specs if s.name == "build_city")
             for node in player.settlements:
@@ -138,7 +138,7 @@ class ActionSpace:
         # --- Building roads ---
         direct = player.can_afford_directly("road")
         with_trades = player.can_afford_with_trades("road", self.env.game.bank)
-        if direct or with_trades:
+        if (direct or with_trades) and player.roads_remaining > 0:
             valid_edges = self.env.game.board.get_valid_road_spots(player)
             spec = next(s for s in self.action_specs if s.name == "build_road")
             for edge in valid_edges:

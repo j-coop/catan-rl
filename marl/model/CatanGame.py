@@ -150,6 +150,7 @@ class CatanGame:
         if not init_placement:
             player.pay_for_build("settlement")
         player.points += 1
+        player.settlements_remaining -= 1
         self.recompute_longest_road()
         self.check_victory(agent)
 
@@ -158,19 +159,18 @@ class CatanGame:
         player.cities.append(node_index)
         player.pay_for_build("city")
         player.points += 1
+        player.cities_remaining -= 1
+        player.settlements_remaining += 1
         self.check_victory(agent)
         player.settlements.remove(node_index)
 
     def recompute_longest_road(self):
         previous_owner = self.longest_road_owner
 
-        # Reset state
-        self.longest_road_owner = None
-        self.longest_road_length = 0
-
         for player in self.players:
             length = self.get_longest_road_length(player.name)
-            player.longest_road = length
+            if length > player.longest_road:
+                player.longest_road = length
             if length >= LONGEST_ROAD_MIN_LENGTH and length > self.longest_road_length:
                 self.longest_road_length = length
                 self.longest_road_owner = player
@@ -194,6 +194,8 @@ class CatanGame:
                     self.phase = CatanPhase.NORMAL
             else:
                 player.pay_for_build("road")
+
+        player.roads_remaining -= 1
 
         self.recompute_longest_road()
         self.check_victory(agent)
@@ -224,10 +226,12 @@ class CatanGame:
                 if self.largest_army_owner is not None:
                     self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
+                self.largest_army_count = player.knights_played
         elif card_type == "road_building":
-            # Player will now be able to build two roads
-            self.phase = CatanPhase.ROAD_BUILDING
-            self.roads_remaining_from_card = 2  # Track roads to build
+            # Player will now be able to build two roads (if available!)
+            if player.roads_remaining > 0:
+                self.phase = CatanPhase.ROAD_BUILDING
+                self.roads_remaining_from_card = min(2, player.roads_remaining)  # Track roads to build
         elif card_type == "year_of_plenty":
             # Player chooses 2 resources from bank in two consecutive actions
             self.phase = CatanPhase.YEAR_OF_PLENTY
