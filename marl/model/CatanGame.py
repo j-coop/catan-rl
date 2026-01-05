@@ -230,6 +230,7 @@ class CatanGame:
                 if self.largest_army_owner is not None:
                     self.largest_army_owner.points -= 2
                 self.largest_army_owner = player
+                self.largest_army_count = player.knights_played
         elif card_type == "road_building":
             # Player will now be able to build two roads (if available!)
             if player.roads_remaining > 0:
