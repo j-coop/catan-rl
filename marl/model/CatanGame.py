@@ -209,7 +209,6 @@ class CatanGame:
         player = self.get_player(agent)
         if player.dev_cards[card_type] <= 0:
             raise ValueError(f"{player.name} does not have a {card_type} card to play.")
-
         player.dev_cards[card_type] -= 1
 
         # Dispatch to specific handlers
