@@ -76,9 +76,7 @@ class CatanEnv(MultiAgentEnv,
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
-                print(f"Action type: {spec.name}")
                 local_index = action - start
-                print(self.game.get_player(agent).resources)
                 spec.handler(agent, local_index)
                 return
         raise ValueError(f"Invalid action index: {action}")
@@ -92,19 +90,16 @@ class CatanEnv(MultiAgentEnv,
         agent = self.agent_selection
         player = self.game.get_player(agent)
         action = action_dict[agent]
-        print("------------------------------------------------------------------------------------")
-        print(f"TURN {self.game.turn} - {self.agent_selection}")
-        print(f"Resources: {player.resources}")
-        print(f"Chosen action: {action}")
+        if VERBOSE:
+            print("------------------------------------------------------------------------------------")
+            print(f"TURN {self.game.turn} - {self.agent_selection}")
+            print(f"Resources: {player.resources}")
+            print(f"Chosen action: {action}")
 
         # minimum na teraz - wybiera akcje, nielegalne kończą turę - ponoć nawet stosowane
         mask = self.actions.get_action_mask(player)
-        print(f"Resources after mask: {player.resources}")
         if mask[action] == 0:
-            print("Chosen action illegal - end step, small penalty and redo same state")
-
-            # Small penalty
-            illegal_penalty = -0.05
+            illegal_penalty = -5
             self.rewards[agent] = illegal_penalty
             self._cumulative_rewards[agent] += illegal_penalty
 

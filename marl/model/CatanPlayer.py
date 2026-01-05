@@ -87,12 +87,7 @@ class CatanPlayer:
                 self.resources[resource] += actual_gain
                 self.bank.draw_bank_resource(resource, actual_gain)
 
-                if actual_gain < gain:
-                    print(f"{self.name} gets {actual_gain}/{gain} {resource} "
-                        f"(bank now {self.bank.resources[resource]})")
-
     def pay_for_build(self, build_type: str):
-        print(f"Available resources: {self.resources}")
         if build_type not in BUILD_COSTS:
             raise ValueError(f"Unknown build type: {build_type}")
 
@@ -189,7 +184,6 @@ class CatanPlayer:
         Check if the player can afford a given build (settlement, city, road, dev_card),
         considering posessed resources and trades with bank
         """
-        # print(f"can_afford_with_trades: {build_type}, resources: {self.resources}")
         cost = Counter(BUILD_COSTS[build_type])
         available = Counter(self.resources)
         shortages = {res: max(0, qty - available[res]) for res, qty in cost.items()}
@@ -204,14 +198,11 @@ class CatanPlayer:
         for res, qty in available.items():
             required = cost.get(res, 0)
             surplus = max(0, qty - required)
-
-            if surplus == 0:
-                continue
+            if surplus == 0: continue
 
             ratio = self._get_trade_ratio(res)
             tradable += surplus // ratio
 
-        # print("Is enough resources", build_type, tradable >= total_needed, self.resources)
         return tradable >= total_needed
 
     def can_place_settlement(self, node: int, board: CatanBoard) -> bool:

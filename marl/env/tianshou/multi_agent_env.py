@@ -50,9 +50,7 @@ class CatanEnv(AECEnv,
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
-                print(f"Action type: {spec.name}")
                 local_index = action - start
-                print(self.game.get_player(agent).resources)
                 spec.handler(agent, local_index)
                 return
         raise ValueError(f"Invalid action index: {action}")
@@ -95,9 +93,12 @@ class CatanEnv(AECEnv,
         }
 
     def step(self, action):
-        print("---------------------------------------------------------------------------------------")
-        print(f"Step: {self.step_counter}, {self.agent_selection} "
-              f"({self.game.players[self.agents.index(self.agent_selection)].victory_points})")
+        if VERBOSE:
+            print("------------------------------------------------------------------------------------")
+            print(f"TURN {self.game.turn} - {self.agent_selection}")
+            print(f"Resources: {player.resources}")
+            print(f"Chosen action: {action}")
+        print(f"Step: {self.step_counter}")
         self.step_counter += 1
         agent = self.agent_selection
 
@@ -109,8 +110,6 @@ class CatanEnv(AECEnv,
 
         player = self.game.get_player(agent)
         mask = self.actions.get_action_mask(player)
-        print("Chosen action:", action)
-
         if mask[action] == 0:
             raise ValueError(f"Illegal action {action} for {agent}")
 
