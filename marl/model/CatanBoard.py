@@ -43,7 +43,6 @@ class CatanBoard:
 
         self.generate_tiles()
         self.generate_ports()
-        print(self.ports)
 
     def generate_tiles(self, seed: Optional[int] = None):
         """
