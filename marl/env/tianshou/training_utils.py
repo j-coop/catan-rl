@@ -1,5 +1,6 @@
 import os
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from tianshou.algorithm.modelfree.ppo import PPO
 from tianshou.env import PettingZooEnv
 from tianshou.utils.logger.logger_base import BaseLogger
@@ -50,14 +51,39 @@ class CheckpointManager:
 
 class CheckpointLogger(BaseLogger):
 
+    def __init__(self, log_dir="logs"):
+        super().__init__()
+        self.writer = SummaryWriter(log_dir)
+
     def prepare_dict_for_logging(self, data):
-        return data
+        log_data = {}
+
+        if 'returns_stat' in data:
+            log_data['reward_mean'] = float(data['returns_stat']['mean'])
+            log_data['reward_std'] = float(data['returns_stat']['std'])
+            log_data['reward_max'] = float(data['returns_stat']['max'])
+            log_data['reward_min'] = float(data['returns_stat']['min'])
+
+        if 'lens_stat' in data:
+            log_data['episode_len_mean'] = float(data['lens_stat']['mean'])
+            log_data['episode_len_std'] = float(data['lens_stat']['std'])
+            log_data['episode_len_max'] = float(data['lens_stat']['max'])
+            log_data['episode_len_min'] = float(data['lens_stat']['min'])
+
+        if 'pred_dist_std_array_stat' in data and 0 in data['pred_dist_std_array_stat']:
+            log_data['policy_std_mean'] = float(data['pred_dist_std_array_stat'][0]['mean'])
+            log_data['policy_std_max'] = float(data['pred_dist_std_array_stat'][0]['max'])
+
+        return log_data
 
     def write(self, step_type, step, data):
-        pass
+        for key, value in data.items():
+            if isinstance(value, (float, int, np.floating, np.integer)):
+                print( f"Logging {key} : {value} at step {step}")
+                self.writer.add_scalar(key, value, step)
 
     def finalize(self):
-        pass
+        self.writer.close()
 
     def save_data(
         self,
@@ -76,6 +102,35 @@ class CheckpointLogger(BaseLogger):
     @staticmethod
     def restore_logged_data(log_path: str) -> dict:
         return {}
+
+
+class PPOWithTensorboard(PPO):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.log_dir="logs"
+        self.global_step = 0
+        self.writer = SummaryWriter(self.log_dir)
+
+
+    def _update_with_batch(self, batch, batch_size=None, repeat=1):
+        stats = super()._update_with_batch(batch, batch_size, repeat)
+
+        # Prepare metrics dictionary
+        metrics = {
+            "loss_actor": float(stats.actor_loss.mean),
+            "loss_critic": float(stats.vf_loss.mean),
+            "entropy": float(stats.ent_loss.mean),
+            "total_loss": float(stats.loss.mean),
+            "grad_steps": stats.gradient_steps
+        }
+
+        for key, value in metrics.items():
+            self.writer.add_scalar(key, value, self.global_step)
+        self.writer.flush()
+        self.global_step += 1
+
+        return stats
 
 
 def load_checkpoint(path: str, algo: PPO):
