@@ -13,7 +13,8 @@ from .actor import MaskedActor
 from .critic import Critic
 from .training_utils import (CheckpointLogger,
                              CheckpointManager,
-                             ScalarRewardPettingZooEnv)
+                             ScalarRewardPettingZooEnv,
+                             PPOWithTensorboard)
 
 
 if __name__ == '__main__':
@@ -40,7 +41,7 @@ if __name__ == '__main__':
         weight_decay=1e-4,
     )
 
-    algo = PPO(
+    algo = PPOWithTensorboard(
         policy=policy,
         critic=critic,
         optim=optimizer_factory,
