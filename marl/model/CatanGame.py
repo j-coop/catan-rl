@@ -9,7 +9,7 @@ from marl.model.CatanBoard import CatanBoard
 from marl.model.CatanBank import CatanBank
 from marl.model.CatanPhase import CatanPhase
 from marl.model.CatanPlayer import CatanPlayer
-from params.catan_constants import (N_NODES, N_EDGES,
+from params.catan_constants import (N_NODES, N_EDGES, VERBOSE,
                                     LONGEST_ROAD_MIN_LENGTH, BANK_TRADE_PAIRS,
                                     RESOURCE_TYPES, N_PLAYERS)
 from params.edges_list import EDGES_LIST
@@ -133,7 +133,8 @@ class CatanGame:
         if won:
             self.winner = agent
             self.game_over = True
-            print(f"GAME WON: {self.winner}")
+            if VERBOSE:
+                print(f"GAME WON: {self.winner}")
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.players)
