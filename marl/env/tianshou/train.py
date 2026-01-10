@@ -60,7 +60,7 @@ if __name__ == '__main__':
     params = OnPolicyTrainerParams(
         training_collector=collector,
         max_epochs=100,
-        epoch_num_steps=30000,
+        epoch_num_steps=64_000,
         batch_size=1024,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger

@@ -98,7 +98,7 @@ class CatanEnv(AECEnv,
             print(f"TURN {self.game.turn} - {self.agent_selection}")
             print(f"Resources: {player.resources}")
             print(f"Chosen action: {action}")
-        print(f"Step: {self.step_counter}")
+            print(f"Step: {self.step_counter}")
         self.step_counter += 1
         agent = self.agent_selection
 
