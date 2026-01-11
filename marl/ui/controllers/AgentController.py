@@ -75,7 +75,6 @@ class AgentController(PlayerController):
 
     def _ensure_actor(self, action_space):
         if self.__class__._actor_ready or self.__class__._actor_failed:
-            print("Actor failed")
             return
         try:
             import torch
@@ -98,6 +97,8 @@ class AgentController(PlayerController):
         print("Agent model loaded")
         if isinstance(state, dict):
             state = state.get("policy", state.get("actor", state))
+        if isinstance(state, dict) and any(k.startswith("actor.") for k in state.keys()):
+            state = {k[len("actor."):]: v for k, v in state.items()}
         actor.load_state_dict(state)
         actor.eval()
         self.__class__._actor_model = actor
@@ -109,8 +110,13 @@ class AgentController(PlayerController):
             print("Agent not ready - random choice")
             return random.choice(valid_indices)
         obs_vec = action_space.env.get_observation(self.player_name)
+        if hasattr(obs_vec, "ndim") and obs_vec.ndim == 1:
+            obs_vec = obs_vec[None, :]
+        if hasattr(mask, "ndim") and mask.ndim == 1:
+            mask = [mask]
         obs = {"observation": obs_vec, "action_mask": mask}
         import torch
         with torch.no_grad():
             logits, _ = self.__class__._actor_model(obs)
+        print("Successful inference")
         return int(torch.argmax(logits).item())
