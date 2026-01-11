@@ -93,6 +93,8 @@ class CatanEnv(AECEnv,
         }
 
     def step(self, action):
+        agent = self.agent_selection
+        player = self.game.get_player(agent)
         if VERBOSE:
             print("------------------------------------------------------------------------------------")
             print(f"TURN {self.game.turn} - {self.agent_selection}")
@@ -100,7 +102,6 @@ class CatanEnv(AECEnv,
             print(f"Chosen action: {action}")
             print(f"Step: {self.step_counter}")
         self.step_counter += 1
-        agent = self.agent_selection
 
         self._clear_rewards()
 
@@ -108,7 +109,6 @@ class CatanEnv(AECEnv,
             self._was_dead_step(action)
             return
 
-        player = self.game.get_player(agent)
         mask = self.actions.get_action_mask(player)
         if mask[action] == 0:
             raise ValueError(f"Illegal action {action} for {agent}")
@@ -117,7 +117,6 @@ class CatanEnv(AECEnv,
         self.apply_action(agent, action)
 
         if self.is_end_turn_action(action):
-            self.game.end_turn(is_ui_action=False)
             self.agent_selection = self.game.current_player.name
             self.game.handle_dice_roll()
 
