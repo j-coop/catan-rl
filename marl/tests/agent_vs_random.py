@@ -51,33 +51,46 @@ def select_action(agent_name: str, env: CatanEnv, actor):
     return int(torch.argmax(logits).item())
 
 
+def apply_action(agent_name: str, action: int, env: CatanEnv):
+    for spec in env.actions.action_specs:
+        start, end = spec.range
+        if start <= action < end:
+            local_index = action - start
+            if spec.name == "end_turn":
+                env.game.end_turn(is_ui_action=False)
+            else:
+                spec.handler(agent_name, local_index)
+            return spec.name
+    raise ValueError(f"Invalid action index: {action}")
+
+
 def run_games(num_games: int, agent_name: str, model_path: str, seed: int | None):
     if seed is not None:
         random.seed(seed)
         torch.manual_seed(seed)
     wins = {agent_name: 0}
     env = CatanEnv()
-    print(env.agents)
     actor = load_actor(env, model_path)
     for _ in range(num_games):
         env.reset()
         env.step_counter = 0
-        print(env.agents)
         while not env.game.game_over:
             current = env.agent_selection
-            print(current)
             if current == agent_name:
                 action = select_action(current, env, actor)
             else:
                 action = select_action(current, env, None)
-            env.step(action)
+            action_type = apply_action(current, action, env)
+            if action_type == "end_turn":
+                env.agent_selection = env.game.current_player.name
+                env.game.handle_dice_roll()
         wins[env.game.winner] = wins.get(env.game.winner, 0) + 1
     return wins
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--num-games", type=int, default=10)
+    parser.add_argument("-n", "--num-games", type=int, default=100)
     parser.add_argument("--agent-name", type=str, default="Blue Player")
     parser.add_argument("--model-path", type=str, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--seed", type=int, default=None)
