@@ -47,25 +47,25 @@ class Rewards:
         port_potential = self.port_component(player, prod_by_resource) # awards for trade possibilities
         road_component = self.road_component(player) # small road number reward
 
-        vp_weighted = 5.0 * vp_component
-        prod_weighted = 1.0 * prod_component
+        vp_weighted = 10.0 * vp_component
+        prod_weighted = 2.0 * prod_component
         resource_weighted = 0.3 * resource_component
         dev_weighted = 0.2 * dev_potential
         port_weighted = 0.2 * port_potential
-        road_weighted = 0.2 * road_component
+        road_weighted = 4.0 * road_component
         risk_weighted = -0.2 * risk_component
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
         if VERBOSE:
             print(
                 f"Total: {total_potential:.2f} | "
-                f"VP: {vp_weighted:.1f} | "
-                f"Prod: {prod_weighted:.1f} | "
-                f"Res: {resource_weighted:.1f} | "
-                f"Dev: {dev_weighted:.1f} | "
-                f"Port: {port_weighted:.1f} | "
-                f"Road: {road_weighted:.1f} | "
-                f"Risk: {risk_weighted:.1f}"
+                f"VP: {vp_weighted:.2f} | "
+                f"Prod: {prod_weighted:.2f} | "
+                f"Res: {resource_weighted:.2f} | "
+                f"Dev: {dev_weighted:.2f} | "
+                f"Port: {port_weighted:.2f} | "
+                f"Road: {road_weighted:.2f} | "
+                f"Risk: {risk_weighted:.2f}"
             )
         return total_potential
 
@@ -199,4 +199,4 @@ class Rewards:
         Building road cannot decrease potential or it will be avoided
         Capped at 10 roads
         """
-        return max(len(player.roads) * 0.1, 1.0)
+        return min(len(player.roads) * 0.1, 1.0)
