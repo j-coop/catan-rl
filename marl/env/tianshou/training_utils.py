@@ -79,7 +79,6 @@ class CheckpointLogger(BaseLogger):
     def write(self, step_type, step, data):
         for key, value in data.items():
             if isinstance(value, (float, int, np.floating, np.integer)):
-                print( f"Logging {key} : {value} at step {step}")
                 self.writer.add_scalar(key, value, step)
 
     def finalize(self):
