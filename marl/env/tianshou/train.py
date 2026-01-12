@@ -9,12 +9,12 @@ from tianshou.data.collector import Collector
 from tianshou.env import DummyVectorEnv
 
 from marl.env.tianshou.multi_agent_env import CatanEnv
-from actor import MaskedActor
-from critic import Critic
-from training_utils import (CheckpointLogger,
-                             CheckpointManager,
-                             ScalarRewardPettingZooEnv,
-                             PPOWithTensorboard)
+from marl.env.tianshou.actor import MaskedActor
+from marl.env.tianshou.critic import Critic
+from marl.env.tianshou.training_utils import (CheckpointLogger,
+                                              CheckpointManager,
+                                              ScalarRewardPettingZooEnv,
+                                              PPOWithTensorboard)
 
 
 if __name__ == '__main__':
