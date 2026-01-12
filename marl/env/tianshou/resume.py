@@ -37,7 +37,7 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=5e-4,
+        lr=3e-4,
         weight_decay=1e-4,
     )
 
@@ -48,6 +48,7 @@ if __name__ == '__main__':
         gamma=0.97,
         gae_lambda=0.95,
         max_grad_norm=0.5,
+        ent_coef=0.01,
     )
 
     collector = Collector(
