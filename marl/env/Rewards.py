@@ -50,7 +50,7 @@ class Rewards:
         vp_weighted = 10.0 * vp_component
         prod_weighted = 2.0 * prod_component
         resource_weighted = 0.3 * resource_component
-        dev_weighted = 0.2 * dev_potential
+        dev_weighted = 1.0 * dev_potential
         port_weighted = 0.2 * port_potential
         road_weighted = 4.0 * road_component
         risk_weighted = -0.2 * risk_component
@@ -166,7 +166,8 @@ class Rewards:
             0.3 * player.knights_played +
             0.5 * dev.get("road_building", 0) +
             0.6 * dev.get("monopoly", 0) +
-            0.4 * dev.get("year_of_plenty", 0)
+            0.4 * dev.get("year_of_plenty", 0) +
+            0.8 * dev.get("victory_point")
         )
 
         return value
