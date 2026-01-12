@@ -60,7 +60,7 @@ class EnvActionHandlerMixin:
     def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA) -> float:
         if self.game.game_over and self.game.winner == agent:
             # Return max out of scale reward for actual win
-            return 1000.0
+            return 100.0
         else:
             return (gamma * potential_after) - potential_before
 
