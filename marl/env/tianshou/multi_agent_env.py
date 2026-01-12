@@ -51,6 +51,8 @@ class CatanEnv(AECEnv,
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
+                if VERBOSE:
+                    print(f"Action type: {spec.name} - {local_index}")
                 spec.handler(agent, local_index)
                 return
         raise ValueError(f"Invalid action index: {action}")
@@ -122,6 +124,9 @@ class CatanEnv(AECEnv,
 
         potential_after = self.compute_potential(agent)
         reward = self.compute_reward(agent, potential_before, potential_after)
+        if VERBOSE:
+            print(f"Potential before: {potential_before}, after: {potential_after}, "
+                  f"diff: {potential_after - potential_before}, reward: {reward}")
 
         self.rewards[agent] = float(reward)
         self._cumulative_rewards[agent] += reward
