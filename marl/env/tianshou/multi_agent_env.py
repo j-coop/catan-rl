@@ -1,3 +1,5 @@
+import os
+
 from pettingzoo import AECEnv
 from gymnasium import spaces
 import numpy as np
@@ -8,6 +10,7 @@ from params.catan_constants import *
 from marl.model.CatanGame import CatanGame
 from marl.env.common import EnvActionHandlerMixin
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class CatanEnv(AECEnv,
                EnvActionHandlerMixin):
@@ -51,6 +54,8 @@ class CatanEnv(AECEnv,
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
+                if VERBOSE:
+                    print(f"Action type: {spec.name} - {local_index}")
                 spec.handler(agent, local_index)
                 return
         raise ValueError(f"Invalid action index: {action}")
@@ -65,9 +70,17 @@ class CatanEnv(AECEnv,
         self.agents = self.possible_agents[:]
         self.agent_selection = self.agents[0]
 
+        init_placement_model_path = os.path.abspath(
+            os.path.join(
+                BASE_DIR,
+                "../../../model/trained_models/init-placement/init_placement_model"
+            )
+        )
+
         self.game = CatanGame(
             player_colors=[""] * 4,
-            player_names=self.agents
+            player_names=self.agents,
+            init_placement_model_path=init_placement_model_path
         )
         self.actions = ActionSpace(self)
         self.reward_object = Rewards(self.game)
@@ -122,6 +135,9 @@ class CatanEnv(AECEnv,
 
         potential_after = self.compute_potential(agent)
         reward = self.compute_reward(agent, potential_before, potential_after)
+        if VERBOSE:
+            print(f"Potential before: {potential_before}, after: {potential_after}, "
+                  f"diff: {potential_after - potential_before}, reward: {reward}")
 
         self.rewards[agent] = float(reward)
         self._cumulative_rewards[agent] += reward

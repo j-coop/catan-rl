@@ -41,8 +41,8 @@ class CatanGame:
         self.phase_data: dict = {}
 
         # Longest road
-        self.longest_road_length = 0
-        self.longest_road_owner: CatanPlayer | None = None
+        self.longest_road_length = 1  # current max in game, can be smaller than 5
+        self.longest_road_owner: CatanPlayer | None = None  # set only if longer than 5, owner of 2 points
 
         # Largest army
         self.largest_army_count = 0
@@ -169,9 +169,10 @@ class CatanGame:
             length = self.get_longest_road_length(player.name)
             if length > player.longest_road:
                 player.longest_road = length
-            if length >= LONGEST_ROAD_MIN_LENGTH and length > self.longest_road_length:
+            if  length > self.longest_road_length:
                 self.longest_road_length = length
-                self.longest_road_owner = player
+                if length >= LONGEST_ROAD_MIN_LENGTH:
+                    self.longest_road_owner = player
 
         # Handle victory points transfer
         if previous_owner != self.longest_road_owner:
