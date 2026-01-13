@@ -48,12 +48,12 @@ class Rewards:
         road_component = self.road_component(player) # small road number reward
 
         vp_weighted = 10.0 * vp_component
-        prod_weighted = 2.0 * prod_component
+        prod_weighted = 5.0 * prod_component
         resource_weighted = 0.3 * resource_component
         dev_weighted = 1.0 * dev_potential
-        port_weighted = 0.2 * port_potential
+        port_weighted = 0.5 * port_potential
         road_weighted = 4.0 * road_component
-        risk_weighted = -0.2 * risk_component
+        risk_weighted = -0.3 * risk_component
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
         if VERBOSE:
@@ -75,6 +75,8 @@ class Rewards:
           - Quantity: weighted expected production per resource
           - Entropy: diversity of production (balanced economy)
         """
+        if VERBOSE:
+            print(f"Prod by resource: {prod_by_resource}")
 
         # Quantity with bias
         quantity = sum(
@@ -83,7 +85,7 @@ class Rewards:
         )
 
         # Normalize for maximum expected possible production
-        quantity_norm = max(quantity, 1)
+        quantity_norm = min(quantity, 1)
 
         # Entropy (production diversity)
         total = sum(prod_by_resource.values())
@@ -94,7 +96,9 @@ class Rewards:
         else:
             entropy = 0.0
 
-        return 0.6 * quantity_norm + 0.4 * entropy
+        if VERBOSE:
+            print(f"Quantity: {0.75 * quantity_norm}, entropy: {0.25 * entropy}")
+        return 0.75 * quantity_norm + 0.25 * entropy
 
     def production_at_node(self, node_index):
         """
