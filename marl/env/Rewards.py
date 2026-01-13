@@ -52,7 +52,7 @@ class Rewards:
         resource_weighted = 0.3 * resource_component
         dev_weighted = 1.0 * dev_potential
         port_weighted = 0.5 * port_potential
-        road_weighted = 4.0 * road_component
+        road_weighted = 2.0 * road_component
         risk_weighted = -0.3 * risk_component
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
@@ -193,12 +193,18 @@ class Rewards:
 
         return port_value
 
-    @staticmethod
-    def road_component(player):
+    def road_component(self, player):
         """
         Gives small reward for player's total number of roads
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
-        Capped at 10 roads
         """
-        return min(len(player.roads) * 0.1, 1.0)
+        num_roads_reward = len(player.roads) * 0.1  # max 1.5
+
+        longest_road_chain = player.longest_road
+        # no min(game_longest_road, 5) - encourages early chains, which enable settlements
+        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length)  # max 1.0
+
+        if VERBOSE:
+            print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
+        return num_roads_reward + longest_chain_reward
