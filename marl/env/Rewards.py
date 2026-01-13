@@ -84,9 +84,6 @@ class Rewards:
             for r in prod_by_resource
         )
 
-        # Normalize for maximum expected possible production
-        quantity_norm = min(quantity, 1)
-
         # Entropy (production diversity)
         total = sum(prod_by_resource.values())
         if total > 0:
@@ -97,8 +94,8 @@ class Rewards:
             entropy = 0.0
 
         if VERBOSE:
-            print(f"Quantity: {0.75 * quantity_norm}, entropy: {0.25 * entropy}")
-        return 0.75 * quantity_norm + 0.25 * entropy
+            print(f"Quantity: {0.75 * quantity}, entropy: {0.25 * entropy}")
+        return 0.75 * quantity + 0.25 * entropy
 
     def production_at_node(self, node_index):
         """

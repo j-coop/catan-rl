@@ -69,7 +69,8 @@ class CatanEnv(AECEnv,
 
         self.game = CatanGame(
             player_colors=[""] * 4,
-            player_names=self.agents
+            player_names=self.agents,
+            init_placement_model_path="../../../model/trained_models/init-placement/init_placement_model.zip"
         )
         self.actions = ActionSpace(self)
         self.reward_object = Rewards(self.game)
