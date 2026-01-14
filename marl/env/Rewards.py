@@ -45,13 +45,13 @@ class Rewards:
         if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
             persistent_vp -= 2
 
-        vp_component = persistent_vp ** 1.8 # strongest signal
-        prod_component = self.expected_production(prod_by_resource) # production quantity and entropy
-        resource_component = self.resource_component(player) # current resources leverage
-        risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
-        dev_potential = self.dev_card_value(player) # dev cards potential
-        port_potential = self.port_component(player, prod_by_resource) # awards for trade possibilities
-        road_component = self.road_component(player) # small road number reward
+        vp_component = persistent_vp ** 1.8  # strongest signal
+        prod_component = self.expected_production(prod_by_resource)  # production quantity and entropy
+        resource_component = self.resource_component(player)  # current resources leverage
+        risk_component = self.risk_penalty(player)  # penalties for too many cards risk, blocked tile
+        dev_potential = self.dev_card_value(player)  # dev cards potential
+        port_potential = self.port_component(player, prod_by_resource)  # awards for trade possibilities
+        road_component = self.road_component(player)  # small road number reward
 
         vp_weighted = vp_component
         prod_weighted = 5.0 * prod_component
@@ -204,7 +204,6 @@ class Rewards:
         Gives small reward for player's total number of roads
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
-        Capped at 10 roads
         """
         num_roads_reward = (len(player.roads) / ROADS_PER_PLAYER) ** 0.4  # max 1.0, first roads more important
 
