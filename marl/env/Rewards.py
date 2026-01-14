@@ -4,7 +4,7 @@ from marl.model.CatanGame import CatanGame
 import numpy as np
 
 from params.catan_constants import (DICE_PROBABILITIES,
-                                    VERBOSE)
+                                    VERBOSE, ROADS_PER_PLAYER)
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
@@ -39,7 +39,13 @@ class Rewards:
             for r, p in self.production_at_node(node).items():
                 prod_by_resource[r] += 2.0 * p
 
-        vp_component = (player.victory_points) ** 1.5 # strongest signal
+        persistent_vp = player.victory_points
+        if self.game.longest_road_owner is not None and self.game.longest_road_owner.name == agent:
+            persistent_vp -= 2
+        if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
+            persistent_vp -= 2
+
+        vp_component = persistent_vp ** 1.8 # strongest signal
         prod_component = self.expected_production(prod_by_resource) # production quantity and entropy
         resource_component = self.resource_component(player) # current resources leverage
         risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
@@ -164,11 +170,11 @@ class Rewards:
 
         value = (
             0.4 * dev.get("knight", 0) +
-            0.3 * player.knights_played +
+            1.0 * ((player.knights_played * 0.7) ** 1.15) +
             0.5 * dev.get("road_building", 0) +
             0.6 * dev.get("monopoly", 0) +
             0.4 * dev.get("year_of_plenty", 0) +
-            0.8 * dev.get("victory_point")
+            0.8 * dev.get("victory_point", 0)
         )
 
         return value
@@ -200,11 +206,11 @@ class Rewards:
         Building road cannot decrease potential or it will be avoided
         Capped at 10 roads
         """
-        num_roads_reward = len(player.roads) * 0.2  # max 3
+        num_roads_reward = (len(player.roads) / ROADS_PER_PLAYER) ** 0.4  # max 1.0, first roads more important
 
         longest_road_chain = player.longest_road
         # no min(game_longest_road, 5) - encourages early chains, which enable settlements
-        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length)  # max 1.0
+        longest_chain_reward = 3 * float(longest_road_chain / self.game.longest_road_length) ** 2  # max 3.0
 
         if VERBOSE:
             print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
