@@ -3,6 +3,7 @@ import os
 import random
 
 import torch
+from torch.distributions import Categorical
 
 from marl.env.tianshou.actor import MaskedActor
 from marl.env.tianshou.multi_agent_env import CatanEnv
@@ -10,7 +11,7 @@ from marl.env.tianshou.multi_agent_env import CatanEnv
 
 DEFAULT_MODEL_PATH = os.path.abspath(
     # os.path.join(os.path.dirname(__file__), "..", "..", "trained_models", "best_full_game_agent.pt")
-    os.path.join(os.path.dirname(__file__), "..", "env", "tianshou", "trained_models\checkpoints", "ppo_catan_7.pt")
+    os.path.join(os.path.dirname(__file__), "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_7.pt")
 )
 
 
@@ -49,6 +50,8 @@ def select_action(agent_name: str, env: CatanEnv, actor):
     obs = {"observation": obs_vec, "action_mask": mask}
     with torch.no_grad():
         logits, _ = actor(obs)
+    # dist = Categorical(logits=logits)
+    # return int(dist.sample().item())
     return int(torch.argmax(logits).item())
 
 
@@ -65,11 +68,16 @@ def apply_action(agent_name: str, action: int, env: CatanEnv):
     raise ValueError(f"Invalid action index: {action}")
 
 
-def run_games(num_games: int, agent_name: str, model_path: str, seed: int | None):
+def run_games(num_games: int, agent_names: [str], model_path: str, seed: int | None):
     if seed is not None:
         random.seed(seed)
         torch.manual_seed(seed)
-    wins = {agent_name: 0}
+    wins = {
+        "Blue Player": 0,
+        "Purple Player": 0,
+        "Yellow Player": 0,
+        "Green Player": 0,
+    }
     env = CatanEnv()
     actor = load_actor(env, model_path)
     for _ in range(num_games):
@@ -77,7 +85,7 @@ def run_games(num_games: int, agent_name: str, model_path: str, seed: int | None
         env.step_counter = 0
         while not env.game.game_over:
             current = env.agent_selection
-            if current == agent_name:
+            if current in agent_names:
                 action = select_action(current, env, actor)
             else:
                 action = select_action(current, env, None)
@@ -97,7 +105,7 @@ def main():
     parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
-    wins = run_games(args.num_games, args.agent_name, args.model_path, args.seed)
+    wins = run_games(args.num_games, ["Blue Player"], args.model_path, args.seed)
     total = sum(wins.values())
     agent_wins = wins.get(args.agent_name, 0)
     win_rate = agent_wins / total if total else 0.0
