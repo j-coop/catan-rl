@@ -129,6 +129,13 @@ PORT_NODE_PAIRS = [
 
 GAMMA = 0.97
 
+# Reward shaping schedule and terminal rewards
+SHAPING_WEIGHT_START = 1.0
+SHAPING_WEIGHT_END = 0.2
+SHAPING_ANNEAL_STEPS = 1_000_000
+WIN_REWARD = 200.0
+LOSS_PENALTY = -50.0
+
 
 ##################  Init-placement agent training parameters  ##################
 NUM_ROLLS = 100
@@ -161,4 +168,4 @@ INIT_PLACEMENT_ENV_PATIENCE = 14
 # Magic statistical average reward for settlements (from baseline_reward.py)
 BASELINE_REWARD = 0.42962962962966283
 
-VERBOSE = False
+VERBOSE = True

@@ -39,7 +39,7 @@ class Rewards:
             for r, p in self.production_at_node(node).items():
                 prod_by_resource[r] += 2.0 * p
 
-        vp_component = player.victory_points / 10.0 # strongest signal
+        vp_component = (player.victory_points) ** 1.5 # strongest signal
         prod_component = self.expected_production(prod_by_resource) # production quantity and entropy
         resource_component = self.resource_component(player) # current resources leverage
         risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
@@ -47,8 +47,8 @@ class Rewards:
         port_potential = self.port_component(player, prod_by_resource) # awards for trade possibilities
         road_component = self.road_component(player) # small road number reward
 
-        vp_weighted = 5.0 * vp_component
-        prod_weighted = 1.0 * prod_component
+        vp_weighted = vp_component
+        prod_weighted = 5.0 * prod_component
         resource_weighted = 0.3 * resource_component
         dev_weighted = 0.2 * dev_potential
         port_weighted = 0.2 * port_potential
@@ -197,6 +197,13 @@ class Rewards:
         Gives small reward for player's total number of roads
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
-        Capped at 10 roads
         """
-        return max(len(player.roads) * 0.1, 1.0)
+        num_roads_reward = len(player.roads) * 0.2  # max 3
+
+        longest_road_chain = player.longest_road
+        # no min(game_longest_road, 5) - encourages early chains, which enable settlements
+        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length)  # max 1.0
+
+        if VERBOSE:
+            print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
+        return num_roads_reward + longest_chain_reward

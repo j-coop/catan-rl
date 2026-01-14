@@ -29,6 +29,13 @@ class CatanEnv(AECEnv,
         obs_dim = self.get_observation_space_size()
         act_dim = self.actions.get_action_space_size()
 
+        self.shaping_weight = SHAPING_WEIGHT_START
+        self._shaping_step = 0
+        self._shaping_anneal_steps = SHAPING_ANNEAL_STEPS
+        self.shaping_weight_end = SHAPING_WEIGHT_END
+        self.win_reward = WIN_REWARD
+        self.loss_penalty = LOSS_PENALTY
+
         self.observation_spaces = {
             agent: spaces.Dict({
                 "observation": spaces.Box(
@@ -92,6 +99,16 @@ class CatanEnv(AECEnv,
             "action_mask": mask
         }
 
+    def _update_shaping_weight(self):
+        if self._shaping_anneal_steps <= 0:
+            return
+        progress = min(self._shaping_step / self._shaping_anneal_steps, 1.0)
+        self.shaping_weight = (
+            SHAPING_WEIGHT_START
+            + (self.shaping_weight_end - SHAPING_WEIGHT_START) * progress
+        )
+        self._shaping_step += 1
+
     def step(self, action):
         agent = self.agent_selection
         player = self.game.get_player(agent)
@@ -104,6 +121,7 @@ class CatanEnv(AECEnv,
         self.step_counter += 1
 
         self._clear_rewards()
+        self._update_shaping_weight()
 
         if self.terminations[agent] or self.truncations[agent]:
             self._was_dead_step(action)
@@ -123,9 +141,12 @@ class CatanEnv(AECEnv,
         potential_after = self.compute_potential(agent)
         reward = self.compute_reward(agent, potential_before, potential_after)
 
-        self.rewards[agent] = float(reward)
-        self._cumulative_rewards[agent] += reward
-
         if self.game.game_over:
             for a in self.agents:
                 self.terminations[a] = True
+                terminal_reward = self.win_reward if a == self.game.winner else self.loss_penalty
+                self.rewards[a] = float(terminal_reward)
+                self._cumulative_rewards[a] += terminal_reward
+        else:
+            self.rewards[agent] = float(reward)
+            self._cumulative_rewards[agent] += reward

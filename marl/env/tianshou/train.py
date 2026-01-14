@@ -37,7 +37,7 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=3e-4,
+        lr=1e-4,
         weight_decay=1e-4,
     )
 
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         gamma=0.97,
         gae_lambda=0.95,
         max_grad_norm=0.5,
-        ent_coef=0.01,
+        ent_coef=0.001,
     )
 
     collector = Collector(
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         training_collector=collector,
         max_epochs=100,
         epoch_num_steps=64_000,
-        batch_size=1024,
+        batch_size=4096,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger
     )
