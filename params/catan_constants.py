@@ -127,7 +127,7 @@ PORT_NODE_PAIRS = [
     (7, 17)
 ]
 
-GAMMA = 0.97
+GAMMA = 0.99
 
 # Reward shaping schedule and terminal rewards
 SHAPING_WEIGHT_START = 1.0

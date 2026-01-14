@@ -15,7 +15,7 @@ from marl.env.tianshou.training_utils import (CheckpointLogger,
                                               CheckpointManager,
                                               ScalarRewardPettingZooEnv,
                                               PPOWithTensorboard)
-
+from params.catan_constants import GAMMA
 
 if __name__ == '__main__':
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         policy=policy,
         critic=critic,
         optim=optimizer_factory,
-        gamma=0.97,
+        gamma=GAMMA,
         gae_lambda=0.95,
         max_grad_norm=0.5,
         ent_coef=0.001,

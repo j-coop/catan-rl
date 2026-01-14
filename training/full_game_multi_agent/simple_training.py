@@ -1,5 +1,8 @@
 import os
 import logging
+
+from params.catan_constants import GAMMA
+
 os.environ["RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO"] = "0"
 os.environ["PYTHONWARNINGS"] = "ignore::DeprecationWarning"
 os.environ["RAY_DEDUP_LOGS"] = "1"
@@ -54,7 +57,7 @@ def main(num_iterations=2000, stop_timesteps=1_000_000, checkpoint_freq=50):
         )
         .framework("torch")
         .training(
-            gamma=0.97,
+            gamma=GAMMA,
             lr=5e-4,
             train_batch_size=4000,
             num_sgd_iter=10,

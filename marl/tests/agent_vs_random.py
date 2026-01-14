@@ -9,7 +9,8 @@ from marl.env.tianshou.multi_agent_env import CatanEnv
 
 
 DEFAULT_MODEL_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "trained_models", "best_full_game_agent.pt")
+    # os.path.join(os.path.dirname(__file__), "..", "..", "trained_models", "best_full_game_agent.pt")
+    os.path.join(os.path.dirname(__file__), "..", "env", "tianshou", "trained_models\checkpoints", "ppo_catan_7.pt")
 )
 
 
