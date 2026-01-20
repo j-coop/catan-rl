@@ -143,6 +143,11 @@ class CatanGame:
         self.board.nodes[node_index] = agent
         player = self.get_player(agent)
         player.settlements.append(node_index)
+        adjacent_tiles = NODES_TO_TILES[node_index]
+        for tile_id in adjacent_tiles:
+            resource = self.board.tiles[tile_id][0]
+            if resource not in player.produced_resources:
+                player.produced_resources.append(resource)
         if self.board.ports[node_index] is not None:
             player.ports[self.board.ports[node_index]] = True
         if not init_placement:
