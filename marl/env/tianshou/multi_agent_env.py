@@ -57,14 +57,19 @@ class CatanEnv(AECEnv,
         }
 
     def apply_action(self, agent: str, action: int):
+        special_reward = 0
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
                 if VERBOSE:
                     print(f"Action type: {spec.name} - {local_index}")
+                if spec.name == "trade_bank":
+                    give, take = BANK_TRADE_PAIRS[local_index]
+                    if self.game.current_player.is_bad_trade(give, take):
+                        special_reward = -1.0
                 spec.handler(agent, local_index)
-                return
+                return special_reward
         raise ValueError(f"Invalid action index: {action}")
 
     @staticmethod
@@ -145,14 +150,14 @@ class CatanEnv(AECEnv,
             raise ValueError(f"Illegal action {action} for {agent}")
 
         potential_before = self.compute_potential(agent)
-        self.apply_action(agent, action)
+        special_reward = self.apply_action(agent, action)
 
         if self.is_end_turn_action(action):
             self.agent_selection = self.game.current_player.name
             self.game.handle_dice_roll()
 
         potential_after = self.compute_potential(agent)
-        reward = self.compute_reward(agent, potential_before, potential_after)
+        reward = self.compute_reward(agent, potential_before, potential_after, special_reward=special_reward)
         if VERBOSE:
             print(f"Potential before: {potential_before}, after: {potential_after}, "
                   f"diff: {potential_after - potential_before}, reward: {reward}")

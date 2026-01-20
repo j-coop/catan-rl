@@ -57,12 +57,14 @@ class EnvActionHandlerMixin:
     def compute_potential(self, agent):
         return self.reward_object.compute_potential(agent)
 
-    def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA) -> float:
+    def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA, special_reward=None) -> float:
         shaping_weight = getattr(self, "shaping_weight", 1.0)
         win_reward = getattr(self, "win_reward", WIN_REWARD)
         if self.game.game_over and self.game.winner == agent:
             # Return a large reward for an actual win
             return win_reward
+        elif special_reward is not None and special_reward != 0:
+            return special_reward
         else:
             return shaping_weight * ((gamma * potential_after) - potential_before)
 
