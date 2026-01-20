@@ -27,6 +27,7 @@ class CatanPlayer:
         self.color: str = color
         self.bank: CatanBank = bank
         self.resources: Dict[str, int] = {res: 0 for res in RESOURCE_TYPES}
+        self.produced_resources: List[str] = []
 
         # Dev cards
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
@@ -37,7 +38,7 @@ class CatanPlayer:
         self.cities: List[int] = []       # node indices
         self.roads: List[int] = []        # edge indices
         self.points: int = 0
-        self.hidden_points: int = 0 # victory points other players don't know about
+        self.hidden_points: int = 0  # victory points other players don't know about
         self.longest_road = 0
 
         self.roads_remaining = ROADS_PER_PLAYER
@@ -48,8 +49,12 @@ class CatanPlayer:
     def victory_points(self) -> int:
         return self.points + self.hidden_points
 
+    @property
+    def total_cards(self) -> int:
+        return sum(self.resources.values())
+
     def discard_random_half(self):
-        total = sum(self.resources.values())
+        total = self.total_cards
         if total <= 7:
             return
 
@@ -227,6 +232,15 @@ class CatanPlayer:
         return [card_type for card_type in DEV_CARD_TYPES 
                 if self.dev_cards.get(card_type, 0) > 0]
 
+    def get_trade_ratio(self, give: str) -> int:
+        if self.ports.get(give, False):
+            return 2
+        elif self.ports.get("3for1", False):
+            return 3
+        else:
+            return 4
+
+
     def get_valid_bank_trades(self) -> List[(str, str)]:
         """
         Returns all valid (give_resource, receive_resource) trade pairs
@@ -242,12 +256,7 @@ class CatanPlayer:
                 continue
 
             # Determine trade ratio for this resource
-            if self.ports.get(give, False):
-                ratio = 2
-            elif self.ports.get("3for1", False):
-                ratio = 3
-            else:
-                ratio = 4
+            ratio = self.get_trade_ratio(give)
 
             # Check if player can afford trade
             if amount < ratio:
@@ -262,3 +271,17 @@ class CatanPlayer:
                 valid_trades.append((give, receive))
 
         return valid_trades
+
+    def is_bad_trade(self, give: str, take: str) -> bool:
+        """
+        Trade is considered bad when:
+        - it doesn't protect from loosing cards on 7
+        - it's not a missing resource in production
+        Trades for building are already implicit in paying for build
+        """
+        ratio = self.get_trade_ratio(give)
+        produces_resource = take in self.produced_resources
+        initial_card_num = self.total_cards
+        after_card_num = self.total_cards - (ratio - 1)
+        saves_from_discarding = initial_card_num > 7 and after_card_num <= 7
+        return not produces_resource and not saves_from_discarding
