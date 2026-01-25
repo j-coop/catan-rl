@@ -68,6 +68,10 @@ class CatanEnv(AECEnv,
                     give, take = BANK_TRADE_PAIRS[local_index]
                     if self.game.current_player.is_bad_trade(give, take):
                         special_reward = -1.0
+                elif spec.name == "build_settlement":
+                    special_reward = 1.0
+                elif spec.name == "build_city":
+                    special_reward = 1.0
                 spec.handler(agent, local_index)
                 return special_reward
         raise ValueError(f"Invalid action index: {action}")
