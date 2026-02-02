@@ -72,6 +72,20 @@ class CatanEnv(AECEnv,
                     special_reward = 1.0
                 elif spec.name == "build_city":
                     special_reward = 1.0
+                elif spec.name == "move_robber":
+                    players_around_tile = self.game.board.get_players_around_tile(local_index)
+                    blocks_himself = agent in players_around_tile
+                    num_players_around = len(players_around_tile)
+                    tile_token = self.game.board.tiles[local_index][1]
+                    if blocks_himself:
+                        special_reward = -1.0  # penalty for blocking yourself
+                    elif num_players_around == 0 or tile_token is None:
+                        special_reward = -0.5  # penalty for not hurting anyone (i know it sounds bad)
+                    else:
+                        num_players_weight = 0.7 + num_players_around * 0.1
+                        token_weight = DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY
+                        print(num_players_weight, token_weight, tile_token, num_players_around)
+                        special_reward = 0.5 + 0.5 * (num_players_weight * token_weight)
                 spec.handler(agent, local_index)
                 return special_reward
         raise ValueError(f"Invalid action index: {action}")
