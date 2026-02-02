@@ -205,11 +205,11 @@ class Rewards:
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
         """
-        num_roads_reward = (len(player.roads) / ROADS_PER_PLAYER) ** 0.4  # max 1.0, first roads more important
+        num_roads_reward = 2 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 2.0, first roads more important
 
         longest_road_chain = player.longest_road
         # no min(game_longest_road, 5) - encourages early chains, which enable settlements
-        longest_chain_reward = 3 * float(longest_road_chain / self.game.longest_road_length) ** 2  # max 3.0
+        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length) ** 1.5  # max 1.0
 
         if VERBOSE:
             print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
