@@ -283,5 +283,5 @@ class CatanPlayer:
         produces_resource = take in self.produced_resources
         initial_card_num = self.total_cards
         after_card_num = self.total_cards - (ratio - 1)
-        saves_from_discarding = initial_card_num > 7 and after_card_num <= 7
-        return not produces_resource and not saves_from_discarding
+        saves_from_discarding = initial_card_num > 9 and after_card_num <= 7
+        return produces_resource or not saves_from_discarding

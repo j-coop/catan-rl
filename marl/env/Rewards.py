@@ -45,7 +45,7 @@ class Rewards:
         if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
             persistent_vp -= 2
 
-        vp_component = persistent_vp ** 1.8  # strongest signal
+        vp_component = persistent_vp ** 1.5  # strongest signal
         prod_component = self.expected_production(prod_by_resource)  # production quantity and entropy
         resource_component = self.resource_component(player)  # current resources leverage
         risk_component = self.risk_penalty(player)  # penalties for too many cards risk, blocked tile
@@ -56,7 +56,7 @@ class Rewards:
         vp_weighted = vp_component
         prod_weighted = 5.0 * prod_component
         resource_weighted = 0.3 * resource_component
-        dev_weighted = 1.0 * dev_potential
+        dev_weighted = 3.0 * dev_potential
         port_weighted = 0.5 * port_potential
         road_weighted = 2.0 * road_component
         risk_weighted = -0.3 * risk_component

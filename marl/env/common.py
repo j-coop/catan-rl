@@ -64,11 +64,13 @@ class EnvActionHandlerMixin:
             # Return a large reward for an actual win
             return win_reward
         else:
-            shaped_reward = shaping_weight * ((gamma * potential_after) - potential_before)
+            # shaped_reward = shaping_weight * ((gamma * potential_after) - potential_before)
+            shaped_reward = ((gamma * potential_after) - potential_before)
             direct_reward = 0
             if special_reward is not None and special_reward != 0:
-                direct_reward = special_reward * (2 - shaping_weight)
-            return shaped_reward + direct_reward
+                # direct_reward = special_reward * (2 - shaping_weight)
+                direct_reward = special_reward
+            return (shaped_reward + direct_reward) / 2.0
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
