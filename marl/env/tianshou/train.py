@@ -37,8 +37,8 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=1e-4,
-        weight_decay=1e-4,
+        lr=3e-4,
+        weight_decay=1e-5,
     )
 
     algo = PPOWithTensorboard(
@@ -46,9 +46,9 @@ if __name__ == '__main__':
         critic=critic,
         optim=optimizer_factory,
         gamma=GAMMA,
-        gae_lambda=0.95,
-        max_grad_norm=0.5,
-        ent_coef=0.001,
+        gae_lambda=0.92,
+        max_grad_norm=0.8,
+        ent_coef=0.01,
     )
 
     collector = Collector(
@@ -57,13 +57,13 @@ if __name__ == '__main__':
     )
 
     checkpoint_manager = CheckpointManager(algo)
-    checkpoint_logger= CheckpointLogger()
+    checkpoint_logger = CheckpointLogger()
 
     params = OnPolicyTrainerParams(
         training_collector=collector,
         max_epochs=100,
-        epoch_num_steps=64_000,
-        batch_size=4096,
+        epoch_num_steps=32_000,
+        batch_size=2048,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger
     )
