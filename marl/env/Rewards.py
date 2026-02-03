@@ -45,7 +45,7 @@ class Rewards:
         if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
             persistent_vp -= 2
 
-        vp_component = persistent_vp ** 1.8  # strongest signal
+        vp_component = persistent_vp ** 1.5  # strongest signal
         prod_component = self.expected_production(prod_by_resource)  # production quantity and entropy
         resource_component = self.resource_component(player)  # current resources leverage
         risk_component = self.risk_penalty(player)  # penalties for too many cards risk, blocked tile
@@ -56,7 +56,7 @@ class Rewards:
         vp_weighted = vp_component
         prod_weighted = 5.0 * prod_component
         resource_weighted = 0.3 * resource_component
-        dev_weighted = 1.0 * dev_potential
+        dev_weighted = 3.0 * dev_potential
         port_weighted = 0.5 * port_potential
         road_weighted = 2.0 * road_component
         risk_weighted = -0.3 * risk_component
@@ -205,11 +205,11 @@ class Rewards:
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
         """
-        num_roads_reward = (len(player.roads) / ROADS_PER_PLAYER) ** 0.4  # max 1.0, first roads more important
+        num_roads_reward = 2 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 2.0, first roads more important
 
         longest_road_chain = player.longest_road
         # no min(game_longest_road, 5) - encourages early chains, which enable settlements
-        longest_chain_reward = 3 * float(longest_road_chain / self.game.longest_road_length) ** 2  # max 3.0
+        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length) ** 1.5  # max 1.0
 
         if VERBOSE:
             print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")

@@ -7,6 +7,7 @@ from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import N_NODES, N_EDGES, PORT_NODE_PAIRS
 from params.edges_list import EDGES_LIST
 from params.nodes2nodes_adjacency_map import NODES_TO_NODES
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
 RESOURCE_DISTRIBUTION = [
     "wood", "wood", "wood", "wood",
@@ -157,6 +158,15 @@ class CatanBoard:
                 valid_edges.append(edge_idx)
 
         return valid_edges
+
+    def get_players_around_tile(self, tile_id):
+        agents = []
+        nodes = TILES_TO_NODES[tile_id]
+        for node_id in nodes:
+            agent = self.nodes[node_id]
+            if agent is not None and agent not in agents:
+                agents.append(agent)
+        return agents
 
     # --- Helper Methods ---
 
