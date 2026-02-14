@@ -182,10 +182,13 @@ class CatanEnv(AECEnv,
             self.game.handle_dice_roll()
 
         potential_after = self.compute_potential(agent)
-        reward = self.compute_reward(agent, potential_before, potential_after)
-
-        self.rewards[agent] = float(reward)
-        self._cumulative_rewards[agent] += reward
+        reward = self.compute_reward(agent,
+                                     potential_before,
+                                     potential_after,
+                                     special_reward=special_reward)
+        if VERBOSE:
+            print(f"Potential before: {potential_before}, after: {potential_after},"
+                  f" diff: {potential_after - potential_before}, reward: {reward}")
 
         if self.game.game_over:
             for a in self.agents:

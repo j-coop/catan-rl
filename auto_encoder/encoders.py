@@ -72,8 +72,6 @@ class FusionEncoder(nn.Module):
         return self.net(x)
 
 
-# ---------- FULL AUTOENCODER ----------
-
 class CatanFactorizedAutoEncoder(nn.Module):
     def __init__(self,
                  board_latent=192,

@@ -1,6 +1,4 @@
-from marl.env.tianshou.multi_agent_env import CatanEnv
-from .actor import MaskedActor
-from .critic import Critic
+import torch
 
 from tianshou.trainer import OnPolicyTrainerParams
 from tianshou.trainer import OnPolicyTrainer
