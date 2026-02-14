@@ -65,8 +65,7 @@ class CatanEnv(MultiAgentEnv,
     @staticmethod
     def get_observation_space_size() -> int:
         """Return the flattened size of the observation vector."""
-        # Global board (1214) + self (23) + others (42) = 1279
-        return 1279
+        return FULL_ACTION_SPACE_SIZE
 
     """
     Handles executing action with given index in action space for given agent

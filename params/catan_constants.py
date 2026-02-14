@@ -165,7 +165,13 @@ INIT_PLACEMENT_ENV_EVAL_FREQ = 2000 * INIT_PLACEMENT_ENV_STEPS_PER_EPISODE
 INIT_PLACEMENT_ENV_CHECKPOINT_SAVE_FREQ = 25000 * INIT_PLACEMENT_ENV_STEPS_PER_EPISODE
 INIT_PLACEMENT_ENV_PATIENCE = 14
 
-# Magic statistical average reward for settlements (from baseline_reward.py)
+## Magic statistical average reward for settlements (from baseline_reward.py) ##
 BASELINE_REWARD = 0.42962962962966283
 
 VERBOSE = False
+
+######################  Action space parameters  ###############################
+SELF_SPACE_SIZE = 23
+OTHERS_SPACE_SIZE = 42
+BOARD_SPACE_SIZE = 1214
+FULL_ACTION_SPACE_SIZE = SELF_SPACE_SIZE + OTHERS_SPACE_SIZE + BOARD_SPACE_SIZE
