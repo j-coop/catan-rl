@@ -4,7 +4,7 @@ from marl.model.CatanGame import CatanGame
 import numpy as np
 
 from params.catan_constants import (DICE_PROBABILITIES,
-                                    VERBOSE)
+                                    VERBOSE, ROADS_PER_PLAYER)
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
@@ -39,33 +39,39 @@ class Rewards:
             for r, p in self.production_at_node(node).items():
                 prod_by_resource[r] += 2.0 * p
 
-        vp_component = player.victory_points / 10.0 # strongest signal
-        prod_component = self.expected_production(prod_by_resource) # production quantity and entropy
-        resource_component = self.resource_component(player) # current resources leverage
-        risk_component = self.risk_penalty(player) # penalties for too many cards risk, blocked tile
-        dev_potential = self.dev_card_value(player) # dev cards potential
-        port_potential = self.port_component(player, prod_by_resource) # awards for trade possibilities
-        road_component = self.road_component(player) # small road number reward
+        persistent_vp = player.victory_points
+        if self.game.longest_road_owner is not None and self.game.longest_road_owner.name == agent:
+            persistent_vp -= 2
+        if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
+            persistent_vp -= 2
 
-        vp_weighted = 5.0 * vp_component
-        prod_weighted = 1.0 * prod_component
+        vp_component = persistent_vp ** 1.5  # strongest signal
+        prod_component = self.expected_production(prod_by_resource)  # production quantity and entropy
+        resource_component = self.resource_component(player)  # current resources leverage
+        risk_component = self.risk_penalty(player)  # penalties for too many cards risk, blocked tile
+        dev_potential = self.dev_card_value(player)  # dev cards potential
+        port_potential = self.port_component(player, prod_by_resource)  # awards for trade possibilities
+        road_component = self.road_component(player)  # small road number reward
+
+        vp_weighted = vp_component
+        prod_weighted = 5.0 * prod_component
         resource_weighted = 0.3 * resource_component
-        dev_weighted = 0.2 * dev_potential
-        port_weighted = 0.2 * port_potential
-        road_weighted = 0.2 * road_component
-        risk_weighted = -0.2 * risk_component
+        dev_weighted = 3.0 * dev_potential
+        port_weighted = 0.5 * port_potential
+        road_weighted = 2.0 * road_component
+        risk_weighted = -0.3 * risk_component
         total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
 
         if VERBOSE:
             print(
                 f"Total: {total_potential:.2f} | "
-                f"VP: {vp_weighted:.1f} | "
-                f"Prod: {prod_weighted:.1f} | "
-                f"Res: {resource_weighted:.1f} | "
-                f"Dev: {dev_weighted:.1f} | "
-                f"Port: {port_weighted:.1f} | "
-                f"Road: {road_weighted:.1f} | "
-                f"Risk: {risk_weighted:.1f}"
+                f"VP: {vp_weighted:.2f} | "
+                f"Prod: {prod_weighted:.2f} | "
+                f"Res: {resource_weighted:.2f} | "
+                f"Dev: {dev_weighted:.2f} | "
+                f"Port: {port_weighted:.2f} | "
+                f"Road: {road_weighted:.2f} | "
+                f"Risk: {risk_weighted:.2f}"
             )
         return total_potential
 
@@ -75,15 +81,14 @@ class Rewards:
           - Quantity: weighted expected production per resource
           - Entropy: diversity of production (balanced economy)
         """
+        if VERBOSE:
+            print(f"Prod by resource: {prod_by_resource}")
 
         # Quantity with bias
         quantity = sum(
             prod_by_resource[r] * self.resource_bias[r]
             for r in prod_by_resource
         )
-
-        # Normalize for maximum expected possible production
-        quantity_norm = max(quantity, 1)
 
         # Entropy (production diversity)
         total = sum(prod_by_resource.values())
@@ -94,7 +99,9 @@ class Rewards:
         else:
             entropy = 0.0
 
-        return 0.6 * quantity_norm + 0.4 * entropy
+        if VERBOSE:
+            print(f"Quantity: {0.75 * quantity}, entropy: {0.25 * entropy}")
+        return 0.75 * quantity + 0.25 * entropy
 
     def production_at_node(self, node_index):
         """
@@ -163,10 +170,11 @@ class Rewards:
 
         value = (
             0.4 * dev.get("knight", 0) +
-            0.3 * player.knights_played +
+            1.0 * ((player.knights_played * 0.7) ** 1.15) +
             0.5 * dev.get("road_building", 0) +
             0.6 * dev.get("monopoly", 0) +
-            0.4 * dev.get("year_of_plenty", 0)
+            0.4 * dev.get("year_of_plenty", 0) +
+            0.8 * dev.get("victory_point", 0)
         )
 
         return value
@@ -191,12 +199,18 @@ class Rewards:
 
         return port_value
 
-    @staticmethod
-    def road_component(player):
+    def road_component(self, player):
         """
         Gives small reward for player's total number of roads
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
-        Capped at 10 roads
         """
-        return max(len(player.roads) * 0.1, 1.0)
+        num_roads_reward = 2 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 2.0, first roads more important
+
+        longest_road_chain = player.longest_road
+        # no min(game_longest_road, 5) - encourages early chains, which enable settlements
+        longest_chain_reward = float(longest_road_chain / self.game.longest_road_length) ** 1.5  # max 1.0
+
+        if VERBOSE:
+            print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
+        return num_roads_reward + longest_chain_reward

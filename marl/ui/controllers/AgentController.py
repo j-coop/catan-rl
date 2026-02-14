@@ -12,7 +12,8 @@ class AgentController(PlayerController):
     _actor_ready = False
     _actor_failed = False
     _actor_model_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "trained_models", "best_full_game_agent.pt")
+        # os.path.join(os.path.dirname(__file__), "..", "..", "..", "trained_models", "best_full_game_agent.pt")
+        os.path.join(os.path.dirname(__file__), "..", "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_22.pt")
     )
 
     def __init__(self, player_name, agent, delay=2.0):
@@ -26,9 +27,7 @@ class AgentController(PlayerController):
         for spec in action_space.action_specs:
             start, end = spec.range
             if start <= action < end:
-                print(f"Action type: {spec.name}")
                 local_index = action - start
-                print(game.get_player(agent).resources)
                 if spec.name == "end_turn":
                     spec.handler(agent, local_index, is_ui_action=True)
                 else:

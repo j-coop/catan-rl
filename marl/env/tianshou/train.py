@@ -9,13 +9,13 @@ from tianshou.data.collector import Collector
 from tianshou.env import DummyVectorEnv
 
 from marl.env.tianshou.multi_agent_env import CatanEnv
-from actor import MaskedActor
-from critic import Critic
-from training_utils import (CheckpointLogger,
-                             CheckpointManager,
-                             ScalarRewardPettingZooEnv,
-                             PPOWithTensorboard)
-
+from marl.env.tianshou.actor import MaskedActor
+from marl.env.tianshou.critic import Critic
+from marl.env.tianshou.training_utils import (CheckpointLogger,
+                                              CheckpointManager,
+                                              ScalarRewardPettingZooEnv,
+                                              PPOWithTensorboard)
+from params.catan_constants import GAMMA
 
 if __name__ == '__main__':
 
@@ -37,17 +37,18 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=5e-4,
-        weight_decay=1e-4,
+        lr=3e-4,
+        weight_decay=1e-5,
     )
 
     algo = PPOWithTensorboard(
         policy=policy,
         critic=critic,
         optim=optimizer_factory,
-        gamma=0.97,
-        gae_lambda=0.95,
-        max_grad_norm=0.5,
+        gamma=GAMMA,
+        gae_lambda=0.92,
+        max_grad_norm=0.8,
+        ent_coef=0.01,
     )
 
     collector = Collector(
@@ -56,13 +57,13 @@ if __name__ == '__main__':
     )
 
     checkpoint_manager = CheckpointManager(algo)
-    checkpoint_logger= CheckpointLogger()
+    checkpoint_logger = CheckpointLogger()
 
     params = OnPolicyTrainerParams(
         training_collector=collector,
         max_epochs=100,
-        epoch_num_steps=64_000,
-        batch_size=1024,
+        epoch_num_steps=32_000,
+        batch_size=2048,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger
     )

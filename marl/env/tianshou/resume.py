@@ -9,6 +9,7 @@ from tianshou.data.collector import Collector
 from tianshou.env import DummyVectorEnv
 
 from marl.env.tianshou.multi_agent_env import CatanEnv
+from params.catan_constants import GAMMA
 from .actor import MaskedActor
 from .critic import Critic
 from .training_utils import (CheckpointLogger,
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=5e-4,
+        lr=3e-4,
         weight_decay=1e-4,
     )
 
@@ -45,9 +46,10 @@ if __name__ == '__main__':
         policy=policy,
         critic=critic,
         optim=optimizer_factory,
-        gamma=0.97,
+        gamma=GAMMA,
         gae_lambda=0.95,
         max_grad_norm=0.5,
+        ent_coef=0.01,
     )
 
     collector = Collector(
