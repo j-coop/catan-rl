@@ -101,8 +101,7 @@ class CatanEnv(AECEnv,
     @staticmethod
     def get_observation_space_size() -> int:
         """Return the flattened size of the observation vector."""
-        # Global board (1214) + self (23) + others (42) = 1279
-        return 1279
+        return FULL_ACTION_SPACE_SIZE
 
     def reset(self, seed=None, options=None):
         self.agents = self.possible_agents[:]
@@ -183,10 +182,13 @@ class CatanEnv(AECEnv,
             self.game.handle_dice_roll()
 
         potential_after = self.compute_potential(agent)
-        reward = self.compute_reward(agent, potential_before, potential_after, special_reward=special_reward)
+        reward = self.compute_reward(agent,
+                                     potential_before,
+                                     potential_after,
+                                     special_reward=special_reward)
         if VERBOSE:
-            print(f"Potential before: {potential_before}, after: {potential_after}, "
-                  f"diff: {potential_after - potential_before}, reward: {reward}")
+            print(f"Potential before: {potential_before}, after: {potential_after},"
+                  f" diff: {potential_after - potential_before}, reward: {reward}")
 
         if self.game.game_over:
             for a in self.agents:
