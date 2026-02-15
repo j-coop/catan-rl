@@ -4,8 +4,7 @@ import torch.nn.functional as F
 
 from params.catan_constants import (BOARD_SPACE_SIZE,
                                     OTHERS_SPACE_SIZE,
-                                    SELF_SPACE_SIZE,
-                                    FULL_ACTION_SPACE_SIZE)
+                                    SELF_SPACE_SIZE)
 
 
 class BoardEncoder(nn.Module):
