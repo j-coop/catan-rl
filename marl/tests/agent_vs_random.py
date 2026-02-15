@@ -3,14 +3,12 @@ import os
 import random
 
 import torch
-from torch.distributions import Categorical
 
 from marl.env.tianshou.actor import MaskedActor
 from marl.env.tianshou.multi_agent_env import CatanEnv
 
 
 DEFAULT_MODEL_PATH = os.path.abspath(
-    # os.path.join(os.path.dirname(__file__), "..", "..", "trained_models", "best_full_game_agent.pt")
     os.path.join(os.path.dirname(__file__), "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_7.pt")
 )
 
