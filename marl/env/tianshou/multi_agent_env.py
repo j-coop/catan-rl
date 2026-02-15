@@ -104,20 +104,12 @@ class CatanEnv(AECEnv,
                 if spec.name == "trade_bank":
                     give, take = BANK_TRADE_PAIRS[local_index]
                     if self.game.current_player.is_bad_trade(give, take):
-                        special_reward = -2.0
-                elif spec.name == "build_settlement":
-                    special_reward = 1.0
-                elif spec.name == "build_city":
-                    special_reward = 1.0
-                elif spec.name == "build_road":
-                    special_reward = 1.5
-                elif spec.name == "play_dev_card":
-                    special_reward = 2.0
-                elif spec.name == "end_turn":
-                    special_reward = 0.0
-                    cards_num = self.game.current_player.total_cards
-                    if cards_num > 7:
-                        special_reward -= 0.4 * (cards_num - 7)
+                        special_reward = -1.0
+                # elif spec.name == "end_turn":
+                #     special_reward = 0.0
+                #     cards_num = self.game.current_player.total_cards
+                #     if cards_num > 7:
+                #         special_reward -= 0.2 * (cards_num - 7)
                 elif spec.name == "move_robber":
                     special_reward = self._counterfactual_robber_reward(agent, local_index)
                 spec.handler(agent, local_index)
