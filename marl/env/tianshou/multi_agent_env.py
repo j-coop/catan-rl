@@ -38,6 +38,8 @@ class CatanEnv(AECEnv,
         self.shaping_weight_end = SHAPING_WEIGHT_END
         self.win_reward = WIN_REWARD
         self.loss_penalty = LOSS_PENALTY
+        self.robber_cf_scale = 0.35
+        self.robber_cf_clip = 1.5
 
         self.observation_spaces = {
             agent: spaces.Dict({
@@ -55,6 +57,41 @@ class CatanEnv(AECEnv,
             agent: spaces.Discrete(act_dim)
             for agent in self.agents
         }
+
+    def _raw_robber_tile_score(self, agent: str, tile_index: int) -> float:
+        players_around_tile = self.game.board.get_players_around_tile(tile_index)
+        blocks_himself = agent in players_around_tile
+        num_players_around = len(players_around_tile)
+        tile_token = self.game.board.tiles[tile_index][1]
+
+        if blocks_himself:
+            return -1.0
+        if num_players_around == 0 or tile_token is None:
+            return -0.5
+
+        num_players_weight = 0.7 + num_players_around * 0.1
+        token_weight = DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY
+        return 0.5 + 0.5 * (num_players_weight * token_weight)
+
+    def _counterfactual_robber_reward(self, agent: str, chosen_tile_index: int) -> float:
+        move_robber_spec = next(spec for spec in self.actions.action_specs if spec.name == "move_robber")
+        start, end = move_robber_spec.range
+
+        player = self.game.get_player(agent)
+        mask = self.actions.get_action_mask(player)
+        legal_tile_indices = [idx - start for idx in range(start, end) if mask[idx]]
+        if not legal_tile_indices:
+            legal_tile_indices = list(range(end - start))
+
+        raw_scores = np.array(
+            [self._raw_robber_tile_score(agent, tile_idx) for tile_idx in legal_tile_indices],
+            dtype=np.float32
+        )
+        chosen_raw = self._raw_robber_tile_score(agent, chosen_tile_index)
+        centered = chosen_raw - float(np.mean(raw_scores))
+        normalized = centered / (float(np.std(raw_scores)) + 1e-6)
+        clipped = float(np.clip(normalized, -self.robber_cf_clip, self.robber_cf_clip))
+        return self.robber_cf_scale * clipped
 
     def apply_action(self, agent: str, action: int):
         special_reward = 0
@@ -82,18 +119,7 @@ class CatanEnv(AECEnv,
                     if cards_num > 7:
                         special_reward -= 0.4 * (cards_num - 7)
                 elif spec.name == "move_robber":
-                    players_around_tile = self.game.board.get_players_around_tile(local_index)
-                    blocks_himself = agent in players_around_tile
-                    num_players_around = len(players_around_tile)
-                    tile_token = self.game.board.tiles[local_index][1]
-                    if blocks_himself:
-                        special_reward = -1.0  # penalty for blocking yourself
-                    elif num_players_around == 0 or tile_token is None:
-                        special_reward = -0.5  # penalty for not hurting anyone (i know it sounds bad)
-                    else:
-                        num_players_weight = 0.7 + num_players_around * 0.1
-                        token_weight = DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY
-                        special_reward = 0.5 + 0.5 * (num_players_weight * token_weight)
+                    special_reward = self._counterfactual_robber_reward(agent, local_index)
                 spec.handler(agent, local_index)
                 return special_reward
         raise ValueError(f"Invalid action index: {action}")
