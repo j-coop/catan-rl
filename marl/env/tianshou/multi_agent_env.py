@@ -105,11 +105,22 @@ class CatanEnv(AECEnv,
                     give, take = BANK_TRADE_PAIRS[local_index]
                     if self.game.current_player.is_bad_trade(give, take):
                         special_reward = -1.0
-                # elif spec.name == "end_turn":
-                #     special_reward = 0.0
-                #     cards_num = self.game.current_player.total_cards
-                #     if cards_num > 7:
-                #         special_reward -= 0.2 * (cards_num - 7)
+                elif spec.name == "end_turn":
+                    return 0.0
+                    # if self.game.current_player
+                    # special_reward = 0.0
+                    # cards_num = self.game.current_player.total_cards
+                    # if cards_num > 7:
+                    #     special_reward -= 0.2 * (cards_num - 7)
+                elif spec.name == "play_dev_card":
+                    if local_index in [2, 3, 4]:
+                        special_reward = 0.5
+                elif spec.name == "choose_resource":
+                    resource = RESOURCE_TYPES[local_index]
+                    if resource not in self.game.current_player.produced_resources:
+                        special_reward = 0.4
+                    else:
+                        special_reward = 0.0
                 elif spec.name == "move_robber":
                     special_reward = self._counterfactual_robber_reward(agent, local_index)
                 spec.handler(agent, local_index)
@@ -195,10 +206,6 @@ class CatanEnv(AECEnv,
         potential_before = self.compute_potential(agent)
         special_reward = self.apply_action(agent, action)
 
-        if self.is_end_turn_action(action):
-            self.agent_selection = self.game.current_player.name
-            self.game.handle_dice_roll()
-
         potential_after = self.compute_potential(agent)
         reward = self.compute_reward(agent,
                                      potential_before,
@@ -217,3 +224,7 @@ class CatanEnv(AECEnv,
         else:
             self.rewards[agent] = float(reward)
             self._cumulative_rewards[agent] += reward
+
+        if self.is_end_turn_action(action):
+            self.agent_selection = self.game.current_player.name
+            self.game.handle_dice_roll()
