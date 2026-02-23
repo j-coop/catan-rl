@@ -1,4 +1,5 @@
 import torch
+from pathlib import Path
 import torch.nn.functional as F
 from torch.utils.data import (DataLoader,
                               TensorDataset)
@@ -9,13 +10,14 @@ from marl.env.tianshou.multi_agent_env import CatanEnv
 from auto_encoder.encoders import CatanFactorizedAutoEncoder
 
 
-NUM_GAMES = 1000
-STATE_SKIP = 12         # record 1 state every 10 moves
-BATCH_SIZE = 64
-LR = 1e-3
+NUM_GAMES = 6000
+STATE_SKIP = 11
+BATCH_SIZE = 32
+LR = 1e-4
 EPOCHS = 50
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_SAVE_PATH = "../../trained_models/autoencoder/catan_autoencoder.pth"
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_SAVE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder.pth"
 
 # ----------------- INIT ENV AND AE -----------------
 env = CatanEnv()
@@ -84,5 +86,5 @@ if '__main__' == __name__:
         print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {epoch_loss:.6f}")
 
     # ----------------- SAVE MODEL -----------------
-    # torch.save(autoencoder.state_dict(), MODEL_SAVE_PATH)
+    torch.save(autoencoder.state_dict(), MODEL_SAVE_PATH)
     print(f"Autoencoder saved to {MODEL_SAVE_PATH}")
