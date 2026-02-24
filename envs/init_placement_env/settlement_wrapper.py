@@ -26,13 +26,13 @@ class CatanSettlementPlacementEnv(CatanInitPlacementEnv):
         matching = [edge for edge in EDGES_LIST if node in edge]
         if not matching:
             raise ValueError(f"No edges found that include node {node}")
-        return random.choice(matching)
+        return EDGES_LIST.index(random.choice(matching))
 
     def step(self, action):
         assert action < N_NODES, f"Got road action {action}, masking failed"
         action = int(action)
-        turn = self._turn_index
-        player = self._turn_order[turn]
+        turn = self.turn_index
+        player = self.turn_order[turn]
         self._make_settlement_action(player, action)
 
         reward = self._calculate_settlement_action_reward(action)

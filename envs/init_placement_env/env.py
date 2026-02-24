@@ -31,7 +31,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
             self._base_obs = base_env.reset()
         self._train = train
         self.turn_order = [0, 1, 2, 3, 3, 2, 1, 0]
-        self._turn_index = 0
+        self.turn_index = 0
         self._ep_done_previously = ep_done_previously
         self._settlement_placement_mask = np.ones((N_NODES,), dtype=np.int8)
         self._road_placement_mask = np.zeros((N_EDGES, N_PLAYERS), dtype=np.int8)
@@ -66,22 +66,17 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._obs = self._CatanResetMixin__prepare_obs_dict()
         self._obs = self._CatanResetMixin__generate_obs()
 
-        self._turn_index = 0
+        self.turn_index = 0
         self._last_settlement_node_index = 0
         self._settlement_placement_mask = np.ones((N_NODES,), dtype=bool)
         self._road_placement_mask = np.zeros((N_EDGES, N_PLAYERS), dtype=bool)
         self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
-
-        if self._train:
-            first_settlement_id = self._get_random_settlement_action()
-            self._make_settlement_action(player=0, node_id=first_settlement_id)
-
         return self._obs, {}
 
     def _calculate_significance_weight(self):
         alpha = 0.5 # exponential decay rate for early steps
         min_significance = 0.06 # minimum weight for last steps
-        significance = max(alpha ** (self._turn_index - 1), min_significance)
+        significance = max(alpha ** (self.turn_index - 1), min_significance)
         return significance
 
     def _calculate_road_action_reward(self, road_action):
@@ -107,10 +102,10 @@ class CatanInitPlacementEnv(CatanResetMixin,
         return reward
 
     def _check_all_moves_done(self):
-        return self._turn_index == 0
+        return self.turn_index == 0
 
     def _after_settlement(self, reward):
-        is_second_settlement = floor((self._turn_index + 1) / 4)
+        is_second_settlement = floor((self.turn_index + 1) / 4)
         if is_second_settlement:
             norm_reward = self._evaluate_resources_distribution(self._settlement_gains)
             reward += norm_reward * REWARD_WEIGHTS["RESOURCES_DISTRIBUTION"]
@@ -121,8 +116,8 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._update_turn_index()
 
     def _update_turn_index(self):
-        self._turn_index += 1
-        self._turn_index %= len(self._turn_order)
+        self.turn_index += 1
+        self.turn_index %= len(self.turn_order)
 
     def _update_settlement_placement_mask(self, node_id):
         affected_nodes = [node_id] + NODES_TO_NODES.get(node_id, [])

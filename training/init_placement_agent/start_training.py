@@ -5,7 +5,7 @@ from sb3_contrib.common.wrappers import ActionMasker
 from sb3_contrib.ppo_mask import MaskablePPO, MultiInputPolicy
 
 from envs.init_placement_env.road_wrapper import CatanRoadPlacementEnv
-# from envs.init_placement_env.settlement_wrapper import CatanSettlementPlacementEnv
+from envs.init_placement_env.settlement_wrapper import CatanSettlementPlacementEnv
 from params.catan_constants import INIT_PLACEMENT_ENV_N_TIMESTEPS
 from .common import *
 
@@ -14,11 +14,11 @@ if __name__ == "__main__":
     # -------------------------------
     # Environment setup
     # -------------------------------
-    env = CatanRoadPlacementEnv()
+    env = CatanSettlementPlacementEnv()
     env.reset()
     env = ActionMasker(env, mask_fn)
 
-    eval_env = CatanRoadPlacementEnv(train=False)
+    eval_env = CatanSettlementPlacementEnv(train=False)
     eval_env.reset()
     eval_env = ActionMasker(eval_env, mask_fn)
 
