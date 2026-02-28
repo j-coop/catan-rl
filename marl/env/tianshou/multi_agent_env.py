@@ -104,7 +104,11 @@ class CatanEnv(AECEnv,
                 if spec.name == "trade_bank":
                     give, take = BANK_TRADE_PAIRS[local_index]
                     if self.game.current_player.is_bad_trade(give, take):
-                        special_reward = -1.0
+                        special_reward = -3.0
+                elif spec.name == "build_settlement":
+                    special_reward = 4.0
+                elif spec.name == "build_city":
+                    special_reward = 3.0
                 elif spec.name == "end_turn":
                     return 0.0
                     # if self.game.current_player
@@ -218,7 +222,16 @@ class CatanEnv(AECEnv,
         if self.game.game_over:
             for a in self.agents:
                 self.terminations[a] = True
-                terminal_reward = self.win_reward if a == self.game.winner else self.loss_penalty
+                
+                # Fetch potentials to cleanly zero-out the episode as per PBRS terminal state math
+                final_pot = self.compute_potential(a)
+                terminal_reward = self.compute_reward(
+                    a, 
+                    potential_before=final_pot, 
+                    potential_after=0.0, # Irrelevant on term
+                    special_reward=0.0
+                )
+                
                 self.rewards[a] = float(terminal_reward)
                 self._cumulative_rewards[a] += terminal_reward
         else:
