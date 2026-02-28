@@ -100,6 +100,11 @@ for placement_step in range(16):
 
     # Get mask
     mask = env.unwrapped.get_action_masks()
+    action, _ = model.predict(
+        obs,
+        deterministic=True,
+        action_masks=mask
+    )
 
     # Predict
     action, _ = model.predict(
