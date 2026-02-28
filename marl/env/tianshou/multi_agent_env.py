@@ -109,10 +109,11 @@ class CatanEnv(AECEnv,
                     special_reward = 4.0
                 elif spec.name == "build_city":
                     special_reward = 3.0
+                elif spec.name == "build_road":
+                    special_reward = 1.5
                 elif spec.name == "end_turn":
-                    return 0.0
+                    special_reward = 0.0
                     # if self.game.current_player
-                    # special_reward = 0.0
                     # cards_num = self.game.current_player.total_cards
                     # if cards_num > 7:
                     #     special_reward -= 0.2 * (cards_num - 7)
