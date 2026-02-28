@@ -105,14 +105,6 @@ for placement_step in range(16):
         deterministic=True,
         action_masks=mask
     )
-
-    # Predict
-    action, _ = model.predict(
-        obs,
-        deterministic=True,
-        action_masks=mask
-    )
-
     print(f"Step {placement_step}: action={action}")
 
     # Apply action
