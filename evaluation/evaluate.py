@@ -10,9 +10,6 @@ from envs.init_placement_env.settlement_wrapper import CatanSettlementPlacementE
 from visualization.map_plotter import CatanMapPlotter
 
 
-# ===============================
-# Action mask helper
-# ===============================
 def mask_fn(env) -> np.ndarray:
     return env.get_action_masks()
 
@@ -81,11 +78,7 @@ save_dir = f"placement_runs/{timestamp}"
 os.makedirs(save_dir, exist_ok=True)
 
 
-# ===============================
-# Alternating placement loop
-# ===============================
 for placement_step in range(16):
-
     if placement_step % 2 == 0:
         # ----- Settlement -----
         env = settlement_env
@@ -95,22 +88,17 @@ for placement_step in range(16):
         env = road_env
         model = road_model
 
-    # Get observation from CURRENT env
     obs = env.unwrapped._obs
-
-    # Get mask
     mask = env.unwrapped.get_action_masks()
     action, _ = model.predict(
         obs,
         deterministic=True,
         action_masks=mask
     )
-    print(f"Step {placement_step}: action={action}")
 
-    # Apply action
+    print(f"Step {placement_step}: action={action}")
     obs, reward, done, truncated, info = env.step(action)
 
-    # Save map after each road placement
     if placement_step % 2 == 1:
         filename = os.path.join(
             save_dir,
