@@ -58,26 +58,19 @@ class EnvActionHandlerMixin:
         return self.reward_object.compute_potential(agent)
 
     def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA, special_reward=None) -> float:
-        shaping_weight = getattr(self, "shaping_weight", 1.0)
-        win_reward = getattr(self, "win_reward", WIN_REWARD)
-        if self.game.game_over and self.game.winner == agent:
-            # PBRS rule: Terminal reward = TrueReward - PotentialBefore
-            return win_reward - potential_before
-        elif self.game.game_over:
-            # Losing agents
-            return self.loss_penalty - potential_before
-        else:
-            # PBRS rule: R = Direct_Reward + (Gamma * PotentialAfter) - PotentialBefore
-            shaped_reward = (gamma * potential_after) - potential_before
-            
-            # Expanded clipping bounds as per discussion
-            shaped_reward = 7.0 if shaped_reward > 7.0 else shaped_reward
-            shaped_reward = -7.0 if shaped_reward < -7.0 else shaped_reward
+        # PBRS rule: R = Direct_Reward + (Gamma * PotentialAfter) - PotentialBefore
+        shaped_reward = (gamma * potential_after) - potential_before
 
-            # Additive heuristic loop holes
-            direct_reward = special_reward if special_reward is not None else 0.0
-            
-            return direct_reward + shaped_reward
+        # Additive heuristic loop holes
+        direct_reward = special_reward if special_reward is not None else 0.0
+
+        total_reward = direct_reward + shaped_reward
+
+        # Clipping reward to given range
+        total_reward = 7.0 if total_reward > 7.0 else total_reward
+        total_reward = -7.0 if total_reward < -7.0 else total_reward
+
+        return total_reward
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
