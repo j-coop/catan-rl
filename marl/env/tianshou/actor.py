@@ -7,7 +7,7 @@ class MaskedActor(torch.nn.Module):
         super().__init__()
         self.net = Net(
             state_shape=obs_dim,
-            hidden_sizes=[512, 512],
+            hidden_sizes=[2048, 1024, 512, 512],
             activation=torch.nn.ReLU,
         )
         self.logits = torch.nn.Linear(512, action_dim)

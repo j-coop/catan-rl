@@ -18,6 +18,23 @@ from marl.env.tianshou.training_utils import (CheckpointLogger,
                                               PPOWithTensorboard)
 from params.catan_constants import GAMMA
 
+# ==========================================
+# HYPERPARAMETERS
+# ==========================================
+LEARNING_RATE = 3e-4
+WEIGHT_DECAY = 1e-5
+ENTROPY_COEF = 0.05  
+
+# PPO Constraints
+GAE_LAMBDA = 0.92
+MAX_GRAD_NORM = 0.8
+
+# Training lengths
+BATCH_SIZE = 2048
+EPOCH_NUM_STEPS = 32_000
+MAX_EPOCHS = 100
+# ==========================================
+
 if __name__ == '__main__':
 
     train_envs = DummyVectorEnv([
@@ -38,8 +55,8 @@ if __name__ == '__main__':
     )
 
     optimizer_factory = AdamOptimizerFactory(
-        lr=3e-4,
-        weight_decay=1e-5,
+        lr=LEARNING_RATE,
+        weight_decay=WEIGHT_DECAY,
     )
 
     algo = PPOWithTensorboard(
@@ -47,9 +64,9 @@ if __name__ == '__main__':
         critic=critic,
         optim=optimizer_factory,
         gamma=GAMMA,
-        gae_lambda=0.92,
-        max_grad_norm=0.8,
-        ent_coef=0.01,
+        gae_lambda=GAE_LAMBDA,
+        max_grad_norm=MAX_GRAD_NORM,
+        ent_coef=ENTROPY_COEF,
     )
 
     collector = Collector(
@@ -62,9 +79,9 @@ if __name__ == '__main__':
 
     params = OnPolicyTrainerParams(
         training_collector=collector,
-        max_epochs=100,
-        epoch_num_steps=32_000,
-        batch_size=2048,
+        max_epochs=MAX_EPOCHS,
+        epoch_num_steps=EPOCH_NUM_STEPS,
+        batch_size=BATCH_SIZE,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger
     )

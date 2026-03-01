@@ -8,7 +8,7 @@ class Critic(nn.Module):
         super().__init__()
         self.net = Net(
             state_shape=obs_dim,
-            hidden_sizes=[512, 512],
+            hidden_sizes=[2048, 1024, 512, 512],
             activation=nn.ReLU,
         )
         self.value = nn.Linear(512, 1)

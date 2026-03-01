@@ -12,3 +12,9 @@ venv/
 saves
 
 .venv/
+
+logs/
+marl/env/tianshou/trained_models/checkpoints/
+placement_runs/
+model/trained_models/
+trained_models/
