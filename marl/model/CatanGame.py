@@ -84,7 +84,7 @@ class CatanGame:
         if roll == 7:
             self.phase = CatanPhase.ROBBER_MOVE
             for player in self.players:
-                player.discard_random_half()
+                player.discard_smart_half(self.board)
         else:
             for player in self.players:
                 player.take_resources(roll, self.board)
