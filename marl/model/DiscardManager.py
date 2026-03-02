@@ -72,10 +72,6 @@ class DiscardManager:
         for res, count in resources.items():
             hand.extend([res] * count)
             
-        # We will score each card. But wait, surplus penalty depends on how many we keep.
-        # Instead, we can score them incrementally or just apply surplus penalty per idx.
-        # For a given resource, the 1st card kept has 0 penalty, 2nd has 0, 3rd has -2, 4th has -4, etc.
-        # So we can calculate the score for the i-th instance of the resource.
         scored_cards = []
         res_counts = {"wood": 0, "brick": 0, "sheep": 0, "wheat": 0, "ore": 0}
         
@@ -88,9 +84,6 @@ class DiscardManager:
             if idx >= 2:
                 surplus_penalty = (idx - 1) * -2
                 
-            # For protection bonus, only the cards that are ACTUALLY needed for the goal get the massive bonus
-            # Wait, the instruction said "if its inclusion doesn't exceed the required amount for that goal".
-            # So if we need 1 wheat, only the first wheat gets +20.
             current_protection = 0
             if closest_goal:
                 req = build_costs[closest_goal].get(res, 0)
