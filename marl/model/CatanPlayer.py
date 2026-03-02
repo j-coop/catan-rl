@@ -9,7 +9,7 @@ import random
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.catan_constants import (DEV_CARD_TYPES, PORT_TYPES,
                                     RESOURCE_TYPES, BUILD_COSTS, ROADS_PER_PLAYER, SETTLEMENTS_PER_PLAYER,
-                                    CITIES_PER_PLAYER)
+                                    CITIES_PER_PLAYER, DICE_PROBABILITIES)
 
 from typing import TYPE_CHECKING
 
@@ -66,6 +66,36 @@ class CatanPlayer:
         # Randomly discard
         discarded = random.sample(pool, to_discard)
         for res in discarded:
+            self.resources[res] -= 1
+            self.bank.return_bank_resource(res, 1)
+
+    def get_production_probs(self, board: CatanBoard) -> Dict[str, float]:
+        probs = {res: 0.0 for res in RESOURCE_TYPES}
+        for node in self.settlements + self.cities:
+            multiplier = 1 if node in self.settlements else 2
+            for tile_index in NODES_TO_TILES.get(node, []):
+                resource, token = board.tiles[tile_index]
+                if resource == "desert" or token is None:
+                    continue
+                probs[resource] += DICE_PROBABILITIES.get(token, 0.0) * multiplier
+        return probs
+
+    def discard_smart_half(self, board: CatanBoard):
+        from marl.model.DiscardManager import DiscardManager
+        total = self.total_cards
+        if total <= 7:
+            return
+
+        production_probs = self.get_production_probs(board)
+        
+        cards_to_discard = DiscardManager.get_cards_to_discard(
+            resources=self.resources,
+            production_probs=production_probs,
+            victory_points=self.victory_points,
+            build_costs=BUILD_COSTS
+        )
+
+        for res in cards_to_discard:
             self.resources[res] -= 1
             self.bank.return_bank_resource(res, 1)
 
