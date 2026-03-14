@@ -9,19 +9,29 @@ from tqdm import tqdm
 from marl.env.tianshou.multi_agent_env import CatanEnv
 from auto_encoder.encoders import CatanFactorizedAutoEncoder
 
+from params.catan_constants import (BOARD_LATENT,
+                                    FINAL_LATENT,
+                                    OTHERS_LATENT,
+                                    SELF_LATENT)
 
-NUM_GAMES = 6000
-STATE_SKIP = 11
-BATCH_SIZE = 32
-LR = 1e-4
-EPOCHS = 50
+
+NUM_GAMES = 12000
+STATE_SKIP = 15
+BATCH_SIZE = 64
+LR = 3e-4
+EPOCHS = 80
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_SAVE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder.pth"
+MODEL_SAVE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder_arch_updt.pth"
 
 # ----------------- INIT ENV AND AE -----------------
 env = CatanEnv()
-autoencoder = CatanFactorizedAutoEncoder().to(DEVICE)
+autoencoder = CatanFactorizedAutoEncoder(
+    board_latent=BOARD_LATENT,
+    self_latent=SELF_LATENT,
+    others_latent=OTHERS_LATENT,
+    final_latent=FINAL_LATENT
+).to(DEVICE)
 
 # ----------------- COLLECT STATES -----------------
 all_states = []
@@ -70,7 +80,7 @@ if '__main__' == __name__:
             x = batch[0].to(DEVICE)
 
             # ---------- Add noise ----------
-            noise_level = 0.04
+            noise_level = 0.08
             x_noisy = x + torch.randn_like(x) * noise_level
             x_noisy = x_noisy.clamp(0.0, 1.0)  # optional: keep features in [0,1]
 
