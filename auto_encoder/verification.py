@@ -6,18 +6,29 @@ from tqdm import tqdm
 
 from marl.env.tianshou.multi_agent_env import CatanEnv
 from auto_encoder.encoders import CatanFactorizedAutoEncoder
+from params.catan_constants import (BOARD_LATENT,
+                                    FINAL_LATENT,
+                                    OTHERS_LATENT,
+                                    SELF_LATENT)
+
 
 # ---------------- CONFIG ----------------
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "trained_models" / "catan_autoencoder.pth"
+MODEL_PATH = BASE_DIR / "trained_models" / "catan_contrastive_lr0.0001_temp0.1.pth"
 
 NUM_GAMES = 100
 STATE_SKIP = 10
 
 # ---------------- LOAD MODEL ----------------
-autoencoder = CatanFactorizedAutoEncoder().to(DEVICE)
+autoencoder = CatanFactorizedAutoEncoder(
+    board_latent=BOARD_LATENT,
+    self_latent=SELF_LATENT,
+    others_latent=OTHERS_LATENT,
+    final_latent=FINAL_LATENT
+).to(DEVICE)
+
 autoencoder.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
 autoencoder.eval()
 
