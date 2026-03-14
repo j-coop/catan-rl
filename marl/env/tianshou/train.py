@@ -16,7 +16,14 @@ from marl.env.tianshou.training_utils import (CheckpointLogger,
                                               CheckpointManager,
                                               ScalarRewardPettingZooEnv,
                                               PPOWithTensorboard)
-from params.catan_constants import GAMMA
+from params.catan_constants import (BOARD_LATENT,
+                                    FINAL_LATENT,
+                                    OTHERS_LATENT,
+                                    SELF_LATENT)
+from params.catan_constants import (GAMMA,
+                                    IS_ENCODER_ENABLED)
+from auto_encoder.encoders import CatanFactorizedAutoEncoder
+
 
 # ==========================================
 # HYPERPARAMETERS
@@ -37,6 +44,27 @@ MAX_EPOCHS = 100
 
 if __name__ == '__main__':
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoder = None
+    if IS_ENCODER_ENABLED:
+        encoder = CatanFactorizedAutoEncoder(
+            board_latent=BOARD_LATENT,
+            self_latent=SELF_LATENT,
+            others_latent=OTHERS_LATENT,
+            final_latent=FINAL_LATENT
+        ).to(device)
+        encoder.load_state_dict(
+            torch.load(
+                "/home/student/Dokumenty/s184725/magisterka/catan-rl/marl/env/tianshou/trained_models/catan_contrastive_lr0.0001_temp0.1.pth",
+                map_location=device
+            )
+        )
+        encoder.eval()
+
+        # Freeze encoder
+        for p in encoder.parameters():
+            p.requires_grad = False
+
     train_envs = DummyVectorEnv([
         lambda: ScalarRewardPettingZooEnv(CatanEnv())
     ])
@@ -45,8 +73,8 @@ if __name__ == '__main__':
     act_dim = train_envs.action_space[0].n
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    critic = Critic(obs_dim).to(device)
-    actor = MaskedActor(obs_dim, act_dim).to(device)
+    actor = MaskedActor(obs_dim, act_dim, encoder=encoder).to(device)
+    critic = Critic(obs_dim, encoder=encoder).to(device)
     policy = ProbabilisticActorPolicy(
         actor=actor,
         dist_fn=lambda logits: Categorical(logits=logits),
