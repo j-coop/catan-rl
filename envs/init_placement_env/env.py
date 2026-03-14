@@ -35,7 +35,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._ep_done_previously = ep_done_previously
         self._settlement_placement_mask = np.ones((N_NODES,), dtype=np.int8)
         self._road_placement_mask = np.zeros((N_EDGES, N_PLAYERS), dtype=np.int8)
-        self._last_settlement_node_index = 0
+        self.last_settlement_node_index = 0
         self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
         self._episode_counter = 0
         self.action_space = gym.spaces.Discrete(N_NODES + N_EDGES)
@@ -67,15 +67,15 @@ class CatanInitPlacementEnv(CatanResetMixin,
         self._obs = self._CatanResetMixin__generate_obs()
 
         self.turn_index = 0
-        self._last_settlement_node_index = 0
+        self.last_settlement_node_index = 0
         self._settlement_placement_mask = np.ones((N_NODES,), dtype=bool)
         self._road_placement_mask = np.zeros((N_EDGES, N_PLAYERS), dtype=bool)
         self._settlement_gains = np.zeros((N_PLAYERS, 2, N_TILE_TYPES))
         return self._obs, {}
 
     def _calculate_significance_weight(self):
-        alpha = 0.5 # exponential decay rate for early steps
-        min_significance = 0.06 # minimum weight for last steps
+        alpha = 0.8 # exponential decay rate for early steps
+        min_significance = 0.3 # minimum weight for last steps
         significance = max(alpha ** (self.turn_index - 1), min_significance)
         return significance
 
@@ -124,7 +124,7 @@ class CatanInitPlacementEnv(CatanResetMixin,
         for n in affected_nodes:
             self._settlement_placement_mask[n] = 0  # Disable for all agents
 
-    def _update_road_placement_mask(self, settled_node: int, player_id: int):
+    def update_road_placement_mask(self, settled_node: int, player_id: int):
         for neighbor in NODES_TO_NODES[settled_node]:
             edge = tuple(sorted((settled_node, neighbor)))
             try:

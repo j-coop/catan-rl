@@ -76,8 +76,14 @@ for placement_step in range(16):
         model = settlement_model
     else:
         # ----- Road -----
+        settlement_id = settlement_env.unwrapped.last_settlement_node_index
+        settlement_player = settlement_env.unwrapped.turn_order[settlement_env.unwrapped.turn_index - 1]
         env = road_env
         model = road_model
+        env.unwrapped.update_road_placement_mask(
+            settlement_id,
+            settlement_player
+        )
 
     obs = env.unwrapped._obs
     mask = env.unwrapped.get_action_masks()

@@ -49,6 +49,7 @@ N_ADJACENT_NODES = 6
 
 # Resources and tile types
 TILE_TYPES = ["wood", "brick", "sheep", "wheat", "ore", "desert"]
+TILE_WEIGHTS = [1.0, 1.0, 0.5, 0.8, 0.8, 0]  # Desert has weight 0
 TILE_TYPE_COUNTS = {
     "brick": 3,
     "wood": 4,
@@ -146,10 +147,10 @@ BEST_EXPECTED_GAIN = MAX_PROBABILITY * NUM_ROLLS * 3
 
 # Rewards relative weights importance
 REWARD_WEIGHTS = {
-    "ROAD": 1,
-    "RESOURCES_NUM": 7,
+    "ROAD": 3,
+    "RESOURCES_NUM": 4,
     "PLACEMENT": 2,
-    "RESOURCES_DISTRIBUTION": 10
+    "RESOURCES_DISTRIBUTION": 8
 }
 
 DIVERSITY_SCORE_WEIGHT = 0.4
