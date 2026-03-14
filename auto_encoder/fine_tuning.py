@@ -10,11 +10,16 @@ from marl.env.tianshou.actor import MaskedActor
 from marl.env.tianshou.multi_agent_env import CatanEnv
 from auto_encoder.encoders import CatanFactorizedAutoEncoder
 
+from params.catan_constants import (BOARD_LATENT,
+                                    FINAL_LATENT,
+                                    OTHERS_LATENT,
+                                    SELF_LATENT)
+
 
 # ---------------- CONFIG ----------------
-NUM_GAMES = 6000
-STATE_SKIP = 6
-BATCH_SIZE = 32
+NUM_GAMES = 4000
+STATE_SKIP = 12
+BATCH_SIZE = 64
 LR = 1e-4                # small LR for fine-tuning
 EPOCHS = 30
 WEIGHT_DECAY = 1e-5
@@ -22,9 +27,8 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-AE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder.pth"
-AE_SAVE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder_finetuned.pth"
-
+AE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder_big.pth"
+AE_SAVE_PATH = BASE_DIR / "trained_models" / "catan_autoencoder_big_finetuned.pth"
 POLICY_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "marl_model.pt"
 
 
@@ -108,13 +112,16 @@ def collect_states():
     print(f"Collected {len(all_states)} states.")
     return torch.tensor(np.array(all_states), dtype=torch.float32)
 
-
-# ---------------- FINE-TUNE AUTOENCODER ----------------
 def finetune_autoencoder(states_tensor):
     dataset = TensorDataset(states_tensor)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
 
-    autoencoder = CatanFactorizedAutoEncoder().to(DEVICE)
+    autoencoder = CatanFactorizedAutoEncoder(
+        board_latent=BOARD_LATENT,
+        self_latent=SELF_LATENT,
+        others_latent=OTHERS_LATENT,
+        final_latent=FINAL_LATENT
+    ).to(DEVICE)
     autoencoder.load_state_dict(torch.load(AE_PATH, map_location=DEVICE))
 
     optimizer = torch.optim.Adam(
@@ -130,16 +137,20 @@ def finetune_autoencoder(states_tensor):
 
         for batch in dataloader:
             x = batch[0].to(DEVICE)
-
-            recon, z = autoencoder(x)
-
+            noise_level = 0.05
+            x_noisy = x + torch.randn_like(x) * noise_level
+            x_noisy = x_noisy.clamp(0.0, 1.0)
+            recon, z = autoencoder(x_noisy)
+            
             recon_loss = F.mse_loss(recon, x)
+            z_std = z.std(dim=0).mean()
+            latent_reg = 1.0 / (z_std + 1e-6)
+            loss = recon_loss + 0.01 * latent_reg
 
             optimizer.zero_grad()
-            recon_loss.backward()
+            loss.backward()
             optimizer.step()
-
-            epoch_loss += recon_loss.item() * x.size(0)
+            epoch_loss += loss.item() * x.size(0)
 
         epoch_loss /= len(dataset)
         print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {epoch_loss:.6f}")

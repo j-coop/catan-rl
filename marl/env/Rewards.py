@@ -4,7 +4,7 @@ from marl.model.CatanGame import CatanGame
 import numpy as np
 
 from params.catan_constants import (DICE_PROBABILITIES,
-                                    VERBOSE, ROADS_PER_PLAYER)
+                                    VERBOSE, ROADS_PER_PLAYER, BUILD_COSTS)
 from params.nodes2tiles_adjacency_map import NODES_TO_TILES
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 
@@ -45,22 +45,27 @@ class Rewards:
         if self.game.largest_army_owner is not None and self.game.largest_army_owner.name == agent:
             persistent_vp -= 2
 
-        vp_component = persistent_vp ** 1.5  # strongest signal
+        vp_component = persistent_vp ** 1.2  # strongest signal
         prod_component = self.expected_production(prod_by_resource)  # production quantity and entropy
         resource_component = self.resource_component(player)  # current resources leverage
         risk_component = self.risk_penalty(player)  # penalties for too many cards risk, blocked tile
         dev_potential = self.dev_card_value(player)  # dev cards potential
         port_potential = self.port_component(player, prod_by_resource)  # awards for trade possibilities
         road_component = self.road_component(player)  # small road number reward
+        expansion_component = self.expansion_readiness(player)  # readiness to expand via settlements
 
-        vp_weighted = vp_component
-        prod_weighted = 5.0 * prod_component
+        vp_weighted = 4.0 * vp_component
+        prod_weighted = 8.0 * prod_component
         resource_weighted = 0.3 * resource_component
-        dev_weighted = 3.0 * dev_potential
+        dev_weighted = 1.0 * dev_potential
         port_weighted = 0.5 * port_potential
-        road_weighted = 2.0 * road_component
+        road_weighted = 3.0 * road_component
         risk_weighted = -0.3 * risk_component
-        total_potential = vp_weighted + prod_weighted + resource_weighted + dev_weighted + port_weighted + road_weighted + risk_weighted
+        expansion_weighted = 3.0 * expansion_component
+        total_potential = (
+            vp_weighted + prod_weighted + resource_weighted + dev_weighted
+            + port_weighted + road_weighted + risk_weighted + expansion_weighted
+        )
 
         if VERBOSE:
             print(
@@ -71,7 +76,8 @@ class Rewards:
                 f"Dev: {dev_weighted:.2f} | "
                 f"Port: {port_weighted:.2f} | "
                 f"Road: {road_weighted:.2f} | "
-                f"Risk: {risk_weighted:.2f}"
+                f"Risk: {risk_weighted:.2f} | "
+                f"Expand: {expansion_weighted:.2f}"
             )
         return total_potential
 
@@ -201,16 +207,61 @@ class Rewards:
 
     def road_component(self, player):
         """
-        Gives small reward for player's total number of roads
+        Gives reward for player's total number of roads
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
         """
-        num_roads_reward = 2 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 2.0, first roads more important
+        num_roads_reward = 3.0 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 3.0, first roads more important
 
         longest_road_chain = player.longest_road
         # no min(game_longest_road, 5) - encourages early chains, which enable settlements
         longest_chain_reward = float(longest_road_chain / self.game.longest_road_length) ** 1.5  # max 1.0
+        if longest_road_chain <= 4:
+            longest_chain_reward = 0
 
         if VERBOSE:
             print(f"Num roads: {num_roads_reward}, longest chain: {longest_chain_reward}")
         return num_roads_reward + longest_chain_reward
+
+    def settlement_missing_after_trades(self, player):
+        """
+        Return number of settlement resources still missing after converting surplus cards
+        using bank/port trade ratios.
+        """
+        settlement_cost = BUILD_COSTS["settlement"]
+        direct_missing = 0
+        tradable_units = 0
+
+        for resource, quantity in settlement_cost.items():
+            owned = player.resources.get(resource, 0)
+            direct_missing += max(0, quantity - owned)
+
+            surplus = max(0, owned - quantity)
+            if surplus > 0:
+                tradable_units += surplus // player.get_trade_ratio(resource)
+
+        return max(0, direct_missing - tradable_units)
+
+    def expansion_readiness(self, player):
+        """
+        Reward intermediate progress toward building settlements, not only final placement.
+        """
+        if player.settlements_remaining <= 0:
+            return 0.0
+
+        valid_spots = self.game.board.get_valid_settlement_spots(player)
+        # Normalize to [0, 1], saturating at 4 spots.
+        num_spots = len(valid_spots)
+        spots_score = min(num_spots, 4) / 4.0
+
+        can_build = 1.0 if player.can_afford_with_trades("settlement", self.game.bank) and num_spots > 0 else 0.0
+
+        missing_after_trades = self.settlement_missing_after_trades(player)
+        # 0 missing -> 1.0, 4 missing -> 0.0
+        distance_score = (1.0 - min(missing_after_trades, 4) / 4.0) if num_spots > 0 else 0.0
+
+        return (
+            1.0 * can_build
+            + 1.0 * distance_score
+            + 1.0 * spots_score
+        )

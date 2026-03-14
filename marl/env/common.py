@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List
+from typing import Dict, List
 
 from marl.model.CatanPlayer import CatanPlayer
 from params.catan_constants import *
@@ -58,26 +58,27 @@ class EnvActionHandlerMixin:
         return self.reward_object.compute_potential(agent)
 
     def compute_reward(self, agent, potential_before, potential_after, gamma=GAMMA, special_reward=None) -> float:
-        shaping_weight = getattr(self, "shaping_weight", 1.0)
-        win_reward = getattr(self, "win_reward", WIN_REWARD)
-        if self.game.game_over and self.game.winner == agent:
-            # Return a large reward for an actual win
-            return win_reward
-        else:
-            # shaped_reward = shaping_weight * ((gamma * potential_after) - potential_before)
-            shaped_reward = ((gamma * potential_after) - potential_before)
-            direct_reward = 0
-            if special_reward is not None and special_reward != 0:
-                # direct_reward = special_reward * (2 - shaping_weight)
-                direct_reward = special_reward
-            return (shaped_reward + direct_reward) / 2.0
+        # PBRS rule: R = Direct_Reward + (Gamma * PotentialAfter) - PotentialBefore
+        shaped_reward = (gamma * potential_after) - potential_before
+
+        # Additive heuristic loop holes
+        direct_reward = special_reward if special_reward is not None else 0.0
+
+        total_reward = direct_reward + shaped_reward
+
+        # Clipping reward to given range
+        total_reward = 7.0 if total_reward > 7.0 else total_reward
+        total_reward = -7.0 if total_reward < -7.0 else total_reward
+
+        return total_reward
 
     def get_observation(self, agent: str) -> np.ndarray:
         """Encodes full game state into a flat vector for the given agent."""
         player_index = self.agents.index(agent)
+        rotated_agent_names = self.agents[player_index:] + self.agents[:player_index]
         players = self.game.rotate_players(player_index)
 
-        global_features = self.encode_global_board()
+        global_features = self.encode_global_board(rotated_agent_names)
         self_features = self.encode_self_info(players[0])
         others_features = self.encode_others_info(players[1:])
 
@@ -90,9 +91,13 @@ class EnvActionHandlerMixin:
             f"Unexpected observation size: {obs.shape[0]}"
         return obs.astype(np.float32)
 
-    def encode_global_board(self) -> np.ndarray:
+    def _build_relative_owner_index(self, rotated_agent_names: List[str]) -> Dict[str, int]:
+        return {name: i for i, name in enumerate(rotated_agent_names)}
+
+    def encode_global_board(self, rotated_agent_names: List[str]) -> np.ndarray:
         board = self.game.board
-        num_players = len(self.agents)
+        num_players = len(rotated_agent_names)
+        owner_to_relative_idx = self._build_relative_owner_index(rotated_agent_names)
 
         # --- Tiles ---
         tile_feats = []
@@ -113,7 +118,7 @@ class EnvActionHandlerMixin:
         for edge in board.edges:
             owner_onehot = np.zeros(num_players + 1)
             if edge is not None:
-                owner_onehot[self.agents.index(edge)] = 1.0
+                owner_onehot[owner_to_relative_idx[edge]] = 1.0
             else:
                 owner_onehot[-1] = 1.0
             road_feats.append(owner_onehot)
@@ -125,7 +130,7 @@ class EnvActionHandlerMixin:
             # owner encoding
             owner_onehot = np.zeros(num_players + 1)
             if node is not None:
-                owner_onehot[self.agents.index(node)] = 1.0
+                owner_onehot[owner_to_relative_idx[node]] = 1.0
             else:
                 owner_onehot[-1] = 1.0
 
@@ -149,7 +154,8 @@ class EnvActionHandlerMixin:
 
     def encode_self_info(self, player: CatanPlayer) -> np.ndarray:
         res_counts = np.array(list(player.resources.values()), dtype=np.float32) / MAX_RESOURCE_COUNT
-        dev_counts = np.array(list(player.dev_cards.values()), dtype=np.float32) / 5.0
+        dev_max = np.array([DEV_CARD_COUNTS[card] for card in DEV_CARD_TYPES], dtype=np.float32)
+        dev_counts = np.array([player.dev_cards[card] for card in DEV_CARD_TYPES]) / dev_max
         victory_points = np.array(
             [min(player.victory_points / MAX_VICTORY_POINTS, 1.0)],
             dtype=np.float32
@@ -204,8 +210,8 @@ class EnvActionHandlerMixin:
                     len(p.roads) / ROADS_PER_PLAYER,
                     len(p.settlements) / SETTLEMENTS_PER_PLAYER,
                     len(p.cities) / CITIES_PER_PLAYER,
-                    len(p.dev_cards) / 10.0,
-                    p.hidden_points / MAX_VICTORY_POINTS,
+                    sum(p.dev_cards.values()) / 10.0,
+                    p.points / MAX_VICTORY_POINTS,
                     float(has_longest_road),
                     float(has_largest_army),
                     p.knights_played / MAX_KNIGHTS
