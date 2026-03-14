@@ -14,15 +14,12 @@ def mask_fn(env) -> np.ndarray:
     return env.get_action_masks()
 
 
-# ===============================
-# Load trained models
-# ===============================
 road_model = MaskablePPO.load(
-    "C:\\PG\\sem_8\\PB\\trained_models\\init-placement\\ppo_mask_20260224_233542"
+    "C:/PG/sem_8/PB/trained_models/init-placement/ppo_mask_20260224_233542"
 )
 
 settlement_model = MaskablePPO.load(
-    "C:\\PG\\sem_8\\PB\\trained_models\\init-placement\\ppo_mask_20260224_234127"
+    "C:/PG/sem_8/PB/trained_models/init-placement/ppo_mask_20260224_234127"
 )
 
 
@@ -36,7 +33,6 @@ base_env = CatanInitPlacementEnv(
 )
 
 base_obs, _ = base_env.reset()
-
 shared_state = base_env._base_obs  # authoritative game state
 
 
@@ -62,17 +58,12 @@ road_env = ActionMasker(
     mask_fn
 )
 
-
 # ===============================
 # Initialize environments (DO NOT reset base state again)
 # ===============================
 settlement_env.reset()
 road_env.reset()
 
-
-# ===============================
-# Output directory
-# ===============================
 timestamp = time.strftime("%Y%m%d-%H%M%S")
 save_dir = f"placement_runs/{timestamp}"
 os.makedirs(save_dir, exist_ok=True)
