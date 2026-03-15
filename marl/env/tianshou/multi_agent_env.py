@@ -7,6 +7,7 @@ import numpy as np
 from marl.env.ActionSpace import ActionSpace
 from marl.env.Rewards import Rewards
 from params.catan_constants import *
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from marl.model.CatanGame import CatanGame
 from marl.env.common import EnvActionHandlerMixin
 
@@ -38,8 +39,8 @@ class CatanEnv(AECEnv,
         self.shaping_weight_end = SHAPING_WEIGHT_END
         self.win_reward = WIN_REWARD
         self.loss_penalty = LOSS_PENALTY
-        self.robber_cf_scale = 0.35
-        self.robber_cf_clip = 1.5
+        self.robber_cf_scale = 2.0
+        self.robber_cf_clip = 5.0
 
         self.observation_spaces = {
             agent: spaces.Dict({
@@ -61,104 +62,63 @@ class CatanEnv(AECEnv,
     def _raw_robber_tile_score(self, agent: str, tile_index: int) -> float:
         players_around_tile = self.game.board.get_players_around_tile(tile_index)
         blocks_himself = agent in players_around_tile
-        num_players_around = len(players_around_tile)
         tile_token = self.game.board.tiles[tile_index][1]
 
         if blocks_himself:
-            return -10.0
-        if num_players_around == 0 or tile_token is None:
-            return -0.5
+            return -5.0
 
-        num_players_weight = 0.7 + num_players_around * 0.1
-        token_weight = DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY
-        return 0.5 + 0.5 * (num_players_weight * token_weight)
+        if tile_token is None:
+            return -2.0
+
+        # Check for victims and their yield
+        total_victim_yield = 0.0
+        has_victim = False
+        for node_idx in TILES_TO_NODES[tile_index]:
+            owner = self.game.board.nodes[node_idx]
+            if owner is not None and owner != agent:
+                has_victim = True
+                owner_player = self.game.get_player(owner)
+                multiplier = 2.0 if node_idx in owner_player.cities else 1.0
+                total_victim_yield += (DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY) * multiplier
+
+        if not has_victim:
+            return -2.0
+            
+        # Sparse reward: only reward significant production blocks
+        if total_victim_yield >= 0.2:
+            return 2.0
+        else:
+            return -1.0
 
     def _counterfactual_robber_reward(self, agent: str, chosen_tile_index: int) -> float:
-        move_robber_spec = next(spec for spec in self.actions.action_specs if spec.name == "move_robber")
-        start, end = move_robber_spec.range
-
-        player = self.game.get_player(agent)
-        mask = self.actions.get_action_mask(player)
-        legal_tile_indices = [idx - start for idx in range(start, end) if mask[idx]]
-        if not legal_tile_indices:
-            legal_tile_indices = list(range(end - start))
-
-        raw_scores = np.array(
-            [self._raw_robber_tile_score(agent, tile_idx) for tile_idx in legal_tile_indices],
-            dtype=np.float32
-        )
+        """
+        Calculates the robber reward. We use absolute raw scores
+        to ensure 'sensible' moves (blocking strong opponents) are positive
+        and others (empty tiles, self-blocking) are negative.
+        """
         chosen_raw = self._raw_robber_tile_score(agent, chosen_tile_index)
-        centered = chosen_raw - float(np.mean(raw_scores))
-        normalized = centered / (float(np.std(raw_scores)) + 1e-6)
-        clipped = float(np.clip(normalized, -self.robber_cf_clip, self.robber_cf_clip))
-        return self.robber_cf_scale * clipped
+        
+        # Scale the result by the environment's robber_cf_scale
+        return self.robber_cf_scale * chosen_raw
 
     def apply_action(self, agent: str, action: int):
-        special_reward = 0.0
-        player = self.game.current_player
-        bank = self.game.bank
-        
-        spots_before = set(self.game.board.get_valid_settlement_spots(player))
-
-        can_afford_settlement = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement",
-                                                                                                          bank)
-        can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
-        can_afford_road = player.can_afford_directly("road") or player.can_afford_with_trades("road", bank)
-
-        can_build_settlement = can_afford_settlement and player.settlements_remaining > 0 and len(spots_before) > 0
-        can_build_city = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
-        can_build_road = can_afford_road and player.roads_remaining > 0 and len(
-            self.game.board.get_valid_road_spots(player)) > 0
-        
         for spec in self.actions.action_specs:
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
-                if VERBOSE:
-                    print(f"Action type: {spec.name} - {local_index}")
-                if spec.name == "trade_bank":
-                    give, take = BANK_TRADE_PAIRS[local_index]
-                    if player.is_bad_trade(give, take):
-                        special_reward = -3.0
-                elif spec.name == "build_settlement":
-                    special_reward = 6.0
-                elif spec.name == "build_city":
-                    special_reward = 2.0
-                elif spec.name == "build_road":
-                    special_reward = 1.0
-                elif spec.name == "end_turn":
-                    special_reward = 0.0
-                elif spec.name == "play_dev_card":
-                    if local_index in [2, 3, 4]:
-                        special_reward = 2.5
-                    else:
-                        special_reward = 1.5
-                elif spec.name == "choose_resource":
-                    resource = RESOURCE_TYPES[local_index]
-                    if resource not in player.produced_resources:
-                        special_reward = 0.4
-                    else:
-                        special_reward = 0.0
-                elif spec.name == "move_robber":
-                    special_reward = self._counterfactual_robber_reward(agent, local_index)
-
-                if spec.name not in ("build_settlement", "build_city", "choose_resource", "move_robber"):
-                    if can_build_settlement or can_build_city:
-                        special_reward += -5.0
                 
-                if spec.name == "end_turn":
-                    spec.handler(agent, local_index, is_ui_action=False)
-                else:    
-                    spec.handler(agent, local_index)
-                    
-                if spec.name == "build_road":
-                    spots_after = set(self.game.board.get_valid_settlement_spots(player))
-                    new_spots = spots_after - spots_before
-                    if new_spots:
-                        # Direct reward for unlocking a new settlement spot based on its production quality
-                        quality = sum([sum(self.reward_object.production_at_node(s).values()) for s in new_spots])
-                        special_reward += 2.5 + quality * 3.0
-                        
+                # Use refactored logic for both calculation and execution
+                p_before = self.compute_potential(agent)
+                context = self._get_action_context(agent, spec.name)
+                
+                # Execute action handler
+                spec.handler(agent, local_index)
+                
+                p_after = self.compute_potential(agent)
+                special_reward = self._calculate_special_reward(agent, spec.name, local_index, context)
+                
+                # Note: step() will recalculate potential_before/after and final reward.
+                # apply_action in AEC usually just mutates. 
                 return special_reward
         raise ValueError(f"Invalid action index: {action}")
 
