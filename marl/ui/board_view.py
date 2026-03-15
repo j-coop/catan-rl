@@ -673,11 +673,19 @@ class BoardView(QGraphicsView):
 
         if roll == 7 and not is_agent:
             def callback(hex_index: int):
-                self.game.move_robber(self.game.current_player.name, hex_index)
+                # Use environment handler to ensure reward logging
+                if self.action_panel:
+                    self.action_panel.game_manager.action_space.env.move_robber(
+                        self.game.current_player.name, hex_index
+                    )
+                else:
+                    self.game.move_robber(self.game.current_player.name, hex_index)
+
                 self.update_robber()
                 self.clear_hex_selection()
                 self.info_panel._update_after_game_change()
-                self.action_panel.update_buttons()
+                if self.action_panel:
+                    self.action_panel.update_buttons()
 
             self.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
 
