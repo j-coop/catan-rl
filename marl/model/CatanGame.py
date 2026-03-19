@@ -208,7 +208,10 @@ class CatanGame:
         player = self.get_player(agent)
         card = self.bank.draw_dev_card()
         if card:
-            player.dev_cards[card] += 1
+            if card == "victory_point":
+                player.dev_cards[card] += 1
+            else:
+                player.new_dev_cards[card] += 1
             player.pay_for_build("dev_card")
 
     def play_dev_card(self, agent, card_type):
@@ -216,6 +219,7 @@ class CatanGame:
         if player.dev_cards[card_type] <= 0:
             raise ValueError(f"{player.name} does not have a {card_type} card to play.")
         player.dev_cards[card_type] -= 1
+        player.has_played_dev_card_this_turn = True
 
         # Dispatch to specific handlers
         if card_type == "knight":
@@ -375,6 +379,15 @@ class CatanGame:
         player.resources[resource] += 1
 
     def end_turn(self, agent=None, index=None, is_ui_action=True):
+        player = self.current_player
+        # Move new dev cards to playable pool
+        for card, count in player.new_dev_cards.items():
+            player.dev_cards[card] += count
+            player.new_dev_cards[card] = 0
+        
+        # Reset turn flags
+        player.has_played_dev_card_this_turn = False
+
         self.turn += 1
         if self.turn == 4:
             self.turn = 0

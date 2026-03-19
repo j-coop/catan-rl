@@ -31,6 +31,8 @@ class CatanPlayer:
 
         # Dev cards
         self.dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}
+        self.new_dev_cards: Dict[str, int] = {card: 0 for card in DEV_CARD_TYPES}  # Bought this turn
+        self.has_played_dev_card_this_turn: bool = False
         self.knights_played: int = 0
 
         self.ports: Dict[str, bool] = {port: False for port in PORT_TYPES}
@@ -259,8 +261,17 @@ class CatanPlayer:
         return obs
 
     def get_playable_dev_cards(self):
-        return [card_type for card_type in DEV_CARD_TYPES 
-                if self.dev_cards.get(card_type, 0) > 0]
+        playable = []
+        for card_type in DEV_CARD_TYPES:
+            count = self.dev_cards.get(card_type, 0)
+            if count <= 0:
+                continue
+                
+            if card_type == "victory_point":
+                playable.append(card_type)
+            elif not self.has_played_dev_card_this_turn:
+                playable.append(card_type)
+        return playable
 
     def get_trade_ratio(self, give: str) -> int:
         if self.ports.get(give, False):
