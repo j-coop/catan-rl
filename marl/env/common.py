@@ -238,6 +238,12 @@ class EnvActionHandlerMixin:
                 owner_player = self.game.get_player(owner_name)
                 multiplier = 2.0 if node_idx in owner_player.cities else 1.0
                 
+                prod_yield = (prob / MAX_PROBABILITY) * multiplier
+                if owner_name == rotated_agent_names[0]:
+                    self_prod += prod_yield
+                else:
+                    opp_prod += prod_yield
+                
             # Binary flags for "presence" (easier for net to parse than small floats)
             self_has_building = 1.0 if self_prod > 0 else 0.0
             opp_has_building = 1.0 if opp_prod > 0 else 0.0
