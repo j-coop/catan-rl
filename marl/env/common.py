@@ -48,6 +48,19 @@ class EnvActionHandlerMixin:
             prod_values = self.reward_object.production_at_node(local_index).values()
             quality = sum(prod_values)
             special_reward = base + (quality * 20.0)
+            
+            port_type = self.game.board.ports[local_index]
+            if port_type is not None:
+                special_reward += 0.5
+                if port_type == "3for1":
+                    special_reward += 2.5
+                elif port_type in RESOURCE_TYPES:
+                    player_prod = self.reward_object.production_at_node(local_index).get(port_type, 0.0)
+                    for node in player.settlements:
+                        player_prod += self.reward_object.production_at_node(node).get(port_type, 0.0)
+                    for node in player.cities:
+                        player_prod += 2.0 * self.reward_object.production_at_node(node).get(port_type, 0.0)
+                    special_reward += player_prod * 25.0
         elif action_name == "build_city":
             base = 0.5
             prod_values = self.reward_object.production_at_node(local_index).values()
