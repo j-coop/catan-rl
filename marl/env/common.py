@@ -44,9 +44,15 @@ class EnvActionHandlerMixin:
             if player.is_bad_trade(give, take):
                 special_reward = -3.0
         elif action_name == "build_settlement":
-            special_reward = 6.0
+            base = 0.5
+            prod_values = self.reward_object.production_at_node(local_index).values()
+            quality = sum(prod_values)
+            special_reward = base + (quality * 20.0)
         elif action_name == "build_city":
-            special_reward = 2.0
+            base = 0.5
+            prod_values = self.reward_object.production_at_node(local_index).values()
+            quality = sum(prod_values)
+            special_reward = base + (quality * 14.0)
         elif action_name == "build_road":
             special_reward = 1.0
             # Context-based road reward
