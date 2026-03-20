@@ -73,6 +73,8 @@ class CatanEnv(AECEnv,
         # Check for victims and their yield
         total_victim_yield = 0.0
         has_victim = False
+        max_rival_vp = 0
+        
         for node_idx in TILES_TO_NODES[tile_index]:
             owner = self.game.board.nodes[node_idx]
             if owner is not None and owner != agent:
@@ -80,15 +82,21 @@ class CatanEnv(AECEnv,
                 owner_player = self.game.get_player(owner)
                 multiplier = 2.0 if node_idx in owner_player.cities else 1.0
                 total_victim_yield += (DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY) * multiplier
+                if owner_player.victory_points > max_rival_vp:
+                    max_rival_vp = owner_player.victory_points
 
         if not has_victim:
             return -2.0
             
-        # Sparse reward: only reward significant production blocks
-        if total_victim_yield >= 0.2:
-            return 2.0
-        else:
-            return -1.0
+        # Base reward from purely blocking production
+        # Multiplier of 1.0 ensures average blocks are around +1 to +2 after CF scaling, 
+        # and truly amazing blocks hit +3 to +4, keeping them well underneath the -7 self-penalty.
+        base_score = (total_victim_yield - 0.4) * 1.0  
+        
+        # VP bonus: heavily incentivize blocking players close to winning.
+        vp_bonus = (max_rival_vp / 10.0) * 0.5 
+        
+        return base_score + vp_bonus
 
     def _counterfactual_robber_reward(self, agent: str, chosen_tile_index: int) -> float:
         """
