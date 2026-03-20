@@ -32,7 +32,7 @@ MAX_GRAD_NORM = 0.8
 # Training lengths
 BATCH_SIZE = 2048
 EPOCH_NUM_STEPS = 32_000
-MAX_EPOCHS = 100
+MAX_EPOCHS = 1000
 # ==========================================
 
 if __name__ == '__main__':
