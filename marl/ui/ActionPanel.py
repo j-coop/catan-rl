@@ -24,7 +24,8 @@ class ActionHandler:
 
         def callback(node_index):
             if self.action_masks.is_action_enabled(player=player, name="build_settlement", index=node_index):
-                self.game.build_settlement(player.name, node_index)
+                # Use env handler for logging/reward sync
+                self.game_manager.action_space.env.build_settlement(player.name, node_index)
                 board.build_settlement_ui(node_index)
                 info_panel._update_after_game_change()
                 self.update_buttons()
@@ -39,7 +40,7 @@ class ActionHandler:
 
         def callback(edge_index):
             if self.action_masks.is_action_enabled(player=player, name="build_road", index=edge_index):
-                self.game.build_road(player.name, edge_index)
+                self.game_manager.action_space.env.build_road(player.name, edge_index)
                 board.build_road_ui(edge_index)
                 info_panel._update_after_game_change()
                 self.update_buttons()  # necessary here after async callback
@@ -54,7 +55,7 @@ class ActionHandler:
 
         def callback(node_index):
             if self.action_masks.is_action_enabled(player=player, name="build_city", index=node_index):
-                self.game.build_city(player.name, node_index)
+                self.game_manager.action_space.env.build_city(player.name, node_index)
                 board.upgrade_city_ui(node_index)
                 info_panel._update_after_game_change()
                 self.update_buttons()
@@ -65,17 +66,23 @@ class ActionHandler:
     def on_buy_dev_card(self):
         player = self.game.current_player.name
         info_panel: PlayerInfoPanel = self.parent().findChild(PlayerInfoPanel)
-        self.game.buy_dev_card(player)
+        self.game_manager.action_space.env.buy_dev_card(player)
         info_panel._update_after_game_change()
         self.update_buttons()
 
+    def is_end_turn_action(self, action):
+        if not hasattr(self, 'actions') or self.actions is None:
+            return False
+        return action == self.actions.get_action_space_size() - 1
     def on_end_turn(self):
-        self.game.end_turn(is_ui_action=True)
+        self.game_manager.action_space.env.end_turn(self.game.current_player.name, is_ui_action=True)
         self.info_panel.refresh()
         self.board_view.update_roll_display()
 
         # Notify GameManager
         self.game_manager.on_turn_changed()
+        self.info_panel.refresh()
+        self.board_view.update_roll_display()
 
     def show_dev_card_dialog(self):
         current_player = self.game.current_player
@@ -84,7 +91,7 @@ class ActionHandler:
             def callback():
                 if card_type == "knight":
                     def callback(hex_index: int):
-                        self.game.move_robber(self.game.current_player.name, hex_index)
+                        self.game_manager.action_space.env.move_robber(self.game.current_player.name, hex_index)
                         self.board_view.update_robber()
                         self.board_view.clear_hex_selection()
                         self.info_panel._update_after_game_change()
@@ -92,8 +99,9 @@ class ActionHandler:
 
                     self.board_view.expect_hex_selection(callback, [i for i in range(0, N_TILES)])
 
-                # Call the unified game handler
-                self.game.play_dev_card(current_player.name, card_type)
+                # Call the unified environment handler
+                local_idx = DEV_CARD_TYPES.index(card_type)
+                self.game_manager.action_space.env.play_dev_card(current_player.name, local_idx)
 
                 self.board_view.update_roll_display()
                 self.info_panel.refresh()
@@ -168,9 +176,9 @@ class ActionHandler:
                 trade_index = BANK_TRADE_PAIRS.index((resources_names[give_index], resources_names[receive_index]))
                 enabled = self.action_masks.is_action_enabled(self.game.current_player, "trade_bank", trade_index)
 
-                def make_trade_callback(g, r):
+                def make_trade_callback(g, r, t_idx):
                     def handler():
-                        self.game.trade_with_bank(self.game.current_player.name, g, r)
+                        self.game_manager.action_space.env.trade_bank(self.game.current_player.name, t_idx)
                         self.info_panel.refresh()
                         self.update_buttons()
 
@@ -183,6 +191,7 @@ class ActionHandler:
                         callback=make_trade_callback(
                             resources_names[give_index],
                             resources_names[receive_index],
+                            trade_index
                         )
                     )
                 )
@@ -203,12 +212,8 @@ class ActionHandler:
 
         def make_callback(resource: str):
             def callback():
-                if is_monopoly:
-                    self.game.play_monopoly(current_player, resource)
-                elif is_year_of_plenty:
-                    self.game.give_year_of_plenty_resource(current_player, resource)
-                else:
-                    raise ValueError("Choosing resource in wrong game phase")
+                local_idx = RESOURCE_TYPES.index(resource)
+                self.game_manager.action_space.env.choose_resource(current_player.name, local_idx)
 
                 self.board_view.update_roll_display()
                 self.info_panel.refresh()
@@ -267,6 +272,7 @@ class ActionPanel(QWidget, ActionHandler):
         # Dummy env with game object for ActionSpace
         env = EnvMock(self.game)
         self.action_masks = ActionSpace(env)
+        env.actions = self.action_masks
 
         self.setFixedWidth(220)
         layout = QVBoxLayout(self)

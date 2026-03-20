@@ -58,13 +58,13 @@ class CheckpointLogger(BaseLogger):
     def prepare_dict_for_logging(self, data):
         log_data = {}
 
-        if 'returns_stat' in data:
+        if 'returns_stat' in data and data['returns_stat'] is not None:
             log_data['reward_mean'] = float(data['returns_stat']['mean'])
             log_data['reward_std'] = float(data['returns_stat']['std'])
             log_data['reward_max'] = float(data['returns_stat']['max'])
             log_data['reward_min'] = float(data['returns_stat']['min'])
 
-        if 'lens_stat' in data:
+        if 'lens_stat' in data and data['lens_stat'] is not None:
             log_data['episode_len_mean'] = float(data['lens_stat']['mean'])
             log_data['episode_len_std'] = float(data['lens_stat']['std'])
             log_data['episode_len_max'] = float(data['lens_stat']['max'])

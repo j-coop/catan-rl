@@ -55,7 +55,7 @@ class Rewards:
         expansion_component = self.expansion_readiness(player)  # readiness to expand via settlements
 
         vp_weighted = 4.0 * vp_component
-        prod_weighted = 8.0 * prod_component
+        prod_weighted = 10.0 * prod_component
         resource_weighted = 0.3 * resource_component
         dev_weighted = 1.0 * dev_potential
         port_weighted = 0.5 * port_potential
@@ -79,7 +79,10 @@ class Rewards:
                 f"Risk: {risk_weighted:.2f} | "
                 f"Expand: {expansion_weighted:.2f}"
             )
-        return total_potential
+        # Scaled down to prevent blowing past clipping bounds 
+        # while keeping the signal proportional and sensitive to good plays.
+        # Divider increased to 4.0 to ensure most building actions fit within 7.0 clip.
+        return total_potential / 4.0
 
     def expected_production(self, prod_by_resource):
         """
@@ -106,8 +109,8 @@ class Rewards:
             entropy = 0.0
 
         if VERBOSE:
-            print(f"Quantity: {0.75 * quantity}, entropy: {0.25 * entropy}")
-        return 0.75 * quantity + 0.25 * entropy
+            print(f"Quantity: {0.6 * quantity}, entropy: {0.4 * entropy}")
+        return 0.6 * quantity + 0.4 * entropy
 
     def production_at_node(self, node_index):
         """
@@ -254,6 +257,17 @@ class Rewards:
         num_spots = len(valid_spots)
         spots_score = min(num_spots, 4) / 4.0
 
+        # Evaluate the highest expected production yield among the valid spots
+        max_spot_prod = 0.0
+        for spot in valid_spots:
+            prod_dict = self.production_at_node(spot)
+            spot_prod = sum(prod_dict[r] * self.resource_bias[r] for r in prod_dict.keys())
+            if spot_prod > max_spot_prod:
+                max_spot_prod = spot_prod
+                
+        # Scale to match other components (spot_prod is typically around 0.3 - 0.4 for strong 3-hex nodes)
+        quality_score = max_spot_prod * 3.0
+
         can_build = 1.0 if player.can_afford_with_trades("settlement", self.game.bank) and num_spots > 0 else 0.0
 
         missing_after_trades = self.settlement_missing_after_trades(player)
@@ -264,4 +278,5 @@ class Rewards:
             1.0 * can_build
             + 1.0 * distance_score
             + 1.0 * spots_score
+            + 1.0 * quality_score
         )

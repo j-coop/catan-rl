@@ -42,9 +42,14 @@ def main():
             else:
                 controllers[name] = HumanController(name)
 
+        from marl.env.Rewards import Rewards
         env = CatanEnv()
         env.game = game
+        env.agents = names
+        env.reward_object = Rewards(game)
+        
         action_space = ActionSpace(env)
+        env.actions = action_space
         action_space.init_action_specs(use_callbacks=True)
 
         game_manager = GameManager(game, controllers, action_space, config)

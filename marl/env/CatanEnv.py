@@ -6,6 +6,7 @@ from marl.env.ActionSpace import ActionSpace
 from marl.env.Rewards import Rewards
 from marl.env.common import EnvActionHandlerMixin
 from params.catan_constants import *
+from params.tiles2nodes_adjacency_map import TILES_TO_NODES
 from marl.model.CatanGame import CatanGame
 
 
@@ -49,6 +50,8 @@ class CatanEnv(MultiAgentEnv,
 
         self.reward_object = Rewards(self.game)
 
+        self.robber_cf_scale = 2.0
+
         # First roll is handled manually
         self.pending_dice_roll = False
         self.game.handle_dice_roll()
@@ -76,8 +79,11 @@ class CatanEnv(MultiAgentEnv,
             start, end = spec.range
             if start <= action < end:
                 local_index = action - start
+                
+                context = self._get_action_context(agent, spec.name)
                 spec.handler(agent, local_index)
-                return
+                special_reward = self._calculate_special_reward(agent, spec.name, local_index, context)
+                return special_reward
         raise ValueError(f"Invalid action index: {action}")
 
     """
@@ -123,8 +129,9 @@ class CatanEnv(MultiAgentEnv,
             return obs, rewards, terminateds, truncateds, infos
 
         potential_before = self.compute_potential(agent)
-        print(f"Resources before apply_action: {player.resources}")
-        self.apply_action(agent, action)
+        if VERBOSE:
+            print(f"Resources before apply_action: {player.resources}")
+        special_reward = self.apply_action(agent, action)
 
         # Check if this ends the current player's turn
         if self.is_end_turn_action(action):
@@ -137,7 +144,7 @@ class CatanEnv(MultiAgentEnv,
             self.agent_selection = agent
 
         potential_after = self.compute_potential(agent)
-        reward = self.compute_reward(agent, potential_before, potential_after)
+        reward = self.compute_reward(agent, potential_before, potential_after, special_reward=special_reward)
         self.rewards[agent] = reward
 
         # IMPORTANT for PettingZoo bookkeeping:
@@ -214,3 +221,49 @@ class CatanEnv(MultiAgentEnv,
 
     def close(self):
         pass
+
+    def _raw_robber_tile_score(self, agent: str, tile_index: int) -> float:
+        players_around_tile = self.game.board.get_players_around_tile(tile_index)
+        blocks_himself = agent in players_around_tile
+        tile_token = self.game.board.tiles[tile_index][1]
+
+        if blocks_himself:
+            return -5.0
+
+        if tile_token is None:
+            return -2.0
+
+        # Check for victims and their yield
+        total_victim_yield = 0.0
+        has_victim = False
+        max_rival_vp = 0
+        
+        for node_idx in TILES_TO_NODES[tile_index]:
+            owner = self.game.board.nodes[node_idx]
+            if owner is not None and owner != agent:
+                has_victim = True
+                owner_player = self.game.get_player(owner)
+                multiplier = 2.0 if node_idx in owner_player.cities else 1.0
+                total_victim_yield += (DICE_PROBABILITIES[tile_token] / MAX_PROBABILITY) * multiplier
+                if owner_player.victory_points > max_rival_vp:
+                    max_rival_vp = owner_player.victory_points
+
+        if not has_victim:
+            return -2.0
+            
+        # Base reward from purely blocking production
+        # Multiplier of 1.0 ensures average blocks are around +1 to +2 after CF scaling, 
+        # and truly amazing blocks hit +3 to +4, keeping them well underneath the -7 self-penalty.
+        base_score = (total_victim_yield - 0.4) * 1.0  
+        
+        # VP bonus: heavily incentivize blocking players close to winning.
+        vp_bonus = (max_rival_vp / 10.0) * 0.5 
+        
+        return base_score + vp_bonus
+
+    def _counterfactual_robber_reward(self, agent: str, chosen_tile_index: int) -> float:
+        chosen_raw = self._raw_robber_tile_score(agent, chosen_tile_index)
+        
+        # Scale the result by the environment's robber_cf_scale
+        return self.robber_cf_scale * chosen_raw
+

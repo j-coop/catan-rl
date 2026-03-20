@@ -90,6 +90,10 @@ class ActionSpace:
             self._apply_normal_phase_mask(mask, player)
         elif phase == CatanPhase.ROBBER_MOVE:
             self._enable(mask, "move_robber")
+            spec = next((s for s in self.action_specs if s.name == "move_robber"), None)
+            if spec:
+                # Mask out current spot
+                mask[spec.range[0] + self.env.game.board.robber_position] = False
         elif phase == CatanPhase.YEAR_OF_PLENTY:
             self._enable(mask, "choose_resource")
         elif phase == CatanPhase.MONOPOLY:
