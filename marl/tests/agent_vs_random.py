@@ -1,16 +1,25 @@
 import argparse
 import os
 import random
+from pathlib import Path
 
 import torch
 
 from marl.env.tianshou.actor import MaskedActor
 from marl.env.tianshou.multi_agent_env import CatanEnv
+from auto_encoder.encoders import CatanFactorizedAutoEncoder
+from params.catan_constants import (BOARD_LATENT,
+                                    FINAL_LATENT,
+                                    IS_ENCODER_ENABLED,
+                                    OTHERS_LATENT,
+                                    SELF_LATENT)
 
 
-DEFAULT_MODEL_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_7.pt")
-)
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DEFAULT_MODEL_PATH = BASE_DIR / "trained_models\checkpoints" / "ppo_catan_60.pt"
+DEFAULT_ENCODER_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "catan_contrastive_lr0.0001_temp0.1.pth"
 
 
 def load_actor(env: CatanEnv, model_path: str):
@@ -21,7 +30,16 @@ def load_actor(env: CatanEnv, model_path: str):
     else:
         obs_dim = len(env.get_observation(env.agents[0]))
     act_dim = env.actions.get_action_space_size()
-    actor = MaskedActor(obs_dim, act_dim)
+    autoencoder = None
+    if IS_ENCODER_ENABLED:
+        autoencoder = CatanFactorizedAutoEncoder(
+            board_latent=BOARD_LATENT,
+            self_latent=SELF_LATENT,
+            others_latent=OTHERS_LATENT,
+            final_latent=FINAL_LATENT
+        ).to(DEVICE)
+        autoencoder.load_state_dict(torch.load(DEFAULT_ENCODER_PATH, map_location=DEVICE))
+    actor = MaskedActor(obs_dim, act_dim, encoder=autoencoder).to(DEVICE)
     state = torch.load(model_path, map_location=actor.device)
     if isinstance(state, dict):
         state = state.get("policy", state.get("actor", state))
@@ -97,7 +115,7 @@ def run_games(num_games: int, agent_names: [str], model_path: str, seed: int | N
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--num-games", type=int, default=100)
+    parser.add_argument("-n", "--num-games", type=int, default=400)
     parser.add_argument("--agent-name", type=str, default="Blue Player")
     parser.add_argument("--model-path", type=str, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--seed", type=int, default=None)
