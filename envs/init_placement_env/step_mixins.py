@@ -53,7 +53,6 @@ class CatanStepMixin:
         node_built = self.last_settlement_node_index
         target_node = road_nodes[0] if road_nodes[1] == node_built else road_nodes[1]
         possible_nodes = self.__get_other_adjacent_nodes(target_node, node_built)
-
         nodes_value = self.__evaluate_future_node_values(possible_nodes)
         return nodes_value
 
@@ -63,7 +62,7 @@ class CatanStepMixin:
     def __evaluate_future_node_values(self, possible_nodes):
 
         def is_node_occupied(node_id):
-            adj_tile = NODES_TO_TILES[node_id][0] # 1 of the adj nodes
+            adj_tile = NODES_TO_TILES[node_id][0]
             nodes = TILES_TO_NODES[adj_tile]
             index = nodes.index(node_id)
             return self._base_obs["nodes_owners"][adj_tile][index].any()
@@ -73,7 +72,6 @@ class CatanStepMixin:
             if not self._is_valid_settlement_placement(node):
                 continue
             if is_node_occupied(node):
-                value -= 0.5
                 continue
             tokens = [
                 0 if np.all(tile == 0) else TOKENS[np.argmax(tile)]
@@ -133,51 +131,46 @@ class CatanStepMixin:
         return normalized_gain_score
 
     def _evaluate_resources_distribution(self, gains):
-        """
-        Evaluate quality of the resource distribution for the player's
-        two initial settlements using resource importance weights.
-
-        Rewards:
-        - covering many different valuable resource types
-        - balanced production among them
-
-        Output range approximately: [0, 1]
-        """
 
         player = self.turn_order[(self.turn_index - 1) % len(self.turn_order)]
         gained = gains[player][0] + gains[player][1]
 
         weights = np.array(TILE_WEIGHTS)
-        weighted_gained = gained * weights
+        valid_resources = weights > 0
 
-        total = np.sum(weighted_gained)
-        if total == 0:
+        gained = gained[valid_resources]
+        weights = weights[valid_resources]
+
+        if np.sum(gained) == 0:
             return 0.0
 
-        # ---------- weighted diversity (entropy) ----------
-        probs = weighted_gained / total
+        # -------- entropy (balance) --------
+        probs = gained / np.sum(gained)
         entropy = -np.sum(probs * np.log(probs + 1e-9))
-
-        # max entropy only over non-zero weight resources
-        valid_resources = weights > 0
-        max_entropy = np.log(np.sum(valid_resources))
-
+        max_entropy = np.log(len(probs))
         diversity_score = entropy / max_entropy
 
-        # ---------- weighted coverage ----------
-        # count resources that are both present and useful
-        resources_present = np.sum((gained > 0) & valid_resources)
-        total_resources = np.sum(valid_resources)
+        # -------- weighted production --------
+        weighted_production = gained * weights
+        production_score = np.sum(weighted_production) / np.sum(weights)
 
-        coverage_score = (resources_present / total_resources) ** 2
+        # normalize (depends on expected max)
+        production_score = min(production_score / 3.0, 1.0)
 
-        # ---------- combine scores ----------
-        diversity_weight = 0.35
-        coverage_weight = 0.65
+        # -------- coverage bonus --------
+        resources_present = np.sum(gained > 0)
+
+        coverage_bonus = {
+            1: 0.0,
+            2: 0.05,
+            3: 0.1,
+            4: 0.7,
+            5: 1.0
+        }[resources_present]
 
         score = (
-            diversity_weight * diversity_score +
-            coverage_weight * coverage_score
+            0.25 * diversity_score +
+            0.5 * production_score +
+            0.25 * coverage_bonus
         )
-
-        return float(score)
+        return float(np.clip(score, 0.0, 1.0))

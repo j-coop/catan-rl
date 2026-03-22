@@ -1,7 +1,8 @@
 import numpy as np
 
 from params.catan_constants import (N_NODES,
-                                    INIT_PLACEMENT_ENV_N_EPISODES)
+                                    INIT_PLACEMENT_ENV_N_EPISODES,
+                                    VERBOSE)
 from .env import CatanInitPlacementEnv
 
 
@@ -34,7 +35,8 @@ class CatanRoadPlacementEnv(CatanInitPlacementEnv):
         if done:
             self._episode_counter += 1
             ep_number = self._ep_done_previously + self._episode_counter
-            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
+            if VERBOSE:
+                print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
         if self._train and not done:
             node_id = self._get_random_settlement_action()
             next_player = self.turn_order[self.turn_index]
