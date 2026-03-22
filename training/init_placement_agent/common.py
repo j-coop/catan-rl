@@ -23,7 +23,7 @@ def get_adaptive_lr_callback(eval_env):
         factor=0.5,
         min_lr=1e-6,
         save_path="trained_models/best/",
-        n_eval_episodes=10,
+        n_eval_episodes=50,
         verbose=1
     )
     return adaptive_lr_callback

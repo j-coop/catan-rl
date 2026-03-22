@@ -17,9 +17,9 @@ class AdaptiveLRAndSaveBestCallback(BaseCallback):
         check_freq=10000,
         patience=5,
         factor=0.5,
-        min_lr=1e-6,
+        min_lr=1e-5,
         save_path="best_models/",
-        n_eval_episodes=5,
+        n_eval_episodes=50,
         verbose=1,
     ):
         super().__init__(verbose)
@@ -99,7 +99,7 @@ class AdaptiveLRAndSaveBestCallback(BaseCallback):
 
 
     def _save_best_model(self):
-        path = os.path.join(self.save_path, f"best_model_1.12.zip")
+        path = os.path.join(self.save_path, f"best_model_1.21.zip")
         self.model.save(path)
         if self.verbose:
             print(f"💾 Best model saved to {path}")

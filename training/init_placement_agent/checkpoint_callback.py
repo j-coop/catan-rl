@@ -34,7 +34,7 @@ class CleanCheckpointCallback(BaseCallback):
         if self.n_calls % self.save_freq == 0:
             path = self._checkpoint_path(self.num_timesteps)
             self.model.save(path)
-            self._remove_last_checkpoint()
+            # self._remove_last_checkpoint()
             self.last_checkpint_steps = self.num_timesteps
             if self.verbose:
                 print(f"💾 Checkpoint saved: {path}")
