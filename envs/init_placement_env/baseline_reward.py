@@ -43,4 +43,3 @@ for i in range(N_RUNS):
     total_reward += board_reward / N_NODES
 
 print(total_reward / N_RUNS)
-

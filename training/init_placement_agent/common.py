@@ -23,7 +23,7 @@ def get_adaptive_lr_callback(eval_env):
         factor=0.5,
         min_lr=1e-6,
         save_path="trained_models/best/",
-        n_eval_episodes=10,
+        n_eval_episodes=50,
         verbose=1
     )
     return adaptive_lr_callback
@@ -41,7 +41,7 @@ def get_clean_checkpoint_callback(prefix, ep_done=0):
 def run_training(model, timesteps, prefix, eval_env, ep_done=0):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     callback = CallbackList([get_adaptive_lr_callback(eval_env),
-                             get_clean_checkpoint_callback(prefix)])
+                             get_clean_checkpoint_callback(prefix, ep_done)])
     model.learn(
         total_timesteps=timesteps,
         tb_log_name=f"ppo_mask_run_{timestamp}",

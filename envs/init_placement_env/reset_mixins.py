@@ -22,8 +22,6 @@ class CatanResetMixin:
                                         dtype=np.int8),
             "tiles_resources": np.zeros((N_NODES, N_ADJACENT_TILES, N_TILE_TYPES),
                                         dtype=np.int8),
-            "edges_exist":     np.zeros((N_NODES, N_ADJACENT_EDGES),
-                                        dtype=np.int8),
             "adj_exist":       np.zeros((N_NODES, N_ADJACENT_NODES),
                                     dtype=np.int8),
             "adj_is_built":    np.zeros((N_NODES, N_ADJACENT_NODES),
@@ -41,7 +39,6 @@ class CatanResetMixin:
         self.__compute_ring_edges()
 
         self.__fill_nodes_existence_info()
-        self.__fill_edge_existence_info()
         self.__fill_port_info()
 
         return self._obs
@@ -70,14 +67,6 @@ class CatanResetMixin:
                     self._obs["has_port"][node_id] = port_vec
                     for i, _ in enumerate(self._ring_neighbors[node_id]):
                         self._obs["adj_has_port"][node_id][i] = port_vec
-
-    def __fill_edge_existence_info(self):
-        """Mark edges as existing based on previously computed ring edges."""
-        for node_id in range(N_NODES):
-            for edge_id in range(N_ADJACENT_EDGES):
-                a, b = self._ring_edges[node_id][edge_id]
-                if a != 0 or b != 0:  # assumes empty = [0, 0]
-                    self._obs["edges_exist"][node_id, edge_id] = 1
 
     def __compute_ring_nodes(self):
         for node in range(N_NODES):

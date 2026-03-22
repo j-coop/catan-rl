@@ -6,13 +6,13 @@ from sb3_contrib.common.wrappers import ActionMasker
 from sb3_contrib.ppo_mask import MaskablePPO
 
 from envs.init_placement_env.env import CatanInitPlacementEnv
-
+from envs.init_placement_env.settlement_wrapper import CatanSettlementPlacementEnv
 from params.catan_constants import (INIT_PLACEMENT_ENV_N_EPISODES,
                                     INIT_PLACEMENT_ENV_STEPS_PER_EPISODE)
 from .common import *
 
 
-RESUME_CHECKPOINT_PATH = "trained_models/checkpoints/init_placement_env_1.12_checkpoint_4000_episodes.zip"
+RESUME_CHECKPOINT_PATH = "trained_models/checkpoints/init_placement_env_1.12_checkpoint_2000_episodes.zip"
 
 
 def extract_steps_from_checkpoint() -> int:
@@ -44,11 +44,7 @@ if __name__ == "__main__":
 
     env = CatanInitPlacementEnv(ep_done_previously=episodes_already_done)
     env.reset()
-    env = ActionMasker(env, mask_fn)
-
-    eval_env = CatanInitPlacementEnv()
-    eval_env.reset()
-    eval_env = ActionMasker(eval_env, mask_fn)
+    env = ActionMasker(CatanSettlementPlacementEnv(env), mask_fn)
 
     # -------------------------------
     # Load model from checkpoint
@@ -68,7 +64,7 @@ if __name__ == "__main__":
 
     eval_env = CatanInitPlacementEnv(ep_done_previously=episodes_already_done)
     eval_env.reset()
-    eval_env = ActionMasker(eval_env, mask_fn)
+    eval_env = ActionMasker(CatanSettlementPlacementEnv(eval_env), mask_fn)
 
     # -------------------------------
     # Resume training from checkpoint
@@ -78,5 +74,5 @@ if __name__ == "__main__":
                  timesteps=timesteps,
                  prefix=prefix,
                  eval_env=eval_env,
-                 ep_done=episodes_already_done )
+                 ep_done=episodes_already_done)
     save_final_model(model)

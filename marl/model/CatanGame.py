@@ -25,7 +25,8 @@ class CatanGame:
                  player_names: List[str],
                  ai_players: Optional[List[bool]] = None,
                  training: bool = False,
-                 init_placement_model_path: str | None = None):
+                 settlement_placement_model_path: str | None = None,
+                 road_placement_model_path: str | None = None):
         self.board: CatanBoard = CatanBoard()
         self.bank: CatanBank = CatanBank()
         self.players = [
@@ -57,8 +58,12 @@ class CatanGame:
 
         # Init placement model
         self._init_model = (
-            InitPlacementModel(init_placement_model_path, self.board)
-            if init_placement_model_path
+            InitPlacementModel(
+                settlement_placement_model_path,
+                road_placement_model_path,
+                self.board
+            )
+            if (road_placement_model_path and settlement_placement_model_path)
             else None
         )
 
@@ -490,8 +495,8 @@ class CatanGame:
             return
 
         try:
-            base_obs = self._init_model.generate_initial_board()
-            settlements_history, roads_history = self._init_model.apply_base_obs_to_game(base_obs, self)
+            self._init_model.generate_initial_board()
+            (settlements_history, roads_history) = self._init_model.get_init_roads_and_settlements()
 
             # Build settlements and assign resources for second placement
             for player_idx, player in enumerate(self.players):

@@ -21,7 +21,6 @@ class CatanStepMixin:
             for i in range(len(adj_nodes)):
                 if adj_nodes[i] == node_id:
                     self._base_obs["nodes_owners"][tile_id][i][player_id] = 1
-                    self._base_obs["nodes_settlements"][tile_id][i] = 1
 
     def __build_road(self, edge_id, player_id):
         edge_coords = EDGES_LIST[edge_id]
@@ -31,30 +30,29 @@ class CatanStepMixin:
                 if (adj_nodes[i], adj_nodes[(i + 1) % 6]) == edge_coords:
                     self._base_obs["edges_owners"][tile_id][i][player_id] = 1
 
-    def _make_settlement_action(self, player, settlement_action):
-        node_id = np.argmax(settlement_action)
+    def _make_settlement_action(self, player, node_id):
         self.__build_settlement(node_id, player)
         self._update_settlement_placement_mask(node_id)
-        self._update_road_placement_mask(node_id, player)
+        self.update_road_placement_mask(node_id, player)
+        self.last_settlement_node_index = node_id
 
     def _make_road_action(self, player, road_action):
-        edge_id = np.argmax(road_action)
-        self.__build_road(edge_id, player)
+        self.__build_road(road_action, player)
 
     def __get_other_adjacent_nodes(self, node, known_node):
         possible_nodes = NODES_TO_NODES[node].copy()
-        possible_nodes.remove(known_node)
+        if known_node in possible_nodes:
+            possible_nodes.remove(known_node)
         return possible_nodes
 
     """
     Road reward function
     """
-    def _evaluate_road_heuristic(self, road_action, node_index):
-        road_index = np.argmax(road_action)
+    def _evaluate_road_heuristic(self, road_index):
         road_nodes = EDGES_LIST[road_index]
-        target_node = road_nodes[0] if road_nodes[1] == node_index else road_nodes[1]
-        possible_nodes = self.__get_other_adjacent_nodes(target_node, node_index)
-
+        node_built = self.last_settlement_node_index
+        target_node = road_nodes[0] if road_nodes[1] == node_built else road_nodes[1]
+        possible_nodes = self.__get_other_adjacent_nodes(target_node, node_built)
         nodes_value = self.__evaluate_future_node_values(possible_nodes)
         return nodes_value
 
@@ -64,7 +62,7 @@ class CatanStepMixin:
     def __evaluate_future_node_values(self, possible_nodes):
 
         def is_node_occupied(node_id):
-            adj_tile = NODES_TO_TILES[node_id][0] # 1 of the adj nodes
+            adj_tile = NODES_TO_TILES[node_id][0]
             nodes = TILES_TO_NODES[adj_tile]
             index = nodes.index(node_id)
             return self._base_obs["nodes_owners"][adj_tile][index].any()
@@ -74,7 +72,6 @@ class CatanStepMixin:
             if not self._is_valid_settlement_placement(node):
                 continue
             if is_node_occupied(node):
-                value -= 0.5
                 continue
             tokens = [
                 0 if np.all(tile == 0) else TOKENS[np.argmax(tile)]
@@ -85,14 +82,13 @@ class CatanStepMixin:
                     value += DICE_PROBABILITIES[token] / MAX_PROBABILITY
         return value
 
-    def _evaluate_placement(self, settlement_action):
-        node_id = np.argmax(settlement_action)
+    def _evaluate_placement(self, node_id):
         return self._obs["has_port"][node_id].sum() > 0
 
-    def _evaluate_expected_resource_gain(self, settlement_action):
+    def _evaluate_expected_resource_gain(self, node_id):
 
         def get_adjacent_tiles(node_id):
-            return NODES_TO_TILES[node_id]
+            return NODES_TO_TILES.get(node_id, [])
 
         def get_adjacent_resources(adjacent_tiles):
             return [
@@ -118,14 +114,13 @@ class CatanStepMixin:
             return gains
 
         def save_settlement_gains(gains):
-            player = self.turn_order[self._turn_index]
-            self._settlement_gains[player, 0 if self._turn_index <= 3 else 1] = gains
+            player = self.turn_order[self.turn_index]
+            self._settlement_gains[player, 0 if self.turn_index <= 3 else 1] = gains
 
         def normalize_gain_score(gains):
             sum_gain = sum(gains)
             return sum_gain / BEST_EXPECTED_GAIN
 
-        node_id = np.argmax(settlement_action)
         adjacent_tiles = get_adjacent_tiles(node_id)
         resources = get_adjacent_resources(adjacent_tiles)
         tokens = get_adjacent_tokens(adjacent_tiles)
@@ -136,24 +131,46 @@ class CatanStepMixin:
         return normalized_gain_score
 
     def _evaluate_resources_distribution(self, gains):
-        player = self.turn_order[self._turn_index]
+
+        player = self.turn_order[(self.turn_index - 1) % len(self.turn_order)]
         gained = gains[player][0] + gains[player][1]
 
-        total = np.sum(gained)
-        if total == 0:
+        weights = np.array(TILE_WEIGHTS)
+        valid_resources = weights > 0
+
+        gained = gained[valid_resources]
+        weights = weights[valid_resources]
+
+        if np.sum(gained) == 0:
             return 0.0
 
-        # Normalize for diversity (entropy)
-        probs = gained / total
+        # -------- entropy (balance) --------
+        probs = gained / np.sum(gained)
         entropy = -np.sum(probs * np.log(probs + 1e-9))
-        max_entropy = np.log(len(gained))
+        max_entropy = np.log(len(probs))
         diversity_score = entropy / max_entropy
 
-        # Add coverage: fraction of resource types actually gained
-        coverage_score = np.count_nonzero(gained) / len(gained)
-        coverage_score -= 0.6  # baseline adjustment
-        coverage_score *= 2.5  # normalize to [0, 1]
+        # -------- weighted production --------
+        weighted_production = gained * weights
+        production_score = np.sum(weighted_production) / np.sum(weights)
 
-        # Combine them (tunable weights)
-        return float(DIVERSITY_SCORE_WEIGHT * diversity_score +
-                     COVERAGE_SCORE_WEIGHT * coverage_score)
+        # normalize (depends on expected max)
+        production_score = min(production_score / 3.0, 1.0)
+
+        # -------- coverage bonus --------
+        resources_present = np.sum(gained > 0)
+
+        coverage_bonus = {
+            1: 0.0,
+            2: 0.05,
+            3: 0.1,
+            4: 0.7,
+            5: 1.0
+        }[resources_present]
+
+        score = (
+            0.25 * diversity_score +
+            0.5 * production_score +
+            0.25 * coverage_bonus
+        )
+        return float(np.clip(score, 0.0, 1.0))
