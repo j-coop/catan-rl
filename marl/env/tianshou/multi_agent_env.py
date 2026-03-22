@@ -149,7 +149,8 @@ class CatanEnv(AECEnv,
         self.game = CatanGame(
             player_colors=[""] * 4,
             player_names=self.agents,
-            init_placement_model_path=init_placement_model_path
+            settlement_placement_model_path="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models/best/best_model_1.21.zip",
+            road_placement_model_path="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models/init-placement/ppo_mask_20260315_213752.zip"
         )
         self.actions = ActionSpace(self)
         self.reward_object = Rewards(self.game)
