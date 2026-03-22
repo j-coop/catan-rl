@@ -40,14 +40,14 @@ class CatanBaseEnv(gym.Env):
             tokens = self.__generate_tokens(desert_tile_id)
             robber_index = desert_tile_id
 
-        self.state = {
-            "resources": resources,
-            "tokens": tokens,
-            "has_robber": np.eye(N_TILES)[robber_index],
-            "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
-            "nodes_ports": self.__generate_ports(),
-            "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8)
-        }
+            self.state = {
+                "resources": resources,
+                "tokens": tokens,
+                "has_robber": np.eye(N_TILES)[robber_index],
+                "nodes_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8),
+                "nodes_ports": self.__generate_ports(),
+                "edges_owners": np.zeros((N_TILES, 6, N_PLAYERS), dtype=np.int8)
+            }
 
         # Save generated env to json
         if self.save_env:

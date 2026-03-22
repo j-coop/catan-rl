@@ -3,7 +3,8 @@ import numpy as np
 
 from params.catan_constants import (N_EDGES,
                                     N_NODES,
-                                    INIT_PLACEMENT_ENV_N_EPISODES)
+                                    INIT_PLACEMENT_ENV_N_EPISODES,
+                                    VERBOSE)
 from params.edges_list import EDGES_LIST
 from .env import CatanInitPlacementEnv
 
@@ -44,5 +45,6 @@ class CatanSettlementPlacementEnv(CatanInitPlacementEnv):
         if done:
             self._episode_counter += 1
             ep_number = self._ep_done_previously + self._episode_counter
-            print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
+            if VERBOSE:
+                print(f'{ep_number} / {INIT_PLACEMENT_ENV_N_EPISODES}')
         return self._obs, reward, done, False, {'base_obs': self._base_obs}

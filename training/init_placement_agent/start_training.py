@@ -25,16 +25,24 @@ if __name__ == "__main__":
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tensorboard_log_dir = f"logs/tb/{timestamp}"
 
+    policy_kwargs = dict(
+        net_arch=dict(
+            pi=[256, 256, 128],
+            vf=[256, 256, 128]
+        )
+    )
+
     model = MaskablePPO(
         MultiInputPolicy,
         env,
+        policy_kwargs=policy_kwargs,
         verbose=1,
-        ent_coef=0.1,
-        learning_rate=5e-4,
-        n_epochs=4,
+        ent_coef=0.01,
+        learning_rate=2e-4,
+        n_epochs=10,
         clip_range=0.15,
-        gae_lambda=0.9,
-        n_steps=2048,
+        gae_lambda=0.92,
+        n_steps=1024,
         gamma = 0.97,
         normalize_advantage=True,
         tensorboard_log=tensorboard_log_dir,
@@ -46,7 +54,7 @@ if __name__ == "__main__":
     # -------------------------------
     run_training(model=model,
                  timesteps=INIT_PLACEMENT_ENV_N_TIMESTEPS,
-                 prefix="init_placement_env_1.12",
+                 prefix="init_placement_env_1.21",
                  eval_env=eval_env)
 
     save_final_model(model)

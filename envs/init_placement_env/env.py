@@ -74,14 +74,14 @@ class CatanInitPlacementEnv(CatanResetMixin,
         return self._obs, {}
 
     def _calculate_significance_weight(self):
-        alpha = 0.8 # exponential decay rate for early steps
-        min_significance = 0.3 # minimum weight for last steps
+        alpha = 0.5 # exponential decay rate for early steps
+        min_significance = 0.25 # minimum weight for last steps
         significance = max(alpha ** (self.turn_index - 1), min_significance)
         return significance
 
     def _calculate_road_action_reward(self, road_action):
         reward = self._evaluate_road_heuristic(road_action)
-        return reward * REWARD_WEIGHTS["ROAD"]
+        return reward
 
     def _calculate_settlement_action_reward(self, settlement_action):
 
