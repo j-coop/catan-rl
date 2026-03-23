@@ -30,7 +30,8 @@ from auto_encoder.encoders import CatanFactorizedAutoEncoder
 # ==========================================
 LEARNING_RATE = 3e-4
 WEIGHT_DECAY = 1e-5
-ENTROPY_COEF = 0.05  
+ENTROPY_COEF_START = 0.05
+ENTROPY_COEF_END = 0.005
 
 # PPO Constraints
 GAE_LAMBDA = 0.92
@@ -94,7 +95,7 @@ if __name__ == '__main__':
         gamma=GAMMA,
         gae_lambda=GAE_LAMBDA,
         max_grad_norm=MAX_GRAD_NORM,
-        ent_coef=ENTROPY_COEF,
+        ent_coef=ENTROPY_COEF_START,
     )
 
     collector = Collector(
@@ -105,13 +106,19 @@ if __name__ == '__main__':
     checkpoint_manager = CheckpointManager(algo)
     checkpoint_logger = CheckpointLogger()
 
+    def train_fn(epoch, env_step):
+        # Linear decay over MAX_EPOCHS
+        progress = min(epoch / MAX_EPOCHS, 1.0)
+        algo.ent_coef = ENTROPY_COEF_START - (ENTROPY_COEF_START - ENTROPY_COEF_END) * progress
+
     params = OnPolicyTrainerParams(
         training_collector=collector,
         max_epochs=MAX_EPOCHS,
         epoch_num_steps=EPOCH_NUM_STEPS,
         batch_size=BATCH_SIZE,
         save_checkpoint_fn=checkpoint_manager,
-        logger=checkpoint_logger
+        logger=checkpoint_logger,
+        train_fn=train_fn
     )
 
     result = OnPolicyTrainer(
