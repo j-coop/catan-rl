@@ -12,6 +12,7 @@ from marl.ui.EnvMock import EnvMock
 from marl.ui.GameSetupWindow import GameSetupWindow
 from marl.ui.controllers.HumanController import HumanController
 from marl.ui.controllers.AgentController import AgentController
+from marl.ui.controllers.BotController import BotController
 
 # Fix for Wayland/X11 if needed
 if platform.system() == "Windows":
@@ -32,13 +33,17 @@ def main():
         game = CatanGame(
             player_colors=colors,
             player_names=names,
-            init_placement_model_path="models/init_placement_model.zip",
+            road_placement_model_path="../../best_models/best_model_init_placement_roads.zip",
+            settlement_placement_model_path="../../best_models/best_model_init_placement_settlements.zip"
         )
 
         controllers = {}
-        for name, is_ai in config.items():
-            if is_ai:
+        for name, choice in config.items():
+            if choice == "AI":
                 controllers[name] = AgentController(name, name)
+            elif choice.startswith("Bot"):
+                level = int(choice[-1])
+                controllers[name] = BotController(name, name, level=level)
             else:
                 controllers[name] = HumanController(name)
 

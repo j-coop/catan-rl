@@ -1,11 +1,9 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QPushButton
+    QLabel, QPushButton, QComboBox
 )
 from PyQt6.QtGui import QFont, QGuiApplication
 from PyQt6.QtCore import Qt
-
-from PyQt6_SwitchControl import SwitchControl
 
 
 class GameSetupWindow(QWidget):
@@ -42,27 +40,16 @@ class GameSetupWindow(QWidget):
             name_label.setStyleSheet(f"color: {color}; font-weight: bold;")
             name_label.setFont(QFont("Arial", 11))
 
-            human_label = QLabel("Human")
-            human_label.setStyleSheet("color: #666;")
-
-            ai_label = QLabel("AI")
-            ai_label.setStyleSheet("color: #666;")
-
-            switch = SwitchControl(
-                bg_color="#999999",
-                circle_color="#FFFFFF",
-                active_color="#4682B4"
-            )
-            switch.setFixedSize(60, 30)
+            combo = QComboBox()
+            combo.addItems(["Human", "AI", "Bot Level 1", "Bot Level 2", "Bot Level 3"])
+            combo.setFixedWidth(130)
 
             row.addWidget(name_label)
             row.addStretch()
-            row.addWidget(human_label)
-            row.addWidget(switch)
-            row.addWidget(ai_label)
+            row.addWidget(combo)
 
             main_layout.addLayout(row)
-            self.player_rows.append((name, switch))
+            self.player_rows.append((name, combo))
 
         # Start button
         self.start_btn = QPushButton("Start Game")
@@ -90,8 +77,8 @@ class GameSetupWindow(QWidget):
 
     def start_game(self):
         config = {
-            name: switch.isChecked()
-            for name, switch in self.player_rows
+            name: combo.currentText()
+            for name, combo in self.player_rows
         }
         self.launch_game(config)
 
