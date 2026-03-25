@@ -13,7 +13,7 @@ class AgentController(PlayerController):
     _actor_failed = False
     _actor_model_path = os.path.abspath(
         # os.path.join(os.path.dirname(__file__), "..", "..", "..", "trained_models", "best_full_game_agent.pt")
-        os.path.join(os.path.dirname(__file__), "..", "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_22.pt")
+        os.path.join(os.path.dirname(__file__), "..", "..", "env", "tianshou", "trained_models", "checkpoints", "ppo_catan_1000.pt")
     )
 
     def __init__(self, player_name, agent, delay=2.0):

@@ -8,8 +8,8 @@ class HeuristicCatanPolicy:
     A rule-based Tianshou policy for Catan.
     Levels:
     1 - Random valid action
-    2 - Prioritizes building (City -> Settlement -> Dev Card -> Road -> End Turn). No bank trades to prevent loops.
-    3 - Similar to 2, but makes randomized bank trades and has a higher preference for dev cards.
+    2 - Prioritizes building (Settlement -> City -> Dev Card -> Road -> End Turn). No bank trades.
+    3 - Similar to 2, but makes sensible settlement/city spots choices, trades resources for rare ones if over 7 cards.
     """
     def __init__(self, level=1, *args, **kwargs):
         super().__init__(*args, **kwargs)

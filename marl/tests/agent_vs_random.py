@@ -18,7 +18,7 @@ from params.catan_constants import (BOARD_LATENT,
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_MODEL_PATH = BASE_DIR / "trained_models\checkpoints" / "ppo_catan_60.pt"
+DEFAULT_MODEL_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "checkpoints" / "ppo_catan_1000.pt"
 DEFAULT_ENCODER_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "catan_contrastive_lr0.0001_temp0.1.pth"
 
 

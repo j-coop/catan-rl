@@ -18,7 +18,7 @@ from params.catan_constants import (BOARD_LATENT,
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_MODEL_PATH = BASE_DIR / "trained_models" / "checkpoints" / "ppo_catan_60.pt"
+DEFAULT_MODEL_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "checkpoints" / "ppo_catan_1000.pt"
 DEFAULT_ENCODER_PATH = BASE_DIR / "marl" / "env" / "tianshou" / "trained_models" / "catan_contrastive_lr0.0001_temp0.1.pth"
 
 def load_actor(env: CatanEnv, model_path: str):
@@ -119,7 +119,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--num-games", type=int, default=100)
     parser.add_argument("--agent-name", type=str, default="Blue Player")
-    parser.add_argument("--level", type=int, choices=[1, 2, 3], default=1, help="Heuristic bot level for opponents")
+    parser.add_argument("--level", type=int, choices=[1, 2, 3], default=3, help="Heuristic bot level for opponents")
     parser.add_argument("--model-path", type=str, default=str(DEFAULT_MODEL_PATH))
     parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()

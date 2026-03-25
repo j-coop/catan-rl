@@ -145,12 +145,24 @@ class CatanEnv(AECEnv,
                 "../../../model/trained_models/init-placement/init_placement_model"
             )
         )
+        settlement_placement_model_path = os.path.abspath(
+            os.path.join(
+                BASE_DIR,
+                "../../../best_models/best_model_init_placement_settlements"
+            )
+        )
+        road_placement_model_path = os.path.abspath(
+            os.path.join(
+                BASE_DIR,
+                "../../../best_models/best_model_init_placement_roads"
+            )
+        )
 
         self.game = CatanGame(
             player_colors=[""] * 4,
             player_names=self.agents,
-            settlement_placement_model_path="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models/best/best_model_1.21.zip",
-            road_placement_model_path="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models/init-placement/ppo_mask_20260315_213752.zip"
+            settlement_placement_model_path=settlement_placement_model_path,
+            road_placement_model_path=road_placement_model_path
         )
         self.actions = ActionSpace(self)
         self.reward_object = Rewards(self.game)
