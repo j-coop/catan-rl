@@ -48,10 +48,10 @@ class HeuristicCatanPolicy:
         # Tile: [0:6] res, [6] num, [7] robber, [8] self_prod, [9] opp_prod, [10] self_has, [11] opp_has
         
         tile_feats = obs_vec[0:228].reshape(19, 12)
-        self_feats = obs_vec[1290:1313]
+        self_feats = obs_vec[1290:1314]
         
-        res_counts = self_feats[0:5] # wood, brick, sheep, wheat, ore
-        total_res = np.sum(res_counts) * 19 # normalized by MAX_RESOURCE_COUNT
+        total_res = self_feats[0] * 20.0 # total cards normalized by 20.0
+        res_counts = self_feats[1:6] # wood, brick, sheep, wheat, ore
         
         # Production by resource type (0-4)
         prod = np.zeros(5)

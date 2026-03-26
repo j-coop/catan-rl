@@ -334,6 +334,7 @@ class EnvActionHandlerMixin:
         ])
 
         knights_played = np.array([player.knights_played / MAX_KNIGHTS])
+        total_resources = np.array([player.total_cards / 20.0], dtype=np.float32)
 
         port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
         owned_nodes = list(player.settlements) + list(player.cities)
@@ -343,6 +344,7 @@ class EnvActionHandlerMixin:
                 port_flags[PORT_TYPES.index(port_type)] = 1.0
 
         return np.concatenate([
+            total_resources,
             res_counts,
             dev_counts,
             victory_points,
