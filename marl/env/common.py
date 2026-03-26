@@ -42,7 +42,7 @@ class EnvActionHandlerMixin:
         context["can_build_set_before"] = can_afford_set and player.settlements_remaining > 0 and len(spots_avail) > 0
         context["can_build_city_before"] = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
         context["can_build_road_before"] = can_afford_road and player.roads_remaining > 0 and len(self.game.board.get_valid_road_spots(player)) > 0
-        context["can_build_dev_before"] = can_afford_dev and len(bank.dev_cards) > 0
+        context["can_build_dev_before"] = can_afford_dev and len(bank.dev_cards_stack) > 0
 
         if action_name == "build_road":
             context["spots_before"] = spots_avail
@@ -58,9 +58,10 @@ class EnvActionHandlerMixin:
         if action_name == "trade_bank":
             give, take = BANK_TRADE_PAIRS[local_index]
             has_alternatives = context.get("can_build_road_before", False) or context.get("can_build_dev_before", False)
-            if take not in player.produced_resources and not has_alternatives:
+            if take not in player.produced_resources:
                 # Good trade for missing resource
-                special_reward = 2.0 if context.get("total_cards_before", 0) >= 7 else 1.0
+                if not has_alternatives:
+                    special_reward += 2.0 if context.get("total_cards_before", 0) >= 7 else 1.0
             elif player.is_bad_trade(give, take):
                 special_reward = -3.0
         elif action_name == "build_settlement":

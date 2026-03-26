@@ -175,7 +175,10 @@ class Rewards:
         Points also awarded for played knights (if not strongest army already)
         Victory point cards handled in vp_component
         """
-        dev = player.dev_cards
+        dev = {
+            key: player.dev_cards.get(key, 0) + player.new_dev_cards.get(key, 0)
+            for key in player.dev_cards.keys() | player.new_dev_cards.keys()
+        }
 
         value = (
             0.4 * dev.get("knight", 0) +
