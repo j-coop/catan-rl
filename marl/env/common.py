@@ -41,10 +41,11 @@ class EnvActionHandlerMixin:
         # Replicate logic from apply_action
         if action_name == "trade_bank":
             give, take = BANK_TRADE_PAIRS[local_index]
-            if player.is_bad_trade(give, take):
+            if take not in player.produced_resources:
+                # Good trade for missing resource
+                special_reward = 2.0 if player.total_cards >= 7 else 1.0
+            elif player.is_bad_trade(give, take):
                 special_reward = -3.0
-            elif player.total_cards >= 7 and take not in player.produced_resources:
-                special_reward = 2.0
         elif action_name == "build_settlement":
             base = 0.5
             prod_values = self.reward_object.production_at_node(local_index).values()
@@ -336,6 +337,10 @@ class EnvActionHandlerMixin:
         knights_played = np.array([player.knights_played / MAX_KNIGHTS])
         total_resources = np.array([player.total_cards / 20.0], dtype=np.float32)
 
+        # Production probabilities (capped at 1.0)
+        prod_probs = player.get_production_probs(self.game.board)
+        prod_feats = np.array([min(prod_probs[res], 1.0) for res in RESOURCE_TYPES], dtype=np.float32)
+
         port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
         owned_nodes = list(player.settlements) + list(player.cities)
         for node_idx in owned_nodes:
@@ -346,6 +351,7 @@ class EnvActionHandlerMixin:
         return np.concatenate([
             total_resources,
             res_counts,
+            prod_feats,
             dev_counts,
             victory_points,
             longest_road,

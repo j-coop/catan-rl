@@ -42,6 +42,7 @@ All scalar counts are normalized to `[0, 1]` based on maximum theoretical or typ
 |----------|--------|-------------|----------------|
 | Total resource count | 1 | Sum of all resource cards in hand | ÷ 20 |
 | Resource counts | 5 | Amount of each resource (wood, brick, sheep, wheat, ore) | ÷ 19 |
+| Resource production probabilities | 5 | Aggregated probability of producing each resource per turn (Settlement=1x, City=2x) | Cap at 1.0 |
 | Development cards (by type) | 5 | Owned but unplayed | ÷ 5 |
 | Victory points | 1 | Total victory points | ÷ 10 |
 | Longest road flag | 1 | Boolean (0/1) | — |
@@ -49,7 +50,7 @@ All scalar counts are normalized to `[0, 1]` based on maximum theoretical or typ
 | Built structures | 3 | # of roads, settlements, cities built | ÷ [15, 5, 4] |
 | Played knights | 1 | Count of played knight cards | ÷ 14 |
 | Ports owned | 6 | One-hot for accessible port types (aggregated across owned nodes) | — |
-| **Total (Self)** | **24** | | |
+| **Total (Self)** | **29** | | |
 
 ---
 
@@ -78,9 +79,9 @@ Limited to publicly visible or inferable information for each of the 3 other pla
 | Section | Length    | Description |
 |----------|-----------|-------------|
 | Global board | 1,290     | Tiles (with productivity), roads, nodes |
-| Self info | 24        | Private stats (starts with Total Card Count) |
+| Self info | 29        | Private stats (Total Count, Resources, Production) |
 | Others info | 42        | Limited stats of 3 opponents |
-| **Total observation size** | **1,356** | Final flattened observation vector length |
+| **Total observation size** | **1,361** | Final flattened observation vector length |
 
 ---
 
