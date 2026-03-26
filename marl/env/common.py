@@ -43,6 +43,8 @@ class EnvActionHandlerMixin:
             give, take = BANK_TRADE_PAIRS[local_index]
             if player.is_bad_trade(give, take):
                 special_reward = -3.0
+            elif player.total_cards >= 7 and take not in player.produced_resources:
+                special_reward = 2.0
         elif action_name == "build_settlement":
             base = 0.5
             prod_values = self.reward_object.production_at_node(local_index).values()
@@ -78,7 +80,7 @@ class EnvActionHandlerMixin:
         elif action_name == "end_turn":
             special_reward = 0.0
         elif action_name == "play_dev_card":
-            if local_index in [2, 3, 4]: # Victory points/etc? check indices
+            if local_index in [2, 3, 4]:
                 special_reward = 2.5
             else:
                 special_reward = 1.5
