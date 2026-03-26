@@ -27,9 +27,25 @@ class EnvActionHandlerMixin:
     def _get_action_context(self, agent: str, action_name: str) -> Dict:
         """Capture state before action if needed for rewards (e.g. road building)."""
         context = {}
+        player = self.game.get_player(agent)
+        bank = self.game.bank
+        
+        context["total_cards_before"] = player.total_cards
+        
+        # Build logic for opportunity cost (must be pre-action)
+        spots_avail = set(self.game.board.get_valid_settlement_spots(player))
+        can_afford_set = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement", bank)
+        can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
+        can_afford_road = player.can_afford_directly("road") or player.can_afford_with_trades("road", bank)
+        can_afford_dev = player.can_afford_directly("dev_card") or player.can_afford_with_trades("dev_card", bank)
+        
+        context["can_build_set_before"] = can_afford_set and player.settlements_remaining > 0 and len(spots_avail) > 0
+        context["can_build_city_before"] = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
+        context["can_build_road_before"] = can_afford_road and player.roads_remaining > 0 and len(self.game.board.get_valid_road_spots(player)) > 0
+        context["can_build_dev_before"] = can_afford_dev and len(bank.dev_cards) > 0
+
         if action_name == "build_road":
-            player = self.game.get_player(agent)
-            context["spots_before"] = set(self.game.board.get_valid_settlement_spots(player))
+            context["spots_before"] = spots_avail
         return context
 
     def _calculate_special_reward(self, agent: str, action_name: str, local_index: int, context: Dict) -> float:
@@ -41,9 +57,10 @@ class EnvActionHandlerMixin:
         # Replicate logic from apply_action
         if action_name == "trade_bank":
             give, take = BANK_TRADE_PAIRS[local_index]
-            if take not in player.produced_resources:
+            has_alternatives = context.get("can_build_road_before", False) or context.get("can_build_dev_before", False)
+            if take not in player.produced_resources and not has_alternatives:
                 # Good trade for missing resource
-                special_reward = 2.0 if player.total_cards >= 7 else 1.0
+                special_reward = 2.0 if context.get("total_cards_before", 0) >= 7 else 1.0
             elif player.is_bad_trade(give, take):
                 special_reward = -3.0
         elif action_name == "build_settlement":
@@ -97,12 +114,8 @@ class EnvActionHandlerMixin:
 
         # Opportunity cost penalties (not checking for settlements when possible)
         if action_name not in ("build_settlement", "build_city", "choose_resource", "move_robber"):
-            spots_avail = set(self.game.board.get_valid_settlement_spots(player))
-            can_afford_set = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement", bank)
-            can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
-            
-            can_build_set = can_afford_set and player.settlements_remaining > 0 and len(spots_avail) > 0
-            can_build_city = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
+            can_build_set = context.get("can_build_set_before", False)
+            can_build_city = context.get("can_build_city_before", False)
             
             if can_build_set or can_build_city:
                 special_reward += -5.0
