@@ -118,7 +118,7 @@ if __name__ == '__main__':
         batch_size=BATCH_SIZE,
         save_checkpoint_fn=checkpoint_manager,
         logger=checkpoint_logger,
-        train_fn=train_fn
+        training_fn=train_fn
     )
 
     result = OnPolicyTrainer(

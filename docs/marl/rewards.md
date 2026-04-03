@@ -118,7 +118,10 @@ Rewards synergy between economy and trading infrastructure.
 ### **3.6 Roads Component**
 | Rule | Meaning |
 |------|----------|
-| +0.1 per road, minimum 1.0 | Never penalizes road-building, useful tempo |
+| +2.5 + 3.0×Quality | Bonus for opening new settlement spots (scaled by adjacent production yield) |
+| -0.75 Penalty | Penalty for true dead-ends (leads to nodes blocked by opponents) |
+| +2.0 Bonus | For "Connecting" segments (longest road jump $\ge 3$) |
+| +1.0 Base | Baseline reward for general road placements |
 
 ---
 
@@ -165,8 +168,10 @@ Potential =
 - **No direct reward for getting resources**  
   → Production potential, risk management, and resource holdings account for their usefulness.
 
-### **3. Ultimate win reward**
-- **Actually winning the game provides instant out scale reward**
+### **3. Ultimate objective**
+- **Actually winning the game provides a fixed terminal reward of +7.0.**
+- **Losing the game providing a fixed terminal reward of -7.0.**
+- **Reward Signal:** The environment provides a combination of Potential-Based Reward Shaping (PBRS) and specific strategic heuristics to guide training. Terminal win/loss signals remain the dominant objective.
 
 ---
 

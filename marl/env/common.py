@@ -89,7 +89,7 @@ class EnvActionHandlerMixin:
             
             port_type = self.game.board.ports[local_index]
             if port_type is not None:
-                special_reward += 0.5
+                special_reward += 0.2
                 if port_type == "3for1":
                     special_reward += 2.5
                 elif port_type in RESOURCE_TYPES:
@@ -105,7 +105,7 @@ class EnvActionHandlerMixin:
             quality = sum(prod_values)
             special_reward = base + (quality * 14.0)
         elif action_name == "build_road":
-            special_reward = 1.0
+            special_reward = 0.8
             # Context-based road reward
             spots_after = set(self.game.board.get_valid_settlement_spots(player))
             new_spots = context.get("spots_before", set())
