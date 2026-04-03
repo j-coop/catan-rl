@@ -12,7 +12,7 @@ from marl.ui.EnvMock import EnvMock
 from marl.ui.board_view import BoardView
 from marl.ui.PlayerInfoPanel import PlayerInfoPanel
 from marl.ui.controllers.HumanController import HumanController
-from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES
+from params.catan_constants import BANK_TRADE_PAIRS, DEV_CARD_TYPES, N_TILES, RESOURCE_TYPES
 
 
 class ActionHandler:
