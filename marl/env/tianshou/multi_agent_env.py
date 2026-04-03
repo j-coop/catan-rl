@@ -235,23 +235,12 @@ class CatanEnv(AECEnv,
             for a in self.agents:
                 self.terminations[a] = True
                 
-                # final_pot = self.compute_potential(a)
-                # terminal_reward = self.compute_reward(
-                #     a, 
-                #     potential_before=final_pot, 
-                #     potential_after=0.0, # Irrelevant on term
-                #     special_reward=0.0
-                # )
-                
-                # self.rewards[a] = float(terminal_reward)
-                # self._cumulative_rewards[a] += terminal_reward
-
-                # Removed terminal Win/Loss rewards for basic training.
-                # By not subtracting potential_before, we don't zero out the episode for PBRS.
-                # The agent's sum of rewards over the episode will exactly equal its final potential.
-                # High potential losers are no longer penalized!
-                self.rewards[a] = 0.0
-                self._cumulative_rewards[a] += 0.0
+                if self.game.winner == a:
+                    self.rewards[a] = 7.0
+                    self._cumulative_rewards[a] += 7.0
+                else:
+                    self.rewards[a] = -7.0
+                    self._cumulative_rewards[a] += -7.0
         else:
             self.rewards[agent] = float(reward)
             self._cumulative_rewards[agent] += reward

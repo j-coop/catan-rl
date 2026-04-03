@@ -20,10 +20,10 @@ Encodes the full visible structure of the game board: tiles, roads, nodes (inclu
 
 | Subcomponent | Count | Feature breakdown | Description |
 |---------------|--------|-------------------|--------------|
-| **Tiles (19)** | 19 × 12 = 228 | - 6 one-hot resource types (wood, brick, wheat, sheep, ore, desert) <br> - 1 normalized number token (`2–12 → /12`) <br> - 1 robber flag <br> - 2 productivity metrics (self/opponent) <br> - 2 building presence flags (self/opponent) | Resource production, spatial productivity, and robber position |
+| **Tiles (19)** | 19 × 16 = 304 | - 6 one-hot resource types (wood, brick, wheat, sheep, ore, desert) <br> - 1 normalized number token (`2–12 → /12`) <br> - 1 robber flag <br> - **4 productivity metrics** (self + 3 opponents) <br> - **4 building presence flags** (self + 3 opponents) | Resource production, spatial productivity explicitly mapped per player, and robber position |
 | **Roads (72)** | 72 × 5 = 360 | - 5 one-hot ownership (4 players + empty) | Tracks who owns each road |
 | **Nodes (54)** | 54 × 13 = 702 | - 5 one-hot ownership (4 players + empty) <br> - 2-hot building type (settlement, city) <br> - 6 one-hot port type (wood, brick, wheat, sheep, ore, generic; all-zero = no port) | Building placement, ownership, and which nodes grant port access |
-| **Total (Global)** | **228 + 360 + 702 = 1,290** | | |
+| **Total (Global)** | **304 + 360 + 702 = 1,366** | | |
 
 > ⚙️ **Ports are encoded per node** (as a 6-dim one-hot inside each node feature). Ownership/use of ports is kept in player-level features (see Self / Others sections).
 
@@ -60,17 +60,19 @@ Limited to publicly visible or inferable information for each of the 3 other pla
 
 | Feature | Count per opponent | Description | Normalization |
 |----------|--------------------|--------------|----------------|
+| Total resource count | 1                  | Sum of all resource cards in hand | ÷ 20 |
 | Roads built | 1                  | Count of placed roads | ÷ 15 |
 | Settlements built | 1                  | Count of settlements | ÷ 5 |
 | Cities built | 1                  | Count of cities | ÷ 4 |
+| Resource production probabilities | 5 | Aggregated probability of producing each resource per turn | Cap at 1.0 |
 | Development cards (total) | 1                  | Number of unplayed dev cards | ÷ 10 |
 | Victory points | 1                  | Public + estimated total | ÷ 10 |
 | Longest road flag | 1                  | Boolean (0/1) | — |
 | Largest army flag | 1                  | Boolean (0/1) | — |
 | Knights played | 1                  | Played knight cards | ÷ 14 |
 | Ports owned | 6                  | One-hot for accessible port types | — |
-| **Total per opponent** | **14**             | | |
-| **Total (3 opponents)** | **42**             | | |
+| **Total per opponent** | **20**             | | |
+| **Total (3 opponents)** | **60**             | | |
 
 ---
 
@@ -78,10 +80,10 @@ Limited to publicly visible or inferable information for each of the 3 other pla
 
 | Section | Length    | Description |
 |----------|-----------|-------------|
-| Global board | 1,290     | Tiles (with productivity), roads, nodes |
+| Global board | 1,366     | Tiles (with per-player productivity), roads, nodes |
 | Self info | 29        | Private stats (Total Count, Resources, Production) |
-| Others info | 42        | Limited stats of 3 opponents |
-| **Total observation size** | **1,361** | Final flattened observation vector length |
+| Others info | 60        | Stats of 3 opponents (Hand size, Production, Built) |
+| **Total observation size** | **1,455** | Final flattened observation vector length |
 
 ---
 
