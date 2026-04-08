@@ -112,7 +112,7 @@ if __name__ == '__main__':
         algo.ent_coef = ENTROPY_COEF_START - (ENTROPY_COEF_START - ENTROPY_COEF_END) * progress
         # LR decay: 3e-4 → 3e-5 (10x reduction)
         new_lr = LEARNING_RATE * (1.0 - 0.9 * progress)
-        for param_group in algo.optim.param_groups:
+        for param_group in algo.optim._optim.param_groups:
             param_group['lr'] = new_lr
 
     params = OnPolicyTrainerParams(
