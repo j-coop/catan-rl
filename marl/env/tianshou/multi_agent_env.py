@@ -234,13 +234,8 @@ class CatanEnv(AECEnv,
         if self.game.game_over:
             for a in self.agents:
                 self.terminations[a] = True
-                
-                if self.game.winner == a:
-                    self.rewards[a] = 7.0
-                    self._cumulative_rewards[a] += 7.0
-                else:
-                    self.rewards[a] = -7.0
-                    self._cumulative_rewards[a] += -7.0
+                self.rewards[a] = 0.0
+                self._cumulative_rewards[a] += 0.0
         else:
             self.rewards[agent] = float(reward)
             self._cumulative_rewards[agent] += reward
