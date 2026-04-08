@@ -365,7 +365,9 @@ class EnvActionHandlerMixin:
 
             tile_feats.append(np.concatenate([
                 res_onehot,
-                [number_val, robber_flag, min(self_prod / 2.0, 1.0), min(opp_prod / 2.0, 1.0), self_has_building, opp_has_building]
+                [number_val, robber_flag],
+                np.minimum(prod_array / 2.0, 1.0),
+                has_building,
             ]))
         tile_feats = np.concatenate(tile_feats)
 
