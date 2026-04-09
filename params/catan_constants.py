@@ -168,7 +168,7 @@ BASELINE_REWARD = 0.42962962962966283
 VERBOSE = False
 
 ######################  Action space parameters  ###############################
-SELF_SPACE_SIZE = 29
+SELF_SPACE_SIZE = 30
 OTHERS_SPACE_SIZE = 60
 
 BOARD_SPACE_SIZE = 1366  # 19*16 (tiles) + 72*5 (roads) + 54*13 (nodes)

@@ -61,8 +61,7 @@ class EnvActionHandlerMixin:
         if action_name == "choose_resource":
             context["resource_held_before"] = player.resources.copy()
 
-        if action_name == "build_road":
-            context["spots_before"] = spots_avail
+        context["spots_before"] = spots_avail
         return context
 
     def _calculate_special_reward(self, agent: str, action_name: str, local_index: int, context: Dict) -> float:
@@ -79,6 +78,8 @@ class EnvActionHandlerMixin:
                 # Good trade for missing resource
                 if not has_alternatives:
                     special_reward += 2.0 if context.get("total_cards_before", 0) >= 7 else 1.0
+                else:
+                    special_reward += 1.0
             elif player.is_bad_trade(give, take):
                 special_reward = -3.0
         elif action_name == "build_settlement":
@@ -108,11 +109,14 @@ class EnvActionHandlerMixin:
             special_reward = 0.8
             # Context-based road reward
             spots_after = set(self.game.board.get_valid_settlement_spots(player))
-            new_spots = context.get("spots_before", set())
-            added_spots = spots_after - new_spots
+            spots_before = context.get("spots_before", set())
+            added_spots = spots_after - spots_before
             if added_spots:
-                quality = sum([sum(self.reward_object.production_at_node(s).values()) for s in added_spots])
-                special_reward += 2.5 + quality * 3.0
+                spots_available_before = len(spots_before)
+                if spots_available_before < 2:
+                    quality = sum([sum(self.reward_object.production_at_node(s).values()) for s in added_spots])
+                    special_reward += 1.5 + quality * 3.0
+                # else: already had 2+ open spots — keep just the 0.8 baseline
             else:
                 # Dead-end logic:
                 # Penalty only if expansion is literally blocked by opponents/edges
@@ -153,7 +157,10 @@ class EnvActionHandlerMixin:
                 special_reward += 3.0
                 
         elif action_name == "end_turn":
-            special_reward = 0.0
+            can_build_set = context["can_build_set_before"]
+            can_build_city = context["can_build_city_before"]
+            if len(context.get("spots_before", set())) >= 2 and not can_build_set and not can_build_city:
+                special_reward += 2.0
         elif action_name == "play_dev_card":
             if local_index in [2, 3, 4]:
                 special_reward = 2.5
@@ -190,9 +197,7 @@ class EnvActionHandlerMixin:
             can_build_city = context.get("can_build_city_before", False)
             
             if can_build_set or can_build_city:
-                # Scale penalty by the highest quality spot available
-                quality = context.get("max_quality_spot_before", 1.0)
-                special_reward -= 1.5 * quality
+                special_reward -= 5.0
 
         return special_reward
 
@@ -443,6 +448,9 @@ class EnvActionHandlerMixin:
             if port_type in PORT_TYPES:
                 port_flags[PORT_TYPES.index(port_type)] = 1.0
 
+        valid_spots = self.game.board.get_valid_settlement_spots(player)
+        open_spots = np.array([min(len(valid_spots), 5) / 5.0], dtype=np.float32)
+
         return np.concatenate([
             total_resources,
             res_counts,
@@ -453,7 +461,8 @@ class EnvActionHandlerMixin:
             largest_army,
             built_structs,
             knights_played,
-            port_flags
+            port_flags,
+            open_spots,
         ])
 
     def encode_others_info(self, others: List[CatanPlayer]) -> np.ndarray:
