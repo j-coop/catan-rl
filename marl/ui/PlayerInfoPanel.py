@@ -11,10 +11,10 @@ class PlayerInfoPanel(QWidget):
     def __init__(self, game: CatanGame, config):
         super().__init__()
         self.game = game
-        self.config = config  # player_name: is_AI_agent format
+        self.config = config  # player_name: choice (Human/AI/Bot) format
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-        self.setFixedWidth(210)
+        self.setFixedWidth(230)
         self.player_rows = {}
         self.refresh()
 
@@ -87,16 +87,31 @@ class PlayerInfoPanel(QWidget):
             v.setContentsMargins(8, 4, 8, 4)
 
             dot = "● " if is_active else ""
-            agent_icon = " 🤖" if self.config[player.name] else ""
-            name_label = QLabel(f"{dot}{player.name}{agent_icon}")
-            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            if is_active:
-                name_label.setFont(QFont("Arial", 16, QFont.Weight.Black))
-                name_label.setStyleSheet("color: white; font-style: italic;")
+            
+            choice = self.config.get(player.name, "Human")
+            if choice == "AI":
+                icon = " 🧠"
+                label = " AI"
+            elif "Bot" in choice:
+                icon = " 🤖"
+                level = choice.split()[-1]
+                label = f" BOT ({level})"
             else:
+                icon = " 👤"
+                label = "HUMAN"
+
+            clean_name = player.name.replace(' Player', '')
+            if is_active:
+                display_text = f"{dot}<i>{clean_name}</i>{icon}{label}"
+                name_label = QLabel(display_text)
+                name_label.setFont(QFont("Arial", 14, QFont.Weight.Black))
+            else:
+                display_text = f"{dot}{clean_name}{icon}{label}"
+                name_label = QLabel(display_text)
                 name_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-                name_label.setStyleSheet("color: white;")
+
+            name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            name_label.setStyleSheet("color: white;")
 
             points_label = QLabel()
             road_label = QLabel()
