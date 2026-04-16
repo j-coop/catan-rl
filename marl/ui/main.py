@@ -2,6 +2,7 @@ import platform
 import sys
 import os
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon
 
 from marl.env.ActionSpace import ActionSpace
 from marl.env.tianshou.multi_agent_env import CatanEnv
@@ -14,14 +15,23 @@ from marl.ui.controllers.HumanController import HumanController
 from marl.ui.controllers.AgentController import AgentController
 from marl.ui.controllers.BotController import BotController
 
-# Fix for Wayland/X11 if needed
+# Fix for Wayland/X11 and Windows Taskbar Icon if needed
 if platform.system() == "Windows":
     os.environ.setdefault("QT_QPA_PLATFORM", "windows")
+    import ctypes
+    # Ensure the taskbar icon shows correctly on Windows
+    myappid = 'catan_rl.v1.0'
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 elif platform.system() == "Linux":
     os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
 def main():
     app = QApplication(sys.argv)
+
+    # Set window icon
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    icon_path = os.path.join(script_dir, "assets", "icon.png")
+    app.setWindowIcon(QIcon(icon_path))
 
     setup = GameSetupWindow()
     setup.show()
