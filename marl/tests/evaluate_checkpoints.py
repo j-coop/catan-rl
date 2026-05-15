@@ -92,7 +92,7 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate all checkpoints and graph win percentage.")
     parser.add_argument("-n", "--num-games", type=int, default=400, help="Number of games per checkpoint")
     parser.add_argument("--checkpoints-dir", type=str, 
-                        default="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models\checkpoints",
+                        default="marl/env/tianshou/trained_models/checkpoints",
                         help="Directory containing .pt checkpoints")
     parser.add_argument("--agent-name", type=str, default="Blue Player", help="Name of the player controlled by the agent")
     parser.add_argument("--output-plot", type=str, default="win_rate_evolution.png", help="Path to save the result plot")

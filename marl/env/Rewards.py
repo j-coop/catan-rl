@@ -55,13 +55,13 @@ class Rewards:
         expansion_component = self.expansion_readiness(player)  # readiness to expand via settlements
 
         vp_weighted = 4.0 * vp_component
-        prod_weighted = 12.0 * prod_component
-        resource_weighted = 0.7 * resource_component
-        dev_weighted = 3.0 * dev_potential
+        prod_weighted = 10.0 * prod_component
+        resource_weighted = 0.3 * resource_component
+        dev_weighted = 1.0 * dev_potential
         port_weighted = 0.5 * port_potential
-        road_weighted = 2.0 * road_component
+        road_weighted = 3.0 * road_component
         risk_weighted = -0.3 * risk_component
-        expansion_weighted = 2.0 * expansion_component
+        expansion_weighted = 3.0 * expansion_component
         total_potential = (
             vp_weighted + prod_weighted + resource_weighted + dev_weighted
             + port_weighted + road_weighted + risk_weighted + expansion_weighted
@@ -175,14 +175,11 @@ class Rewards:
         Points also awarded for played knights (if not strongest army already)
         Victory point cards handled in vp_component
         """
-        dev = {
-            key: player.dev_cards.get(key, 0) + player.new_dev_cards.get(key, 0)
-            for key in player.dev_cards.keys() | player.new_dev_cards.keys()
-        }
+        dev = player.dev_cards
 
         value = (
             0.4 * dev.get("knight", 0) +
-            1.0 * ((player.knights_played * 0.7) ** 1.2) +
+            1.0 * ((player.knights_played * 0.7) ** 1.15) +
             0.5 * dev.get("road_building", 0) +
             0.6 * dev.get("monopoly", 0) +
             0.4 * dev.get("year_of_plenty", 0) +
@@ -217,7 +214,7 @@ class Rewards:
         They are useful but usually not rewarded by victory points, cards or resources
         Building road cannot decrease potential or it will be avoided
         """
-        num_roads_reward = 2.0 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 2.0, first roads more important
+        num_roads_reward = 3.0 * ((len(player.roads) / ROADS_PER_PLAYER) ** 0.5)  # max 3.0, first roads more important
 
         longest_road_chain = player.longest_road
         # no min(game_longest_road, 5) - encourages early chains, which enable settlements

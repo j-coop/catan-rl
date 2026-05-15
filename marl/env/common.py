@@ -13,8 +13,6 @@ from params.catan_constants import (
     GAMMA, MAX_PROBABILITY
 )
 from params.tiles2nodes_adjacency_map import TILES_TO_NODES
-from params.nodes2nodes_adjacency_map import NODES_TO_NODES
-from params.edges_list import EDGES_LIST
 
 
 class EnvActionHandlerMixin:
@@ -29,39 +27,9 @@ class EnvActionHandlerMixin:
     def _get_action_context(self, agent: str, action_name: str) -> Dict:
         """Capture state before action if needed for rewards (e.g. road building)."""
         context = {}
-        player = self.game.get_player(agent)
-        bank = self.game.bank
-        
-        context["total_cards_before"] = player.total_cards
-        context["phase_before"] = self.game.phase.name if hasattr(self.game.phase, 'name') else str(self.game.phase)
-        context["longest_road_before"] = player.longest_road
-        
-        # Build logic for opportunity cost (must be pre-action)
-        spots_avail = set(self.game.board.get_valid_settlement_spots(player))
-        can_afford_set = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement", bank)
-        can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
-        can_afford_road = player.can_afford_directly("road") or player.can_afford_with_trades("road", bank)
-        can_afford_dev = player.can_afford_directly("dev_card") or player.can_afford_with_trades("dev_card", bank)
-        
-        context["can_build_set_before"] = can_afford_set and player.settlements_remaining > 0 and len(spots_avail) > 0
-        context["can_build_city_before"] = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
-        context["can_build_road_before"] = can_afford_road and player.roads_remaining > 0 and len(self.game.board.get_valid_road_spots(player)) > 0
-        context["can_build_dev_before"] = can_afford_dev and len(bank.dev_cards_stack) > 0
-
-        max_quality = 0.0
-        if hasattr(self, 'reward_object') and self.reward_object:
-            for spot in spots_avail:
-                q = sum(self.reward_object.production_at_node(spot).values())
-                max_quality = max(max_quality, q)
-            for city_spot in player.settlements:
-                q = sum(self.reward_object.production_at_node(city_spot).values())
-                max_quality = max(max_quality, q)
-        context["max_quality_spot_before"] = max_quality
-        
-        if action_name == "choose_resource":
-            context["resource_held_before"] = player.resources.copy()
-
-        context["spots_before"] = spots_avail
+        if action_name == "build_road":
+            player = self.game.get_player(agent)
+            context["spots_before"] = set(self.game.board.get_valid_settlement_spots(player))
         return context
 
     def _calculate_special_reward(self, agent: str, action_name: str, local_index: int, context: Dict) -> float:
@@ -73,14 +41,7 @@ class EnvActionHandlerMixin:
         # Replicate logic from apply_action
         if action_name == "trade_bank":
             give, take = BANK_TRADE_PAIRS[local_index]
-            has_alternatives = context.get("can_build_road_before", False) or context.get("can_build_dev_before", False)
-            if take not in player.produced_resources:
-                # Good trade for missing resource
-                if not has_alternatives:
-                    special_reward += 2.0 if context.get("total_cards_before", 0) >= 7 else 1.0
-                else:
-                    special_reward += 1.0
-            elif player.is_bad_trade(give, take):
+            if player.is_bad_trade(give, take):
                 special_reward = -3.0
         elif action_name == "build_settlement":
             base = 0.5
@@ -90,7 +51,7 @@ class EnvActionHandlerMixin:
             
             port_type = self.game.board.ports[local_index]
             if port_type is not None:
-                special_reward += 0.2
+                special_reward += 0.5
                 if port_type == "3for1":
                     special_reward += 2.5
                 elif port_type in RESOURCE_TYPES:
@@ -106,63 +67,18 @@ class EnvActionHandlerMixin:
             quality = sum(prod_values)
             special_reward = base + (quality * 14.0)
         elif action_name == "build_road":
-            special_reward = 0.8
+            special_reward = 1.0
             # Context-based road reward
             spots_after = set(self.game.board.get_valid_settlement_spots(player))
-            spots_before = context.get("spots_before", set())
-            added_spots = spots_after - spots_before
+            new_spots = context.get("spots_before", set())
+            added_spots = spots_after - new_spots
             if added_spots:
-                spots_available_before = len(spots_before)
-                if spots_available_before < 2:
-                    quality = sum([sum(self.reward_object.production_at_node(s).values()) for s in added_spots])
-                    special_reward += 1.5 + quality * 3.0
-                # else: already had 2+ open spots — keep just the 0.8 baseline
-            else:
-                # Dead-end logic:
-                # Penalty only if expansion is literally blocked by opponents/edges
-                edge_nodes = EDGES_LIST[local_index]
-                is_total_dead = True
-                is_partial_dead = False
-                
-                for node_idx in edge_nodes:
-                    # Is this node itself a valid settlement spot?
-                    if not self._is_node_blocked(node_idx):
-                        is_total_dead = False
-                        continue
-                    
-                    # If blocked, check road-extension potential (neighbors)
-                    has_potential_extension = False
-                    for neighbor in NODES_TO_NODES.get(node_idx, []):
-                        if not self._is_node_blocked(neighbor):
-                            has_potential_extension = True
-                            is_total_dead = False
-                            break
-                    
-                    # Flag if this endpoint collision is an opponent settlement
-                    owner = self.game.board.nodes[node_idx]
-                    if owner is not None and owner != player.name:
-                        is_partial_dead = True
-                
-                if is_total_dead:
-                    special_reward = -1.0
-                elif is_partial_dead:
-                    special_reward = 0.0 # Remove baseline +1.0
-                else:
-                    # Standard road placement
-                    pass
-                
-            # Longest road jump reward (Connection Bonus)
-            jump = player.longest_road - context.get("longest_road_before", 0)
-            if jump >= 3:
-                special_reward += 3.0
-                
+                quality = sum([sum(self.reward_object.production_at_node(s).values()) for s in added_spots])
+                special_reward += 2.5 + quality * 3.0
         elif action_name == "end_turn":
-            can_build_set = context["can_build_set_before"]
-            can_build_city = context["can_build_city_before"]
-            if len(context.get("spots_before", set())) >= 2 and not can_build_set and not can_build_city:
-                special_reward += 2.0
+            special_reward = 0.0
         elif action_name == "play_dev_card":
-            if local_index in [2, 3, 4]:
+            if local_index in [2, 3, 4]: # Victory points/etc? check indices
                 special_reward = 2.5
             else:
                 special_reward = 1.5
@@ -172,32 +88,21 @@ class EnvActionHandlerMixin:
                 special_reward = 0.4
             else:
                 special_reward = 0.0
-                
-            # Monopoly mode stolen quantity tracking
-            if context.get("phase_before", "") == "MONOPOLY":
-                held_before = context.get("resource_held_before", {}).get(resource, 0)
-                stolen = player.resources.get(resource, 0) - held_before
-                special_reward += 0.2 * stolen
-                
-            # Check if this new resource enables a build that wasn't possible before
-            can_afford_set = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement", bank)
-            can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
-            if not context.get("can_build_set_before") and can_afford_set:
-                special_reward += 2.0
-            if not context.get("can_build_city_before") and can_afford_city:
-                special_reward += 2.0
-                
         elif action_name == "move_robber":
             if hasattr(self, "_counterfactual_robber_reward"):
                 special_reward = self._counterfactual_robber_reward(agent, local_index)
 
         # Opportunity cost penalties (not checking for settlements when possible)
         if action_name not in ("build_settlement", "build_city", "choose_resource", "move_robber"):
-            can_build_set = context.get("can_build_set_before", False)
-            can_build_city = context.get("can_build_city_before", False)
+            spots_avail = set(self.game.board.get_valid_settlement_spots(player))
+            can_afford_set = player.can_afford_directly("settlement") or player.can_afford_with_trades("settlement", bank)
+            can_afford_city = player.can_afford_directly("city") or player.can_afford_with_trades("city", bank)
+            
+            can_build_set = can_afford_set and player.settlements_remaining > 0 and len(spots_avail) > 0
+            can_build_city = can_afford_city and player.cities_remaining > 0 and len(player.settlements) > 0
             
             if can_build_set or can_build_city:
-                special_reward -= 5.0
+                special_reward += -5.0
 
         return special_reward
 
@@ -279,16 +184,6 @@ class EnvActionHandlerMixin:
     def is_end_turn_action(self, action):
         return action == self.actions.get_action_space_size() - 1
 
-    def _is_node_blocked(self, node_idx: int) -> bool:
-        """Returns True if the node is blocked by ANY building or the distance rule."""
-        board = self.game.board
-        if board.nodes[node_idx] is not None:
-            return True
-        for adj in NODES_TO_NODES.get(node_idx, []):
-            if board.nodes[adj] is not None:
-                return True
-        return False
-
     def compute_potential(self, agent):
         return self.reward_object.compute_potential(agent)
 
@@ -347,7 +242,8 @@ class EnvActionHandlerMixin:
             robber_flag = 1.0 if board.robber_position == i else 0.0
 
             # Spatial awareness: direct production info on this tile
-            prod_array = np.zeros(num_players, dtype=np.float32)
+            self_prod = 0.0
+            opp_prod = 0.0
             for node_idx in TILES_TO_NODES[i]:
                 owner_name = board.nodes[node_idx]
                 if owner_name is None:
@@ -362,17 +258,18 @@ class EnvActionHandlerMixin:
                 multiplier = 2.0 if node_idx in owner_player.cities else 1.0
                 
                 prod_yield = (prob / MAX_PROBABILITY) * multiplier
-                rel_idx = owner_to_relative_idx[owner_name]
-                prod_array[rel_idx] += prod_yield
+                if owner_name == rotated_agent_names[0]:
+                    self_prod += prod_yield
+                else:
+                    opp_prod += prod_yield
                 
             # Binary flags for "presence" (easier for net to parse than small floats)
-            has_building = (prod_array > 0).astype(np.float32)
+            self_has_building = 1.0 if self_prod > 0 else 0.0
+            opp_has_building = 1.0 if opp_prod > 0 else 0.0
 
             tile_feats.append(np.concatenate([
-                res_onehot,
-                [number_val, robber_flag],
-                np.minimum(prod_array / 2.0, 1.0),
-                has_building,
+                res_onehot, 
+                [number_val, robber_flag, self_prod, opp_prod, self_has_building, opp_has_building]
             ]))
         tile_feats = np.concatenate(tile_feats)
 
@@ -435,11 +332,6 @@ class EnvActionHandlerMixin:
         ])
 
         knights_played = np.array([player.knights_played / MAX_KNIGHTS])
-        total_resources = np.array([player.total_cards / 20.0], dtype=np.float32)
-
-        # Production probabilities (capped at 1.0)
-        prod_probs = player.get_production_probs(self.game.board)
-        prod_feats = np.array([min(prod_probs[res], 1.0) for res in RESOURCE_TYPES], dtype=np.float32)
 
         port_flags = np.zeros(len(PORT_TYPES), dtype=np.float32)
         owned_nodes = list(player.settlements) + list(player.cities)
@@ -448,21 +340,15 @@ class EnvActionHandlerMixin:
             if port_type in PORT_TYPES:
                 port_flags[PORT_TYPES.index(port_type)] = 1.0
 
-        valid_spots = self.game.board.get_valid_settlement_spots(player)
-        open_spots = np.array([min(len(valid_spots), 5) / 5.0], dtype=np.float32)
-
         return np.concatenate([
-            total_resources,
             res_counts,
-            prod_feats,
             dev_counts,
             victory_points,
             longest_road,
             largest_army,
             built_structs,
             knights_played,
-            port_flags,
-            open_spots,
+            port_flags
         ])
 
     def encode_others_info(self, others: List[CatanPlayer]) -> np.ndarray:
@@ -479,9 +365,6 @@ class EnvActionHandlerMixin:
                 if port_type in PORT_TYPES:
                     port_flags[PORT_TYPES.index(port_type)] = 1.0
 
-            prod_probs = p.get_production_probs(self.game.board)
-            prod_feats = np.array([min(prod_probs[res], 1.0) for res in RESOURCE_TYPES], dtype=np.float32)
-
             feats = np.concatenate([
                 np.array([
                     len(p.roads) / ROADS_PER_PLAYER,
@@ -491,10 +374,8 @@ class EnvActionHandlerMixin:
                     p.points / MAX_VICTORY_POINTS,
                     float(has_longest_road),
                     float(has_largest_army),
-                    p.knights_played / MAX_KNIGHTS,
-                    p.total_cards / 20.0
+                    p.knights_played / MAX_KNIGHTS
                 ], dtype=np.float32),
-                prod_feats,
                 port_flags
             ])
             features.append(feats)
