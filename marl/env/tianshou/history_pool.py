@@ -57,20 +57,25 @@ class _HeuristicWrapper:
 class HistoryPool:
     """
     Maintains a pool of opponent policies: historical model snapshots + heuristic bots.
-    Call refresh() periodically to load new checkpoints from disk.
-    Call sample_opponents(n) to get n random policies for one episode.
+
+    Snapshots are drawn from one or more checkpoint directories (Phase 1 and Phase 2
+    checkpoints are treated equally). refresh() uses stratified sampling to guarantee
+    opponents span the full training history, not just the most recent checkpoints.
+
+    sample_opponents(n) draws each slot independently with a 50% chance of picking a
+    heuristic bot and 50% chance of picking a model snapshot.
     """
 
     def __init__(
         self,
-        checkpoint_dir: str,
+        checkpoint_dirs: List[str],
         obs_dim: int,
         act_dim: int,
         device: torch.device,
         max_snapshots: int = 20,
         heuristic_levels: List[int] = None,
     ):
-        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_dirs = checkpoint_dirs
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         self.device = device
@@ -83,28 +88,44 @@ class HistoryPool:
         self.snapshots: List[_SnapshotActor] = []
         self._loaded_paths: set = set()
 
-    def refresh(self):
-        """Scan checkpoint_dir for new .pt files and load them (up to max_snapshots newest)."""
-        if not os.path.isdir(self.checkpoint_dir):
-            return
-
-        all_pts = [
-            f for f in os.listdir(self.checkpoint_dir)
-            if f.endswith(".pt")
+    @staticmethod
+    def _stratified_sample(sorted_pairs: list, n: int) -> list:
+        """
+        Pick n entries from sorted_pairs by dividing into n equal buckets and
+        choosing one randomly from each. Ensures coverage across the full range.
+        """
+        total = len(sorted_pairs)
+        if total <= n:
+            return list(sorted_pairs)
+        return [
+            random.choice(sorted_pairs[(i * total) // n : ((i + 1) * total) // n])
+            for i in range(n)
         ]
 
-        def _epoch(name):
-            m = re.search(r"(\d+)\.pt$", name)
+    def refresh(self):
+        """
+        Scan all checkpoint_dirs for .pt files, apply stratified sampling across
+        the full history, and load any new snapshots into memory.
+        """
+        all_pairs: List[tuple] = []  # (dir, fname)
+        for d in self.checkpoint_dirs:
+            if not os.path.isdir(d):
+                continue
+            for f in os.listdir(d):
+                if f.endswith(".pt"):
+                    all_pairs.append((d, f))
+
+        def _epoch(pair):
+            m = re.search(r"(\d+)\.pt$", pair[1])
             return int(m.group(1)) if m else -1
 
-        all_pts.sort(key=_epoch)
-        candidates = all_pts[-self.max_snapshots:]
+        all_pairs.sort(key=_epoch)
+        candidates = self._stratified_sample(all_pairs, self.max_snapshots)
 
         new_snapshots = []
-        for fname in candidates:
-            path = os.path.join(self.checkpoint_dir, fname)
+        for (d, fname) in candidates:
+            path = os.path.join(d, fname)
             if path in self._loaded_paths:
-                # Keep already-loaded actor
                 existing = next((s for s in self.snapshots if s.path == path), None)
                 if existing:
                     new_snapshots.append(existing)
@@ -122,16 +143,25 @@ class HistoryPool:
                 snap = _SnapshotActor(actor, path)
                 new_snapshots.append(snap)
                 self._loaded_paths.add(path)
-                print(f"[HistoryPool] Loaded snapshot: {fname}")
+                print(f"[HistoryPool] Loaded snapshot: {fname} from {d}")
             except Exception as e:
                 print(f"[HistoryPool] Failed to load {fname}: {e}")
 
         self.snapshots = new_snapshots
 
     def sample_opponents(self, n: int = 3) -> List[Any]:
-        """Return n policies sampled uniformly from the full pool."""
-        pool = self.heuristics + self.snapshots
-        return random.choices(pool, k=n)
+        """
+        Return n policies. Each slot is filled independently:
+        50% chance heuristic bot, 50% chance model snapshot.
+        Falls back to heuristics only if no snapshots are loaded.
+        """
+        result = []
+        for _ in range(n):
+            if not self.snapshots or random.random() < 0.5:
+                result.append(random.choice(self.heuristics))
+            else:
+                result.append(random.choice(self.snapshots))
+        return result
 
     def pool_size(self) -> int:
         return len(self.heuristics) + len(self.snapshots)

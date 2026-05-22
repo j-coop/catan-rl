@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     # ---- History Pool ----
     pool = HistoryPool(
-        checkpoint_dir=args.pool_dir,
+        checkpoint_dirs=[args.pool_dir, args.save_dir],
         obs_dim=obs_dim,
         act_dim=act_dim,
         device=device,
@@ -162,6 +162,20 @@ if __name__ == "__main__":
     checkpoint_logger = CheckpointLogger(log_dir=args.log_dir)
 
     def train_fn(epoch, env_step):
+        underlying_env = train_envs.workers[0].env
+        stats = underlying_env.get_epoch_stats()
+        if stats["total"] > 0:
+            algo.writer.add_scalar("ft/win_rate_epoch",     stats["win_rate"],     epoch)
+            algo.writer.add_scalar("ft/loss_rate_epoch",    stats["loss_rate"],    epoch)
+            algo.writer.add_scalar("ft/timeout_rate_epoch", stats["timeout_rate"], epoch)
+            print(
+                f"[Epoch {epoch}] win={stats['win_rate']:.2%} "
+                f"loss={stats['loss_rate']:.2%} "
+                f"timeout={stats['timeout_rate']:.2%} "
+                f"({stats['total']} games)"
+            )
+        underlying_env.reset_epoch_stats()
+
         if epoch % POOL_REFRESH_INTERVAL == 0:
             pool.refresh()
             print(f"[Epoch {epoch}] Pool refreshed: {pool}")

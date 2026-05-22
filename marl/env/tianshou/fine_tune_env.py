@@ -52,6 +52,10 @@ class FineTuneCatanEnv(gymnasium.Env):
         self._wins = 0
         self._losses = 0
         self._timeouts = 0
+        # Per-epoch counters (reset via reset_epoch_stats())
+        self._epoch_wins = 0
+        self._epoch_losses = 0
+        self._epoch_timeouts = 0
 
         inner_obs = self._inner.observation_spaces[TRAINEE]
         obs_dim = inner_obs["observation"].shape[0]
@@ -83,6 +87,7 @@ class FineTuneCatanEnv(gymnasium.Env):
         # Safety: force-terminate runaway games
         if self._trainee_steps >= MAX_EPISODE_TRAINEE_STEPS:
             self._timeouts += 1
+            self._epoch_timeouts += 1
             self._log_episode(outcome="TIMEOUT")
             obs = self._wrap_obs(self._inner.observe(TRAINEE))
             return obs, 0.0, True, False, {"timeout": True}
@@ -99,10 +104,12 @@ class FineTuneCatanEnv(gymnasium.Env):
             if winner == TRAINEE:
                 step_reward += WIN_REWARD_FT
                 self._wins += 1
+                self._epoch_wins += 1
                 self._log_episode(outcome="WIN")
             else:
                 step_reward += LOSS_PENALTY_FT
                 self._losses += 1
+                self._epoch_losses += 1
                 self._log_episode(outcome="LOSS")
 
         return self._wrap_obs(self._inner.observe(TRAINEE)), step_reward, terminated, False, {}
@@ -175,6 +182,20 @@ class FineTuneCatanEnv(gymnasium.Env):
             return int(np.random.choice(valid))
 
         return policy.select_action(obs_dict)
+
+    def get_epoch_stats(self) -> dict:
+        total = self._epoch_wins + self._epoch_losses + self._epoch_timeouts
+        if total == 0:
+            return {"win_rate": 0.0, "loss_rate": 0.0, "timeout_rate": 0.0, "total": 0}
+        return {
+            "win_rate":     self._epoch_wins    / total,
+            "loss_rate":    self._epoch_losses  / total,
+            "timeout_rate": self._epoch_timeouts / total,
+            "total":        total,
+        }
+
+    def reset_epoch_stats(self) -> None:
+        self._epoch_wins = self._epoch_losses = self._epoch_timeouts = 0
 
     def _log_episode(self, outcome: str):
         total = self._wins + self._losses + self._timeouts
