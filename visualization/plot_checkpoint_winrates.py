@@ -74,7 +74,7 @@ def main():
 
     # 25% random-chance reference
     ax.axhline(25, color="#555555", linewidth=1.0, linestyle="--",
-               label="Random baseline (25%)")
+               label="Baseline (25%)")
 
     ax.set_xlabel("Training epoch", fontsize=11)
     ax.set_ylabel("Win rate (%)", fontsize=11)
