@@ -1,166 +1,180 @@
+"""
+Evaluate a sample of base-training checkpoints against all three heuristic
+bot levels and save results to JSON for later plotting.
+
+Usage:
+    python marl/tests/evaluate_checkpoints.py \
+        --checkpoints-dir marl/env/tianshou/trained_models/checkpoints \
+        --every-n 10 \
+        --num-games 400 \
+        --output results/checkpoint_winrates.json
+
+The agent always occupies a single seat; position is rotated across all four
+slots (num_games / 4 per rotation) so turn-order bias is averaged out.
+"""
+
 import argparse
+import json
 import os
 import re
-import random
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from marl.env.tianshou.actor import MaskedActor
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
 from marl.env.tianshou.multi_agent_env import CatanEnv
+from marl.env.tianshou.heuristic_bot import HeuristicCatanPolicy
+from marl.tests.run_final_eval import load_actor, apply_action, make_trained_action
 
-# Reuse logic from agent_vs_random.py
-def load_actor(env: CatanEnv, model_path: str):
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Missing model file: {model_path}")
-    if hasattr(env, "get_observation_space_size"):
-        obs_dim = env.get_observation_space_size()
-    else:
-        obs_dim = len(env.get_observation(env.agents[0]))
-    act_dim = env.actions.get_action_space_size()
-    actor = MaskedActor(obs_dim, act_dim)
-    state = torch.load(model_path, map_location=actor.device)
-    if isinstance(state, dict):
-        state = state.get("policy", state.get("actor", state))
-    if isinstance(state, dict) and any(k.startswith("actor.") for k in state.keys()):
-        state = {k[len("actor."):]: v for k, v in state.items()}
-    actor.load_state_dict(state)
-    actor.eval()
-    return actor
+PLAYER_NAMES = ["Blue Player", "Purple Player", "Yellow Player", "Green Player"]
 
 
-def select_action(agent_name: str, env: CatanEnv, actor):
-    player = env.game.get_player(agent_name)
-    mask = env.actions.get_action_mask(player)
-    valid_indices = [i for i, v in enumerate(mask) if v]
-    if not valid_indices:
-        raise RuntimeError(f"No valid actions for {agent_name}")
-    if actor is None:
-        return random.choice(valid_indices)
-    obs_vec = env.get_observation(agent_name)
-    if hasattr(obs_vec, "ndim") and obs_vec.ndim == 1:
-        obs_vec = obs_vec[None, :]
-    if hasattr(mask, "ndim") and mask.ndim == 1:
-        mask = [mask]
-    obs = {"observation": obs_vec, "action_mask": mask}
-    with torch.no_grad():
-        logits, _ = actor(obs)
-    return int(torch.argmax(logits).item())
+def make_heuristic_action(env: CatanEnv, agent_name: str, bot: HeuristicCatanPolicy) -> int:
+    obs_dict = env.observe(agent_name)
+    mask = obs_dict["action_mask"]
+    obs_vec = obs_dict["observation"]
+    valid_indices = np.where(mask == 1)[0]
+    if len(valid_indices) == 0:
+        return 230
+    if bot.level == 1:
+        return int(np.random.choice(valid_indices))
+    return int(bot._choose_heuristic_action(mask, valid_indices, bot.level, obs_vec))
 
 
-def apply_action(agent_name: str, action: int, env: CatanEnv):
-    for spec in env.actions.action_specs:
-        start, end = spec.range
-        if start <= action < end:
-            local_index = action - start
-            if spec.name == "end_turn":
-                env.game.end_turn(is_ui_action=False)
-            else:
-                spec.handler(agent_name, local_index)
-            return spec.name
-    raise ValueError(f"Invalid action index: {action}")
+def run_single_game(env: CatanEnv, trained_slot: int, actor, bot: HeuristicCatanPolicy) -> str:
+    env.reset()
+    env.step_counter = 0
+    while not env.game.game_over:
+        current = env.agent_selection
+        slot = PLAYER_NAMES.index(current)
+        if slot == trained_slot:
+            action = make_trained_action(env, current, actor)
+        else:
+            action = make_heuristic_action(env, current, bot)
+        action_type = apply_action(current, action, env)
+        if action_type == "end_turn":
+            env.agent_selection = env.game.current_player.name
+            env.game.handle_dice_roll()
+    return env.game.winner
 
 
-def run_games(num_games: int, agent_names: list[str], model_path: str, seed: int | None):
-    if seed is not None:
-        random.seed(seed)
-        torch.manual_seed(seed)
-    
+def evaluate_checkpoint(model_path: str, bot_level: int, num_games: int, pbar: tqdm) -> float:
+    """Return win rate for the agent in model_path against bot_level bots."""
     env = CatanEnv()
     actor = load_actor(env, model_path)
-    
-    wins = {agent: 0 for agent in ["Blue Player", "Purple Player", "Yellow Player", "Green Player"]}
-    
-    for _ in range(num_games):
-        env.reset()
-        env.step_counter = 0
-        while not env.game.game_over:
-            current = env.agent_selection
-            if current in agent_names:
-                action = select_action(current, env, actor)
-            else:
-                action = select_action(current, env, None)
-            action_type = apply_action(current, action, env)
-            if action_type == "end_turn":
-                env.agent_selection = env.game.current_player.name
-                env.game.handle_dice_roll()
-        wins[env.game.winner] = wins.get(env.game.winner, 0) + 1
-    return wins
+    bot = HeuristicCatanPolicy(level=bot_level)
+
+    games_per_slot = num_games // 4
+    remainder = num_games % 4
+    wins = 0
+    total = 0
+
+    for slot in range(4):
+        n = games_per_slot + (1 if slot < remainder else 0)
+        trained_name = PLAYER_NAMES[slot]
+        for _ in range(n):
+            winner = run_single_game(env, slot, actor, bot)
+            if winner == trained_name:
+                wins += 1
+            pbar.update(1)
+        total += n
+
+    return wins / total if total > 0 else 0.0
+
+
+def select_checkpoints(files: list[str], every_n: int) -> list[str]:
+    """Keep every Nth file from the sorted list (index 0, N, 2N, …, last)."""
+    selected = files[::every_n]
+    # always include the last checkpoint
+    if files[-1] not in selected:
+        selected = selected + [files[-1]]
+    return selected
+
+
+def extract_number(filename: str) -> int:
+    match = re.search(r"(\d+)", filename)
+    return int(match.group(1)) if match else 0
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate all checkpoints and graph win percentage.")
-    parser.add_argument("-n", "--num-games", type=int, default=400, help="Number of games per checkpoint")
-    parser.add_argument("--checkpoints-dir", type=str, 
-                        default="/home/student/Dokumenty/s184725/magisterka/catan-rl/trained_models\checkpoints",
-                        help="Directory containing .pt checkpoints")
-    parser.add_argument("--agent-name", type=str, default="Blue Player", help="Name of the player controlled by the agent")
-    parser.add_argument("--output-plot", type=str, default="win_rate_evolution.png", help="Path to save the result plot")
-    parser.add_argument("--seed", type=int, default=None, help="Random seed")
-    parser.add_argument("--max-checkpoints", type=int, default=None, help="Limit number of checkpoints to evaluate for speed")
+    parser = argparse.ArgumentParser(
+        description="Evaluate checkpoints vs heuristic bots; save results to JSON."
+    )
+    parser.add_argument("--checkpoints-dir", type=str,
+                        default="marl/env/tianshou/trained_models/checkpoints",
+                        help="Directory containing .pt checkpoint files")
+    parser.add_argument("--every-n", type=int, default=10,
+                        help="Evaluate every Nth checkpoint (default: 10)")
+    parser.add_argument("--num-games", type=int, default=400,
+                        help="Games per checkpoint per bot level (split across 4 positions)")
+    parser.add_argument("--bot-levels", type=str, default="1,2,3",
+                        help="Comma-separated bot levels to evaluate against")
+    parser.add_argument("--output", type=str, default="results/checkpoint_winrates.json",
+                        help="Output JSON path")
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
-    checkpoints_path = os.path.abspath(args.checkpoints_dir)
-    if not os.path.exists(checkpoints_path):
-        # Try relative to repo root if not found
-        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-        checkpoints_path = os.path.join(repo_root, args.checkpoints_dir)
-        if not os.path.exists(checkpoints_path):
-            raise FileNotFoundError(f"Checkpoints directory not found: {args.checkpoints_dir}")
+    if args.seed is not None:
+        import random
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
 
-    # List all .pt files
-    files = [f for f in os.listdir(checkpoints_path) if f.endswith(".pt")]
-    
-    # Sort files numerically
-    def extract_number(filename):
-        match = re.search(r"(\d+)", filename)
-        return int(match.group(1)) if match else 0
+    checkpoints_path = Path(args.checkpoints_dir)
+    if not checkpoints_path.exists():
+        checkpoints_path = ROOT.parent / args.checkpoints_dir
+    if not checkpoints_path.exists():
+        raise FileNotFoundError(f"Checkpoints dir not found: {args.checkpoints_dir}")
 
-    files.sort(key=extract_number)
+    bot_levels = [int(x) for x in args.bot_levels.split(",")]
 
-    if args.max_checkpoints:
-        files = files[:args.max_checkpoints]
+    all_files = sorted(
+        [f for f in os.listdir(checkpoints_path) if f.endswith(".pt")],
+        key=extract_number,
+    )
+    if not all_files:
+        raise RuntimeError(f"No .pt files found in {checkpoints_path}")
 
-    print(f"Found {len(files)} checkpoints. Evaluating each for {args.num_games} games...")
+    selected = select_checkpoints(all_files, args.every_n)
+    print(f"Found {len(all_files)} checkpoints, evaluating {len(selected)} "
+          f"(every {args.every_n}), {args.num_games} games × {len(bot_levels)} levels each.")
 
-    checkpoint_nums = []
-    win_rates = []
+    total_games = len(selected) * len(bot_levels) * args.num_games
+    results = []
+    with tqdm(total=total_games, desc="Games", unit="game") as pbar:
+        for filename in tqdm(selected, desc="Checkpoints", position=1, leave=False):
+            checkpoint_num = extract_number(filename)
+            full_path = str(checkpoints_path / filename)
+            entry = {"checkpoint": checkpoint_num, "win_rates": {}}
+            for level in bot_levels:
+                pbar.set_postfix(checkpoint=checkpoint_num, level=level)
+                wr = evaluate_checkpoint(full_path, level, args.num_games, pbar)
+                entry["win_rates"][str(level)] = round(wr, 4)
+            results.append(entry)
 
-    for filename in tqdm(files, desc="Evaluating checkpoints"):
-        full_path = os.path.join(checkpoints_path, filename)
-        num = extract_number(filename)
-        
-        wins = run_games(args.num_games, [args.agent_name], full_path, args.seed)
-        total = sum(wins.values())
-        agent_wins = wins.get(args.agent_name, 0)
-        win_rate = (agent_wins / total) * 100 if total > 0 else 0.0
-        
-        checkpoint_nums.append(num)
-        win_rates.append(win_rate)
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "metadata": {
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "checkpoints_dir": str(checkpoints_path),
+            "every_n": args.every_n,
+            "num_games": args.num_games,
+            "bot_levels": bot_levels,
+            "num_checkpoints_evaluated": len(selected),
+        },
+        "results": results,
+    }
+    with open(output_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"\nSaved: {output_path}")
 
-    # Plot results
-    plt.figure(figsize=(12, 6))
-    plt.plot(checkpoint_nums, win_rates, marker='o', linestyle='-', color='b')
-    plt.title(f"Agent Win Percentage Evolution ({args.agent_name} vs Random)")
-    plt.xlabel("Checkpoint Number")
-    plt.ylabel("Win Percentage (%)")
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.ylim(0, 100)
-    
-    # Add a horizontal line for random chance (25% in 4-player game)
-    plt.axhline(y=25, color='r', linestyle='--', label='Random Chance (25%)')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.savefig(args.output_plot)
-    print(f"Saved plot to {args.output_plot}")
-    
-    # Also print final summary
-    print("\nEvaluation Summary:")
-    print(f"{'Checkpoint':<12} | {'Win Rate (%)':<12}")
-    print("-" * 27)
-    for num, rate in zip(checkpoint_nums, win_rates):
-        print(f"{num:<12} | {rate:<12.1f}")
 
 if __name__ == "__main__":
     main()

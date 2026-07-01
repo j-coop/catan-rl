@@ -19,14 +19,20 @@ def mask_fn(env) -> np.ndarray:
 Init placement model adapter class
 """
 class InitPlacementModel:
+    _model_cache: dict[str, "MaskablePPO"] = {}
+
     def __init__(
             self,
             settlement_model_path: str,
             road_model_path: str,
             board: CatanBoard
         ):
-        self.settlement_model = MaskablePPO.load(settlement_model_path)
-        self.road_model = MaskablePPO.load(road_model_path)
+        if settlement_model_path not in self._model_cache:
+            self._model_cache[settlement_model_path] = MaskablePPO.load(settlement_model_path)
+        if road_model_path not in self._model_cache:
+            self._model_cache[road_model_path] = MaskablePPO.load(road_model_path)
+        self.settlement_model = self._model_cache[settlement_model_path]
+        self.road_model = self._model_cache[road_model_path]
         self.board = board
 
         # Order of placing settlements and roads

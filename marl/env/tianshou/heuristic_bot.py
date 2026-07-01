@@ -42,18 +42,28 @@ class HeuristicCatanPolicy:
         return {}
 
     def _parse_obs(self, obs_vec):
-        # BOARD_SPACE_SIZE = 1290
+        # BOARD_SPACE_SIZE = 1290  (19*12 tiles + 72*5 roads + 54*13 nodes)
         # SELF_SPACE_SIZE = 23
-        # Tile feats: 19 * 12
         # Tile: [0:6] res, [6] num, [7] robber, [8] self_prod, [9] opp_prod, [10] self_has, [11] opp_has
-        
+        # Self: [0:5] res_counts/19, [5:10] dev_counts, [10] vp, [11] longest_road,
+        #       [12] largest_army, [13:16] built_structs, [16] knights, [17:23] ports
+
         tile_feats = obs_vec[0:228].reshape(19, 12)
-        self_feats = obs_vec[1290:1319]
-        
-        total_res = self_feats[0] * 20.0 # total cards normalized by 20.0
-        res_counts = self_feats[1:6] # wood, brick, sheep, wheat, ore
-        prod = self_feats[6:11] # Wood, brick, sheep, wheat, ore production probs
-                
+        self_feats = obs_vec[1290:1313]  # 23 features
+
+        res_counts = self_feats[0:5]  # wood, brick, sheep, wheat, ore (normalized by 19)
+        total_res = float(res_counts.sum()) * 19.0  # approximate raw card count
+
+        # Compute per-resource production from tile features (self_has_building at index 10)
+        prod = np.zeros(5)
+        for tile in tile_feats:
+            if tile[10] > 0:  # self has building on this tile
+                res_type = int(np.argmax(tile[0:6]))
+                if res_type < 5:  # not desert
+                    num = int(round(tile[6] * 12.0))
+                    prob = DICE_PROBABILITIES.get(num, 0.0)
+                    prod[res_type] += prob
+
         return {
             "tile_feats": tile_feats,
             "res_counts": res_counts,
